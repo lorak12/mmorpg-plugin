@@ -1,0 +1,16 @@
+name: mmorpg
+version: '0.1'
+main: org.nakii.mmorpg.MMORPGCore
+api-version: '1.21'
+author: nakii
+description: A comprehensive MMORPG plugin for Spigot.
+commands:
+  mmorpg:
+    description: Base command for MMORPGCore admin functions.
+    usage: /mmorpg <give|spawn|reload>
+  stats:
+    description: Displays your character stats.
+    usage: /stats
+  skills:
+    description: Opens the skill menu.
+    usage: /skills

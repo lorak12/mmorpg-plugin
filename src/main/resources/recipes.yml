@@ -1,0 +1,47 @@
+# ---------------------------------------------------
+# MMORPGCore Custom Crafting Recipes
+# ---------------------------------------------------
+#
+# Each key under 'recipes' is a unique ID for your recipe.
+#
+# result: The item_id of the custom item to be crafted.
+# amount: (Optional) The amount of the item to craft. Defaults to 1.
+# type: 'shaped' or 'shapeless'.
+#
+# For SHAPED recipes:
+#   shape: A list of 1, 2, or 3 strings representing the crafting grid.
+#   ingredients: A map where each character in the shape corresponds to an item.
+#
+# For SHAPELESS recipes:
+#   ingredients: A list of items required.
+#
+# --- Item Format ---
+# Vanilla items: Use the Material name (e.g., 'DIAMOND', 'STICK').
+# Custom items: Use the prefix 'custom:' followed by the item_id (e.g., 'custom:fire_essence').
+#
+# ---------------------------------------------------
+
+recipes:
+  # A special item we'll use as a crafting component.
+  fire_essence_recipe:
+    result: 'fire_essence' # Assuming 'fire_essence' is defined in your items folder.
+    amount: 1
+    type: 'shapeless'
+    ingredients:
+      - 'BLAZE_POWDER'
+      - 'BLAZE_POWDER'
+      - 'MAGMA_CREAM'
+      - 'NETHER_WART'
+
+  # A shaped recipe that uses both vanilla and custom items.
+  fire_sword_recipe:
+    result: 'fire_sword'
+    amount: 1
+    type: 'shaped'
+    shape:
+      - " F "
+      - " F "
+      - " S "
+    ingredients:
+      F: 'custom:fire_essence'
+      S: 'STICK'

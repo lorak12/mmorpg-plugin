@@ -1,0 +1,39 @@
+# This is an example item file.
+# You can create as many .yml files as you want in this folder.
+# The plugin will load all of them.
+
+fire_sword:
+  material: DIAMOND_SWORD
+  unbreakable: true
+  custom_model_data: 1
+  display_name: "<red>Fire Sword</red>"
+  lore:
+    - "<gray>A legendary blade forged in dragon's breath.</gray>"
+    - ""
+    - "<dark_red>Strength: <red>+15</red></dark_red>"
+    - "<gold>Crit Chance: <yellow>+10%</yellow></gold>"
+    - "<gold>Crit Damage: <yellow>+50%</yellow></gold>"
+  stats:
+    strength: 15
+    crit_chance: 10
+    crit_damage: 50
+  allowed_enchantments:
+    - sharpness
+    - fire_aspect
+    - unbreaking
+    - mending
+
+frost_blade:
+  material: IRON_SWORD
+  unbreakable: true
+  custom_model_data: 2
+  display_name: "<aqua>Frost Blade</aqua>"
+  lore:
+    - "<gray>A chilling blade that freezes the very air around it.</gray>"
+    - ""
+    - "<blue>Tenacity: <aqua>+20</aqua></blue>"
+  stats:
+    tenacity: 20
+  allowed_enchantments:
+    - sharpness
+    - unbreaking
