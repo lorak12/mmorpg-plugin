@@ -1,0 +1,32 @@
+# ---------------------------------------------------
+# MMORPGCore Custom Spawning Zones
+# ---------------------------------------------------
+#
+# Create and manage zones in-game with the /mmorpg zone <...> commands.
+# This file serves as the storage for those zones.
+#
+# world: The name of the world the zone is in.
+# pos1 & pos2: The two corners defining the zone's bounding box.
+# mobs: A list of custom mobs that can spawn here.
+#   - id: The mob_id from mobs.yml.
+#   - spawn_chance: A value from 0.0 to 1.0. This is checked every spawn cycle for each player in the zone.
+#   - max_in_zone: The maximum number of this mob type allowed within the zone's boundaries at any time.
+#
+# ---------------------------------------------------
+
+zones:
+  haunted_crypt:
+    world: "world"
+    pos1:
+      x: 100.0
+      y: 50.0
+      z: 200.0
+    pos2:
+      x: 200.0
+      y: 70.0
+      z: 300.0
+    mobs:
+      # Ghoul minions are the common enemy here.
+      - id: "ghoul_minion"
+        spawn_chance: 0.15 # 15% chance to spawn per cycle
+        max_in_zone: 10

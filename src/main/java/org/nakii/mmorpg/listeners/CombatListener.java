@@ -7,7 +7,9 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.entity.ability.TriggerType;
 import org.nakii.mmorpg.skills.Skill;
 
 public class CombatListener implements Listener {
@@ -37,7 +39,34 @@ public class CombatListener implements Listener {
             }
         }
 
+        // Handle Abilities
+        if (plugin.getMobManager().isCustomMob(attacker)) {
+            plugin.getAbilityManager().handleTrigger(TriggerType.ON_ATTACK, attacker, victim);
+        }
+        if (plugin.getMobManager().isCustomMob(victim)) {
+            plugin.getAbilityManager().handleTrigger(TriggerType.ON_DAMAGED, victim, attacker);
+        }
+
         plugin.getDamageManager().handleDamage(attacker, victim, event.getCause());
         event.setDamage(0);
+    }
+
+    @EventHandler
+    public void onEntityDeath(EntityDeathEvent event) {
+        LivingEntity deadEntity = event.getEntity();
+        if (plugin.getMobManager().isCustomMob(deadEntity)) {
+            // Handle loot tables here in the future
+            event.getDrops().clear();
+            event.setDroppedExp(0);
+
+            // Get the killer if it's a player
+            Player killer = deadEntity.getKiller();
+
+            // NEW: Call the LootManager to process custom drops
+            plugin.getLootManager().processLoot(deadEntity, killer);
+
+            // Trigger ON_DEATH abilities
+            plugin.getAbilityManager().handleTrigger(TriggerType.ON_DEATH, deadEntity, deadEntity.getKiller());
+        }
     }
 }

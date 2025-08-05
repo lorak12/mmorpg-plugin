@@ -20,18 +20,23 @@ public class HealthManager {
         startHealthRegenTask();
     }
 
+    // Original method for players
     public void registerEntity(LivingEntity entity) {
-        double baseHealth;
-        if (entity instanceof Player) {
-            baseHealth = plugin.getStatsManager().getStats((Player) entity).getHealth();
-        } else {
-            // Default health for mobs, can be customized later
-            baseHealth = 20.0;
-        }
-        maxHealth.put(entity.getUniqueId(), baseHealth);
-        currentHealth.put(entity.getUniqueId(), baseHealth);
+        registerEntity(entity, 0); // Defaults to 0, will be pulled from stats
+    }
 
-        // Keep vanilla health bar full for visual control
+    // NEW overloaded method for mobs
+    public void registerEntity(LivingEntity entity, double initialHealth) {
+        double maxHP;
+        if (entity instanceof Player) {
+            maxHP = plugin.getStatsManager().getStats((Player) entity).getHealth();
+        } else {
+            maxHP = initialHealth;
+        }
+        maxHealth.put(entity.getUniqueId(), maxHP);
+        currentHealth.put(entity.getUniqueId(), maxHP);
+
+        // Keep vanilla health bar full
         entity.setHealth(entity.getMaxHealth());
     }
 
