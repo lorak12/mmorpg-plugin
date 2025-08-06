@@ -10,43 +10,25 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
-    // Spigot repository
-    maven {
-        name = "spigot-repo"
-        url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
-    }
-    // FIXED: The correct repository for LibsDisguises, as per the official documentation.
-    maven {
-        name = "md5-repo"
-        url = uri("https://repo.md-5.net/content/groups/public/")
-    }
-    // Repository for EffectLib
-    maven {
-        name = "elmakers-repo"
-        url = uri("https://maven.elmakers.com/repository/")
-    }
-    // NEW: The repository for PacketEvents
-    maven { url = uri("https://repo.codemc.io/repository/maven-releases/") }
-
-    maven { url = uri("https://repo.codemc.io/repository/maven-snapshots/") }
+    // Paper's official repository
+    maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
+    maven { name = "spigot-repo"; url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
+    maven { name = "md5-repo"; url = uri("https://repo.md-5.net/content/groups/public/") }
+    maven { name = "elmakers-repo"; url = uri("https://maven.elmakers.com/repository/") }
 }
 
 dependencies {
-    // Spigot API - Provided by the server at runtime
-    compileOnly("org.spigotmc:spigot-api:1.21-R0.1-SNAPSHOT")
+    // Switched to paper-api
+    compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
 
-    // SQLite Driver - Bundled into our plugin by Shadow
     implementation("org.xerial:sqlite-jdbc:3.36.0.3")
 
-    // LibsDisguises API - Provided by the LibsDisguises plugin at runtime
-    // FIXED: Using the correct group, name, and version from the official documentation.
-    // NOTE: Switched from 'implementation' to 'compileOnly' which is correct for Spigot plugins.
     compileOnly(group = "me.libraryaddict.disguises", name = "libsdisguises", version = "11.0.0")
+    compileOnly("com.elmakers.mine.bukkit:EffectLib:9.3")
 
-    // EffectLib API - Provided by the EffectLib plugin at runtime
-    implementation("com.elmakers.mine.bukkit:EffectLib:10.2")
-    // BUG FIX: Add the PacketEvents API as a transitive dependency for LibsDisguises.
-    compileOnly("com.github.retrooper:packetevents-spigot:2.9.3")
+    implementation("net.kyori:adventure-api:4.17.0")
+    implementation("net.kyori:adventure-platform-bukkit:4.3.2")
+    implementation("net.kyori:adventure-text-minimessage:4.17.0")
 }
 
 tasks.withType<JavaCompile> {
@@ -55,6 +37,7 @@ tasks.withType<JavaCompile> {
 
 tasks.withType<ShadowJar> {
     archiveClassifier.set("")
+    relocate("net.kyori", "org.nakii.mmorpg.libs.kyori")
 }
 
 tasks.build {

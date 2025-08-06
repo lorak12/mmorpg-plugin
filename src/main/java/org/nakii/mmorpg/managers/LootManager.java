@@ -42,7 +42,11 @@ public class LootManager {
 
         for (String lootKey : lootTable.getKeys(false)) {
             ConfigurationSection lootInfo = lootTable.getConfigurationSection(lootKey);
-            if (lootInfo == null) continue;
+            if (lootInfo == null){
+                // FIX: Add logging
+                plugin.getLogger().warning("Mob '" + mobId + "' has no loot_table section in mobs.yml.");
+                return;
+            }
 
             double baseDropChance = lootInfo.getDouble("drop_chance", 0.0);
             boolean lootingSensitive = lootInfo.getBoolean("looting_sensitive", false);

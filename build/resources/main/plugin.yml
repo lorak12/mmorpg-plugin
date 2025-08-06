@@ -6,7 +6,7 @@ author: Nakii
 description: A comprehensive MMORPG plugin for Spigot.
 
 # Soft dependencies ensure these plugins are loaded before ours, if they exist.
-softdepend: [LibsDisguises, EffectLib, PacketEvents]
+softdepend: [LibsDisguises, EffectLib]
 
 commands:
   mmorpg:

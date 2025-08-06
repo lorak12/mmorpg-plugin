@@ -54,19 +54,19 @@ public class CombatListener implements Listener {
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
         LivingEntity deadEntity = event.getEntity();
-        if (plugin.getMobManager().isCustomMob(deadEntity)) {
-            // Handle loot tables here in the future
+        String mobId = plugin.getMobManager().getMobId(deadEntity);
+
+        // FIX: Add logging to see if the mob is being identified correctly.
+        if (mobId != null) {
+            plugin.getLogger().info("A custom mob with ID '" + mobId + "' has died. Processing loot and abilities...");
+
             event.getDrops().clear();
             event.setDroppedExp(0);
 
-            // Get the killer if it's a player
             Player killer = deadEntity.getKiller();
 
-            // NEW: Call the LootManager to process custom drops
             plugin.getLootManager().processLoot(deadEntity, killer);
-
-            // Trigger ON_DEATH abilities
-            plugin.getAbilityManager().handleTrigger(TriggerType.ON_DEATH, deadEntity, deadEntity.getKiller());
+            plugin.getAbilityManager().handleTrigger(TriggerType.ON_DEATH, deadEntity, killer);
         }
     }
 }

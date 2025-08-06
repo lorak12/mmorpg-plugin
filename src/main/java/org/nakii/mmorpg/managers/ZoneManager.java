@@ -85,31 +85,33 @@ public class ZoneManager {
         ConfigurationSection mobsSection = zone.getConfig().getConfigurationSection("mobs");
         if (mobsSection == null) return;
 
-        for (String key : mobsSection.getKeys(false)) {
+        for (String key : mobsSection.getKeys(false)) { // Note: The key here is the mob ID in the config
             ConfigurationSection mobInfo = mobsSection.getConfigurationSection(key);
             if (mobInfo == null) continue;
 
             double spawnChance = mobInfo.getDouble("spawn_chance");
-            if (ThreadLocalRandom.current().nextDouble() > spawnChance) {
+
+            // BUG FIX: The check should be LESS THAN the chance, not greater than.
+            if (ThreadLocalRandom.current().nextDouble() >= spawnChance) {
                 continue;
             }
 
             int maxInZone = mobInfo.getInt("max_in_zone");
             String mobId = mobInfo.getString("id");
 
+            // BUG FIX: More efficient entity counting within the zone's bounds.
+            Collection<Entity> entitiesInZone = zone.getWorld().getNearbyEntities(zone.getBounds());
             int currentCount = 0;
-            for (Entity entity : zone.getWorld().getEntitiesByClass(LivingEntity.class)) {
-                if (zone.contains(entity.getLocation())) {
-                    String id = entity.getPersistentDataContainer().get(new NamespacedKey(plugin, "mob_id"), PersistentDataType.STRING);
-                    if (mobId.equalsIgnoreCase(id)) {
-                        currentCount++;
-                    }
+            for (Entity entity : entitiesInZone) {
+                String id = entity.getPersistentDataContainer().get(new NamespacedKey(plugin, "mob_id"), PersistentDataType.STRING);
+                if (mobId.equalsIgnoreCase(id)) {
+                    currentCount++;
                 }
             }
 
             if (currentCount < maxInZone) {
                 spawnMobNearPlayer(mobId, player);
-                return; // Only spawn one mob per cycle to prevent clusters
+                return;
             }
         }
     }

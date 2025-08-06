@@ -2,13 +2,16 @@ package org.nakii.mmorpg.managers;
 
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.MMORPGCore;
-import org.nakii.mmorpg.stats.PlayerStats;
+import org.nakii.mmorpg.entity.CustomMob;
+import org.nakii.mmorpg.utils.ChatUtils;
 
 import java.text.DecimalFormat;
 import java.util.concurrent.ThreadLocalRandom;
@@ -16,59 +19,65 @@ import java.util.concurrent.ThreadLocalRandom;
 public class DamageManager {
 
     private final MMORPGCore plugin;
-    private static final DecimalFormat df = new DecimalFormat("#.##");
+    private static final DecimalFormat df = new DecimalFormat("#.#");
 
     public DamageManager(MMORPGCore plugin) {
         this.plugin = plugin;
     }
 
     public void handleDamage(LivingEntity attacker, LivingEntity victim, EntityDamageEvent.DamageCause cause) {
-        if (cause != EntityDamageEvent.DamageCause.ENTITY_ATTACK && cause != EntityDamageEvent.DamageCause.PROJECTILE) {
-            return;
-        }
+        if (cause != EntityDamageEvent.DamageCause.ENTITY_ATTACK && cause != EntityDamageEvent.DamageCause.PROJECTILE) return;
 
-        PlayerStats attackerStats = getEntityStats(attacker);
-        PlayerStats victimStats = getEntityStats(victim);
+        double attackerStrength = (attacker instanceof Player) ? plugin.getStatsManager().getStats((Player) attacker).getStrength() : plugin.getMobManager().getMobStrength(attacker);
 
-        double damage = attackerStats.getStrength();
-        boolean isCrit = ThreadLocalRandom.current().nextDouble(100) < attackerStats.getCritChance();
-        if (isCrit) {
-            damage *= 1 + (attackerStats.getCritDamage() / 100.0);
-        }
+        double damage = attackerStrength; // Simplified for now
 
-        double defense = victimStats.getArmor();
-        double armorPen = attackerStats.getArmorPenetration();
-        double effectiveArmor = Math.max(0, defense * (1 - (armorPen / 100.0)));
-        double damageReduction = effectiveArmor / (effectiveArmor + 100);
-        damage *= (1 - damageReduction);
-
-        applyFinalDamage(victim, damage, isCrit);
-    }
-
-    private void applyFinalDamage(LivingEntity victim, double damage, boolean isCrit) {
         HealthManager healthManager = plugin.getHealthManager();
         double currentHealth = healthManager.getCurrentHealth(victim);
         double newHealth = currentHealth - damage;
-
         healthManager.setCurrentHealth(victim, newHealth);
-        spawnDamageIndicator(victim.getLocation(), damage, isCrit);
 
-        if (!(victim instanceof Player)) {
-            updateMobHealthDisplay(victim);
-        }
+        spawnDamageIndicator(victim.getLocation(), damage, false);
+
+        // Update name display for BOTH custom and natural mobs with health
+        updateMobHealthDisplay(victim);
 
         if (newHealth <= 0) {
-            victim.setHealth(0); // Trigger the vanilla death event
+            victim.setHealth(0);
         }
     }
 
-    private PlayerStats getEntityStats(LivingEntity entity) {
-        if (entity instanceof Player) {
-            return plugin.getStatsManager().getStats((Player) entity);
+    /**
+     * Centralized method to update the name display of ANY living entity with health values.
+     */
+    public void updateMobHealthDisplay(LivingEntity mob) {
+        if (!mob.isValid()) return;
+
+        double current = plugin.getHealthManager().getCurrentHealth(mob);
+        double max = plugin.getHealthManager().getMaxHealth(mob);
+        String name;
+
+        if (plugin.getMobManager().isCustomMob(mob)) {
+            // Logic for Custom Mobs
+            CustomMob customMob = plugin.getMobManager().getCustomMob(plugin.getMobManager().getMobId(mob));
+            if (customMob == null) return;
+            name = "<gray>[Lv. " + customMob.getConfig().getInt("level") + "] " + customMob.getDisplayName() + " <red>[" + df.format(current) + "/" + df.format(max) + "]";
+        } else {
+            // Logic for Natural Mobs
+            // FINAL FIX: Use mob.getType().name() to always get the base entity type, avoiding the feedback loop.
+            String originalName = mob.getType().name();
+
+            // FINAL FIX: Corrected the getOrDefault syntax. The type comes before the default value.
+            int level = mob.getPersistentDataContainer().getOrDefault(new NamespacedKey(plugin, "mob_level"), PersistentDataType.INTEGER, 1);
+
+            name = "<gray>[Lv. " + level + "] <white>" + originalName + " <red>[" + df.format(current) + "/" + df.format(max) + "]";
         }
-        // TODO: Implement a real mob stats system
-        return new PlayerStats(); // Return base stats for mobs for now
+
+        // Use the modern Component API to apply the formatted name.
+        mob.customName(ChatUtils.format(name));
+        mob.setCustomNameVisible(true);
     }
+
 
     private void spawnDamageIndicator(Location loc, double damage, boolean isCrit) {
         Location spawnLoc = loc.clone().add(
@@ -88,15 +97,5 @@ public class DamageManager {
                 armorStand.remove();
             }
         }.runTaskLater(plugin, 30L);
-    }
-
-    public void updateMobHealthDisplay(LivingEntity mob) {
-        HealthManager healthManager = plugin.getHealthManager();
-        double current = healthManager.getCurrentHealth(mob);
-        double max = healthManager.getMaxHealth(mob);
-
-        String name = mob.getType().name();
-        mob.setCustomName(ChatColor.WHITE + name + " " + ChatColor.RED + "[" + df.format(current) + "/" + df.format(max) + "]");
-        mob.setCustomNameVisible(true);
     }
 }

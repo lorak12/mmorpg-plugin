@@ -3,8 +3,6 @@ package org.nakii.mmorpg.managers;
 import me.libraryaddict.disguise.DisguiseAPI;
 import me.libraryaddict.disguise.disguisetypes.DisguiseType;
 import me.libraryaddict.disguise.disguisetypes.MobDisguise;
-import me.libraryaddict.disguise.disguisetypes.PlayerDisguise;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -18,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.entity.CustomMob;
+import org.nakii.mmorpg.utils.ChatUtils;
 
 import java.io.File;
 import java.util.HashMap;
@@ -50,7 +49,7 @@ public class MobManager {
     }
 
     public LivingEntity spawnMob(String mobId, Location location) {
-        CustomMob customMob = mobRegistry.get(mobId.toLowerCase());
+        CustomMob customMob = getCustomMob(mobId);
         if (customMob == null) {
             plugin.getLogger().warning("Attempted to spawn unknown mob with ID: " + mobId);
             return null;
@@ -64,40 +63,45 @@ public class MobManager {
             applyDisguise(entity, customMob);
         }
 
-        // Set persistent data to identify the mob
+        // Set persistent data
         entity.getPersistentDataContainer().set(new NamespacedKey(plugin, "mob_id"), PersistentDataType.STRING, customMob.getId());
 
-        // Apply stats
+        // Apply stats & equipment
         plugin.getHealthManager().registerEntity(entity, customMob.getStatsConfig().getDouble("health", 20.0));
-
-        // Apply equipment
         applyEquipment(entity, customMob);
 
         // Set name and other properties
-        entity.setCustomName(ChatColor.translateAlternateColorCodes('&', customMob.getDisplayName()));
-        entity.setCustomNameVisible(true);
         entity.setCanPickupItems(false);
-        entity.setRemoveWhenFarAway(false); // Important for bosses
+        entity.setRemoveWhenFarAway(false);
+
+        // Use the centralized name updater
+        plugin.getDamageManager().updateMobHealthDisplay(entity);
 
         return entity;
     }
 
     private void applyDisguise(LivingEntity entity, CustomMob customMob) {
         String disguiseName = customMob.getDisguiseType().toUpperCase();
-        DisguiseType disguiseType = DisguiseType.valueOf(disguiseName);
+        DisguiseType disguiseType;
+        try {
+            disguiseType = DisguiseType.valueOf(disguiseName);
+        } catch (IllegalArgumentException e) {
+            plugin.getLogger().warning("Invalid disguise type '" + disguiseName + "' for mob '" + customMob.getId() + "'. Skipping disguise.");
+            return;
+        }
 
+        // FINAL FIX: Check if the disguise is a player and handle it gracefully.
         if (disguiseType.isPlayer()) {
-            ConfigurationSection options = customMob.getConfig().getConfigurationSection("disguise_options");
-            String name = options != null ? options.getString("name", "Unknown") : "Unknown";
-            PlayerDisguise disguise = new PlayerDisguise(name);
+            plugin.getLogger().warning("Disguise type 'PLAYER' is not supported. Mob '" + customMob.getId() + "' will not be disguised.");
+            return; // Exit the method, applying no disguise.
+        }
 
-            if (options != null && options.contains("skin")) {
-                disguise.setSkin(options.getString("skin"));
-            }
-            DisguiseAPI.disguiseToAll(entity, disguise);
-        } else {
+        // This part now only runs for non-player disguises.
+        if (disguiseType.isMob()) {
             MobDisguise disguise = new MobDisguise(disguiseType);
             DisguiseAPI.disguiseToAll(entity, disguise);
+        } else {
+            plugin.getLogger().warning("Disguise type '" + disguiseName + "' is not a mob disguise. Skipping.");
         }
     }
 
@@ -146,6 +150,13 @@ public class MobManager {
         return entity.getPersistentDataContainer().get(new NamespacedKey(plugin, "mob_id"), PersistentDataType.STRING);
     }
 
+    public double getMobStrength(LivingEntity mob) {
+        CustomMob customMob = getCustomMob(getMobId(mob));
+        if (customMob != null && customMob.getStatsConfig() != null) {
+            return customMob.getStatsConfig().getDouble("strength", 5.0);
+        }
+        return 5.0; // Default damage for non-custom mobs
+    }
     public boolean isCustomMob(Entity entity) {
         return entity.getPersistentDataContainer().has(new NamespacedKey(plugin, "mob_id"), PersistentDataType.STRING);
     }

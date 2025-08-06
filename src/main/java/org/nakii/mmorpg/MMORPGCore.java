@@ -2,8 +2,10 @@ package org.nakii.mmorpg;
 
 import de.slikey.effectlib.EffectManager;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.commands.MmorpgCommand;
 import org.nakii.mmorpg.commands.SkillsCommand;
 import org.nakii.mmorpg.commands.StatsCommand;
@@ -42,6 +44,9 @@ public final class MMORPGCore extends JavaPlugin {
 
         // Hook into APIs first
         setupAPIHooks();
+
+        this.abilityManager = new AbilityManager(this);
+        startAutoSaveTask();
 
         // Create config folders + files
         saveDefaultConfig();
@@ -139,6 +144,20 @@ public final class MMORPGCore extends JavaPlugin {
         getCommand("mmorpg").setExecutor(new MmorpgCommand(this));
         getCommand("stats").setExecutor(new StatsCommand(this));
         getCommand("skills").setExecutor(new SkillsCommand(this));
+    }
+
+    private void startAutoSaveTask() {
+        long interval = 20L * 60 * 5; // Every 5 minutes
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                getLogger().info("Auto-saving player skill data...");
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    getSkillManager().savePlayerData(player);
+                }
+                getLogger().info("Auto-save complete.");
+            }
+        }.runTaskTimer(this, interval, interval);
     }
 
     // Static access to plugin
