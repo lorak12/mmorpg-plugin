@@ -1,1 +1,9 @@
+// settings.gradle
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
 rootProject.name = 'mmorpg'

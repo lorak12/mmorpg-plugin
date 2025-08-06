@@ -36,14 +36,17 @@ public class DatabaseManager {
 
     private void createTables() throws SQLException {
         try (Statement statement = connection.createStatement()) {
+            // CORRECTED: The primary key is now a combination of uuid and skill.
             String sql = "CREATE TABLE IF NOT EXISTS player_skills (" +
-                    "uuid TEXT PRIMARY KEY," +
+                    "uuid TEXT NOT NULL," +
                     "skill TEXT NOT NULL," +
                     "level INTEGER NOT NULL," +
-                    "experience REAL NOT NULL);";
+                    "experience REAL NOT NULL," +
+                    "PRIMARY KEY (uuid, skill));";
             statement.execute(sql);
         }
     }
+
 
     // Simplified save logic: insert or replace.
     public void savePlayerSkillData(UUID uuid, PlayerSkillData data) throws SQLException {

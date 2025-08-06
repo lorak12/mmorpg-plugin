@@ -67,10 +67,6 @@ the_lich_king:
     frost_aura:
       trigger: TIMER
       interval: 20 # Every 1 second
-      actions:
-        - type: EFFECTLIB_PARTICLE
-          effect: vortex # Requires EffectLib
-          target: SELF
     soul_drain:
       trigger: ON_ATTACK
       conditions:
@@ -114,10 +110,15 @@ the_lich_king:
           radius: 30
           text: "<dark_purple>The Lich King begins to draw in shadows..."
         # Show a visual effect
-        - type: EFFECTLIB_PARTICLE
-          effect: sphere
+        - type: PARTICLE_EFFECT
           target: SELF
-          delay: 40 # Delay this visual by 2 seconds
+          shape: sphere                # The shape class to use
+          particle_name: dust_colored_transition # This particle type ignores color for now, but we can change it
+          params: # A list of parameters for the chosen shape
+            radius: 3.5
+            density: 150             # This is now the 'particlesPerDisplay' value
+            color: "150, 50, 255"      # R,G,B for the particle (if applicable)
+          delay: 40
         # Deal the damage after another delay
         - type: DAMAGE
           target: NEARBY_PLAYERS

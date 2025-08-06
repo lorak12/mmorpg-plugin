@@ -17,5 +17,4 @@ public class Ability {
     public TriggerType getTrigger() { return trigger; }
     public ConfigurationSection getConfig() { return config; }
     public ConfigurationSection getConditionsConfig() { return config.getConfigurationSection("conditions"); }
-    public ConfigurationSection getActionsConfig() { return config.getConfigurationSection("actions"); }
 }

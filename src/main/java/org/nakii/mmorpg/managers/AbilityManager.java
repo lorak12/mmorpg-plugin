@@ -1,9 +1,11 @@
 package org.nakii.mmorpg.managers;
 
-import de.slikey.effectlib.Effect;
+import hm.zelha.particlesfx.particles.ParticleDustColored;
+import hm.zelha.particlesfx.shapers.ParticleSphere;
+import hm.zelha.particlesfx.util.ParticleSFX;
+import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
@@ -13,9 +15,11 @@ import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.entity.CustomMob;
 import org.nakii.mmorpg.entity.ability.Ability;
 import org.nakii.mmorpg.entity.ability.TriggerType;
+import org.nakii.mmorpg.utils.ChatUtils;
+//import org.nakii.mmorpg.utils.EffectFactory;
 
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -49,56 +53,107 @@ public class AbilityManager {
     }
 
     private boolean checkConditions(Ability ability, LivingEntity mob, LivingEntity target) {
-        ConfigurationSection conditions = ability.getConditionsConfig();
-        if (conditions == null) return true; // No conditions, always pass
+        List<Map<?, ?>> conditionMaps = ability.getConfig().getMapList("conditions");
+        if (conditionMaps.isEmpty()) {
+            return true; // No conditions, so the ability is always allowed to run.
+        }
 
-        for (String key : conditions.getKeys(false)) {
-            ConfigurationSection condition = conditions.getConfigurationSection(key);
+        for (Map<?, ?> conditionMap : conditionMaps) {
+            // Convert the map from the list into a temporary ConfigurationSection
+            ConfigurationSection condition = new MemoryConfiguration();
+            conditionMap.forEach((key, value) -> condition.set(key.toString(), value));
+
             String type = condition.getString("type", "").toUpperCase();
+            if (type.isEmpty()) {
+                continue; // Skip invalid condition entries
+            }
 
+            // --- Perform the actual condition checks ---
+            boolean conditionPassed = true;
             switch (type) {
                 case "CHANCE":
-                    if (ThreadLocalRandom.current().nextDouble() > condition.getDouble("value", 1.0)) return false;
+                    if (ThreadLocalRandom.current().nextDouble() > condition.getDouble("value", 1.0)) {
+                        conditionPassed = false;
+                    }
                     break;
                 case "HEALTH_IS_BELOW":
-                    double healthPercent = mob.getHealth() / mob.getMaxHealth();
-                    if (healthPercent > condition.getDouble("value")) return false;
+                    // Use the custom HealthManager to get the real health percentage
+                    double currentHealth = plugin.getHealthManager().getCurrentHealth(mob);
+                    double maxHealth = plugin.getHealthManager().getMaxHealth(mob);
+                    double healthPercent = (maxHealth > 0) ? currentHealth / maxHealth : 0;
+                    if (healthPercent > condition.getDouble("value")) {
+                        conditionPassed = false;
+                    }
                     break;
                 case "COOLDOWN":
                     long now = System.currentTimeMillis();
                     long endTime = cooldowns.computeIfAbsent(mob.getUniqueId(), k -> new HashMap<>())
                             .getOrDefault(ability.getId(), 0L);
-                    if (now < endTime) return false; // Still on cooldown
+                    if (now < endTime) {
+                        conditionPassed = false; // Still on cooldown
+                    }
                     break;
             }
+
+            // If any single condition fails, the ability cannot run.
+            if (!conditionPassed) {
+                return false;
+            }
         }
+
+        // If the loop completes, it means all conditions passed.
         return true;
     }
 
+    // New executeActions method for AbilityManager.java
+    // Replace your current executeActions method with this one
     private void executeActions(Ability ability, LivingEntity mob, LivingEntity target) {
-        ConfigurationSection actions = ability.getActionsConfig();
-        if (actions == null) return;
+        // --- BEGIN NEW COOLDOWN LOGIC ---
+        // After an ability's conditions have passed, check if one of those conditions was a cooldown.
+        // If so, put the ability on cooldown now.
+        List<Map<?, ?>> conditionMaps = ability.getConfig().getMapList("conditions");
+        if (!conditionMaps.isEmpty()) {
+            for (Map<?, ?> rawMap : conditionMaps) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> conditionMap = (Map<String, Object>) rawMap;
 
-        // Set cooldown if applicable
-        if (ability.getConfig().getConfigurationSection("conditions") != null) {
-            ability.getConfig().getConfigurationSection("conditions").getKeys(false).forEach(key -> {
-                ConfigurationSection condition = ability.getConfig().getConfigurationSection("conditions." + key);
-                if ("COOLDOWN".equalsIgnoreCase(condition.getString("type"))) {
-                    long cooldownMillis = condition.getLong("seconds", 5) * 1000;
+                String type = String.valueOf(conditionMap.getOrDefault("type", "")).toUpperCase();
+                if ("COOLDOWN".equals(type)) {
+                    long seconds = Long.parseLong(String.valueOf(conditionMap.getOrDefault("seconds", 5)));
+                    long cooldownMillis = seconds * 1000;
+
                     cooldowns.computeIfAbsent(mob.getUniqueId(), k -> new HashMap<>())
                             .put(ability.getId(), System.currentTimeMillis() + cooldownMillis);
+
+                    break; // A single ability only needs one cooldown.
                 }
-            });
+            }
+        }
+        // --- END NEW COOLDOWN LOGIC ---
+
+        // Read the "actions" block as a List of Maps.
+        List<Map<?, ?>> actionMaps = ability.getConfig().getMapList("actions");
+        if (actionMaps.isEmpty()) {
+            return; // Exit if there are no actions defined.
         }
 
-        for (String key : actions.getKeys(false)) {
-            ConfigurationSection action = actions.getConfigurationSection(key);
+        for (Map<?, ?> rawActionMap : actionMaps) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> actionMap = (Map<String, Object>) rawActionMap;
+
+            // Convert the Map into a temporary ConfigurationSection.
+            ConfigurationSection actionSection = new MemoryConfiguration();
+            actionMap.forEach(actionSection::set);
+
+            // Schedule the action to be performed, respecting its individual delay.
             new BukkitRunnable() {
                 @Override
                 public void run() {
-                    performAction(action, mob, target);
+                    if (mob.isValid()) {
+                        performAction(actionSection, mob, target);
+                    }
                 }
-            }.runTaskLater(plugin, action.getLong("delay", 0L));
+            }.runTaskLater(plugin, actionSection.getLong("delay", 0L));
         }
     }
 
@@ -109,15 +164,17 @@ public class AbilityManager {
 
         switch (type) {
             case "MESSAGE":
-                if (actionTarget instanceof Player) {
-                    actionTarget.sendMessage(ChatColor.translateAlternateColorCodes('&', action.getString("text", "")));
-                } else if ("NEARBY_PLAYERS".equals(targetSelector)) {
+                String text = action.getString("text", "");
+                if (text.isEmpty()) break;
+
+                // NEW, CORRECT WAY:
+                if ("NEARBY_PLAYERS".equals(targetSelector)) {
                     double radius = action.getDouble("radius", 30);
-                    mob.getNearbyEntities(radius, radius, radius).forEach(entity -> {
-                        if (entity instanceof Player) {
-                            entity.sendMessage(ChatColor.translateAlternateColorCodes('&', action.getString("text", "")));
-                        }
-                    });
+                    mob.getNearbyEntities(radius, radius, radius).stream()
+                            .filter(e -> e instanceof Player)
+                            .forEach(p -> p.sendMessage(ChatUtils.format(text)));
+                } else if (actionTarget instanceof Player) {
+                    actionTarget.sendMessage(ChatUtils.format(text));
                 }
                 break;
             case "POTION":
@@ -143,17 +200,8 @@ public class AbilityManager {
                     }
                 });
                 break;
-            case "EFFECTLIB_PARTICLE":
-                // BUG FIX: Use the correct method signature as required by the new API version.
-                if (plugin.getEffectManager() != null && actionTarget != null) {
-                    String effectName = action.getString("effect", "vortex");
-                    // We must provide a ConfigurationSection, even if it's empty.
-                    ConfigurationSection effectConfig = new YamlConfiguration();
 
-                    // The simplest available method is start(name, config, location, targetEntity)
-                    plugin.getEffectManager().start(effectName, effectConfig, actionTarget.getEyeLocation(), null, null, null, null);
-                }
-                break;
+
         }
     }
 

@@ -1,6 +1,5 @@
 package org.nakii.mmorpg;
 
-import de.slikey.effectlib.EffectManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -11,7 +10,6 @@ import org.nakii.mmorpg.commands.SkillsCommand;
 import org.nakii.mmorpg.commands.StatsCommand;
 import org.nakii.mmorpg.listeners.*;
 import org.nakii.mmorpg.managers.*;
-
 import java.io.File;
 import java.sql.SQLException;
 
@@ -35,7 +33,6 @@ public final class MMORPGCore extends JavaPlugin {
     private RecipeManager recipeManager;
 
     // API Hooks
-    private EffectManager effectManager;
     private boolean libsDisguisesEnabled = false;
 
     @Override
@@ -45,7 +42,6 @@ public final class MMORPGCore extends JavaPlugin {
         // Hook into APIs first
         setupAPIHooks();
 
-        this.abilityManager = new AbilityManager(this);
         startAutoSaveTask();
 
         // Create config folders + files
@@ -69,6 +65,7 @@ public final class MMORPGCore extends JavaPlugin {
             zoneManager = new ZoneManager(this);
             recipeManager = new RecipeManager(this);
             abilityManager = new AbilityManager(this);
+            lootManager = new LootManager(this);
 
             // Register events + commands
             registerListeners();
@@ -85,26 +82,29 @@ public final class MMORPGCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (databaseManager != null) {
-            databaseManager.disconnect();
+        // Save all online player data FIRST
+        if (skillManager != null && databaseManager != null) {
+            getLogger().info("Saving data for all online players before shutdown...");
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                skillManager.savePlayerData(player);
+                getLogger().info(" - Saved data for " + player.getName());
+            }
+            getLogger().info("Player data saving complete.");
         }
 
-        if (effectManager != null) {
-            effectManager.dispose(); // good practice
+        // Now, it's safe to disconnect from the database
+        if (databaseManager != null) {
+            databaseManager.disconnect();
         }
 
         getLogger().info("MMORPGCore disabled.");
     }
 
-    private void setupAPIHooks() {
-        Plugin effectLib = Bukkit.getPluginManager().getPlugin("EffectLib");
-        if (effectLib != null && effectLib.isEnabled()) {
-            effectManager = new EffectManager(this);
-            getLogger().info("Hooked into EffectLib.");
-        } else {
-            getLogger().warning("EffectLib not found. Some effects may not work.");
-        }
 
+    private void setupAPIHooks() {
+
+        // --- LIBSDISGUISES ---
+        // This check should remain, because we are NOT shading LibsDisguises.
         Plugin disguises = Bukkit.getPluginManager().getPlugin("LibsDisguises");
         if (disguises != null && disguises.isEnabled()) {
             libsDisguisesEnabled = true;
@@ -167,7 +167,6 @@ public final class MMORPGCore extends JavaPlugin {
 
     // API + Manager Getters
     public boolean isLibsDisguisesEnabled() { return libsDisguisesEnabled; }
-    public EffectManager getEffectManager() { return effectManager; }
 
     public ItemManager getItemManager() { return itemManager; }
     public StatsManager getStatsManager() { return statsManager; }
