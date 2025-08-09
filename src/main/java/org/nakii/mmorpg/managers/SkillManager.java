@@ -1,24 +1,149 @@
 package org.nakii.mmorpg.managers;
-import org.bukkit.ChatColor;
+
+import net.objecthunter.exp4j.Expression;
+import net.objecthunter.exp4j.ExpressionBuilder;
+import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.skills.PlayerSkillData;
 import org.nakii.mmorpg.skills.Skill;
+import org.nakii.mmorpg.utils.ChatUtils;
+
 import java.io.File;
 import java.sql.SQLException;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
 public class SkillManager {
     private final MMORPGCore plugin;
     private final Map<UUID, PlayerSkillData> skillDataMap = new HashMap<>();
     private FileConfiguration skillConfig;
 
+    // --- NEW FIELDS ---
+    private String xpFormula;
+    private final Map<Skill, Integer> maxLevels = new EnumMap<>(Skill.class);
+    private final Map<Skill, Map<String, Double>> skillXpSources = new EnumMap<>(Skill.class);
+
     public SkillManager(MMORPGCore plugin) {
         this.plugin = plugin;
-        loadSkillConfig();
+        loadSkillsConfig();
+    }
+
+    public void loadSkillsConfig() {
+        File skillsFile = new File(plugin.getDataFolder(), "skills.yml");
+        if (!skillsFile.exists()) {
+            plugin.saveResource("skills.yml", false);
+        }
+        FileConfiguration config = YamlConfiguration.loadConfiguration(skillsFile);
+
+        this.xpFormula = config.getString("xp-formula", "100 * (level ^ 2.5)");
+
+        ConfigurationSection skillsSection = config.getConfigurationSection("skills");
+        if (skillsSection == null) return;
+
+        for (String skillKey : skillsSection.getKeys(false)) {
+            try {
+                Skill skill = Skill.valueOf(skillKey.toUpperCase());
+                ConfigurationSection skillConfig = skillsSection.getConfigurationSection(skillKey);
+
+                maxLevels.put(skill, skillConfig.getInt("max-level", 50));
+
+                Map<String, Double> xpSources = new HashMap<>();
+                ConfigurationSection sourcesSection = skillConfig.getConfigurationSection("xp-sources");
+                if (sourcesSection != null) {
+                    for (String sourceKey : sourcesSection.getKeys(false)) {
+                        xpSources.put(sourceKey.toUpperCase(), sourcesSection.getDouble(sourceKey));
+                    }
+                }
+                skillXpSources.put(skill, xpSources);
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("Invalid skill '" + skillKey + "' found in skills.yml.");
+            }
+        }
+        plugin.getLogger().info("Loaded skill configurations for " + skillXpSources.size() + " skills.");
+    }
+
+    /**
+     * Calculates the total XP required to reach a certain level using the exp4j library.
+     */
+    public double getTotalXpForLevel(int level) {
+        if (level <= 1) return 0;
+        try {
+            // Create an expression with a variable 'level'
+            Expression expression = new ExpressionBuilder(this.xpFormula)
+                    .variable("level")
+                    .build()
+                    .setVariable("level", level);
+
+            return expression.evaluate();
+        } catch (Exception e) {
+            plugin.getLogger().severe("Failed to evaluate XP formula for level " + level + ": " + e.getMessage());
+            return Double.MAX_VALUE;
+        }
+    }
+
+    /**
+     * Gets the XP required to go from the previous level to the target level.
+     */
+    public double getXpForLevel(int level) {
+        if (level <= 1) return getTotalXpForLevel(1);
+        return getTotalXpForLevel(level) - getTotalXpForLevel(level - 1);
+    }
+
+    public void addXp(Player player, Skill skill, double amount) {
+        PlayerSkillData data = getSkillData(player);
+        int currentLevel = data.getLevel(skill);
+
+        if (currentLevel >= maxLevels.getOrDefault(skill, 50)) {
+            return; // Player is at max level for this skill
+        }
+
+        data.addXp(skill, amount);
+
+        double currentXpInLevel = data.getXp(skill);
+        double xpForNextLevel = getXpForLevel(currentLevel + 1);
+
+        while (currentXpInLevel >= xpForNextLevel) {
+            currentLevel++;
+            data.setLevel(skill, currentLevel);
+            currentXpInLevel -= xpForNextLevel;
+            data.setXp(skill, currentXpInLevel);
+
+            // Announce level up
+            player.sendMessage(ChatUtils.format("<green>Your " + ChatUtils.capitalizeWords(skill.name()) + " skill is now level " + currentLevel + "!</green>"));
+            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+
+            plugin.getStatsManager().recalculateStats(player);
+
+            if (currentLevel >= maxLevels.getOrDefault(skill, 50)) {
+                data.setXp(skill, 0); // At max level, reset XP in level to 0
+                break; // Exit the loop
+            }
+            xpForNextLevel = getXpForLevel(currentLevel + 1);
+        }
+    }
+
+    public void handleBlockBreak(Player player, Material material) {
+        for (Map.Entry<Skill, Map<String, Double>> entry : skillXpSources.entrySet()) {
+            Skill skill = entry.getKey();
+            Map<String, Double> sources = entry.getValue();
+            if (sources.containsKey(material.name())) {
+                addXp(player, skill, sources.get(material.name()));
+            }
+        }
+    }
+
+    public void handleMobKill(Player player, EntityType entityType) {
+        Map<String, Double> combatSources = skillXpSources.get(Skill.COMBAT);
+        if (combatSources != null && combatSources.containsKey(entityType.name())) {
+            addXp(player, Skill.COMBAT, combatSources.get(entityType.name()));
+        }
     }
 
     public void loadSkillConfig() {
@@ -70,15 +195,15 @@ public class SkillManager {
 
         if (currentLevel >= maxLevel) return;
 
-        double currentExp = data.getExperience(skill);
+        double currentExp = data.getXp(skill);
         double expToLevel = getExperienceForLevel(skill, currentLevel);
 
-        data.setExperience(skill, currentExp + amount);
+        data.setXp(skill, currentExp + amount);
 
-        if (data.getExperience(skill) >= expToLevel) {
+        if (data.getXp(skill) >= expToLevel) {
             data.setLevel(skill, currentLevel + 1);
-            data.setExperience(skill, data.getExperience(skill) - expToLevel);
-            player.sendMessage(ChatColor.AQUA + "You are now " + skill.name() + " level " + (currentLevel + 1) + "!");
+            data.setXp(skill, data.getXp(skill) - expToLevel);
+            player.sendMessage(ChatUtils.format( "<aqua>You are now " + skill.name() + " level " + (currentLevel + 1) + "!") );
             plugin.getStatsManager().recalculateStats(player);
         }
     }

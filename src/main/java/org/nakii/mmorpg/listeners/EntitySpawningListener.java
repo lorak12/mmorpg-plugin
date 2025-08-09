@@ -1,15 +1,18 @@
 package org.nakii.mmorpg.listeners;
 
-import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.nakii.mmorpg.MMORPGCore;
-import java.util.concurrent.ThreadLocalRandom;
+import org.bukkit.NamespacedKey;
+import org.bukkit.persistence.PersistentDataType;
+
 
 public class EntitySpawningListener implements Listener {
+
     private final MMORPGCore plugin;
 
     public EntitySpawningListener(MMORPGCore plugin) {
@@ -17,36 +20,53 @@ public class EntitySpawningListener implements Listener {
     }
 
     @EventHandler
-    public void onCreatureSpawn(CreatureSpawnEvent event) {
-        if (event.isCancelled() || event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.CUSTOM) {
-            return; // Ignore our own custom-spawned mobs
+    public void onEntitySpawn(EntitySpawnEvent event) {
+
+        if (event.getEntityType() == EntityType.ARMOR_STAND) {
+            return;
         }
 
-        LivingEntity entity = event.getEntity();
-
-        if (event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.NATURAL) {
-            // Step 1: Generate Data
-            int level = ThreadLocalRandom.current().nextInt(1, 11); // Level 1-10
-            double baseHealth = entity.getHealth();
-            double finalHealth = baseHealth * (1 + (level - 1) * 0.2); // +20% health per level
-
-            // Step 2: Store the level directly on the entity's metadata
-            entity.getPersistentDataContainer().set(new NamespacedKey(plugin, "mob_level"), PersistentDataType.INTEGER, level);
-
-            // Step 3: Register the entity with our health system
-            plugin.getHealthManager().registerEntity(entity, finalHealth);
-
-            // Step 4: Schedule the name update using the centralized method
-            // The 1-tick delay ensures the entity is fully initialized in the world.
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (entity.isValid()) {
-                    plugin.getDamageManager().updateMobHealthDisplay(entity);
-                }
-            }, 1L);
-
-        } else {
-            // For mobs from spawners, eggs, etc., just register them with base health.
-            plugin.getHealthManager().registerEntity(entity);
+        if (!(event.getEntity() instanceof LivingEntity)) {
+            return;
         }
+
+        LivingEntity entity = (LivingEntity) event.getEntity();
+
+        // Don't modify our own custom mobs during their spawn event
+        if (plugin.getMobManager().isCustomMob(entity)) {
+            return;
+        }
+
+        // Prevent natural mobs from spawning in safe zones
+//        if (plugin.getZoneManager().isSafeZone(entity.getLocation())) {
+//            event.setCancelled(true);
+//            return;
+//        }
+
+        // We schedule the entire logic block to run one server tick later.
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+
+            // Ensure the entity hasn't been removed in the tiny interval
+            if (!entity.isValid()) {
+                return;
+            }
+
+            // 1. Give the naturally spawned mob a default level.
+            entity.getPersistentDataContainer().set(new NamespacedKey(plugin, "mob_level"), PersistentDataType.INTEGER, 1);
+
+            // 2. Get the mob's default vanilla max health.
+            double vanillaMaxHealth = 20.0;
+            if (entity.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null) {
+                vanillaMaxHealth = entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
+            }
+
+            // 3. Register the vanilla mob into our health system.
+            plugin.getHealthManager().setEntityHealth(entity, vanillaMaxHealth);
+
+            // 4. Update its nameplate. By now, the server has finished its own
+            // spawning logic, so our name tag change will not be overwritten.
+            plugin.getDamageManager().updateMobHealthDisplay(entity);
+
+        }, 1L); // The '1L' means "1 tick from now".
     }
 }

@@ -1,345 +1,195 @@
 package org.nakii.mmorpg.commands;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.util.StringUtil;
-import org.nakii.mmorpg.MMORPGCore;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.nakii.mmorpg.entity.CustomZone;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.listeners.ZoneWandListener;
+import org.nakii.mmorpg.utils.ChatUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class MmorpgCommand implements CommandExecutor, TabCompleter {
 
     private final MMORPGCore plugin;
-    private static final List<String> BASE_COMMANDS = Arrays.asList("give", "reload", "spawn", "zone");
-    private static final List<String> ZONE_COMMANDS = Arrays.asList("wand", "create", "delete", "list", "modify");
-    private static final List<String> ZONE_MODIFY_COMMANDS = Arrays.asList("addmob", "removemob");
+    private final ZoneWandListener zoneWandListener;
 
-
-    public MmorpgCommand(MMORPGCore plugin) {
+    /**
+     * The command now accepts the ZoneWandListener instance directly.
+     * This is a clean and reliable way to get access to it.
+     */
+    public MmorpgCommand(MMORPGCore plugin, ZoneWandListener zoneWandListener) {
         this.plugin = plugin;
+        this.zoneWandListener = zoneWandListener;
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("mmorpg.admin")) {
-            sender.sendMessage(ChatColor.RED + "You do not have permission to use this command.");
-            return true;
-        }
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + "Usage: /mmorpg <" + String.join("|", BASE_COMMANDS) + ">");
+            sender.sendMessage(ChatUtils.format("<red>Usage: /mmorpg <subcommand>"));
             return true;
         }
 
-        switch (args[0].toLowerCase()) {
-            case "give":
-                handleGive(sender, args);
-                break;
+        String subCommand = args[0].toLowerCase();
+
+        switch (subCommand) {
             case "reload":
-                plugin.getSkillManager().loadSkillConfig();
-                plugin.getItemManager().loadItems();
-                plugin.getMobManager().loadMobs();
-                plugin.getZoneManager().loadZones();
-                sender.sendMessage(ChatColor.GREEN + "MMORPGCore configurations, items, mobs, and zones have been reloaded.");
-                break;
-            case "spawn":
-                handleSpawn(sender, args);
+                handleReload(sender);
                 break;
             case "zone":
                 handleZoneCommand(sender, args);
                 break;
+            case "wand":
+                handleWandCommand(sender);
+                break;
             default:
-                sender.sendMessage(ChatColor.RED + "Unknown subcommand. Usage: /mmorpg <" + String.join("|", BASE_COMMANDS) + ">");
+                sender.sendMessage(ChatUtils.format("<red>Unknown subcommand."));
+                break;
         }
         return true;
     }
 
-    private void handleGive(CommandSender sender, String[] args) {
-        // /mmorpg give <item_name> [player] [amount]
-        if (args.length < 2) {
-            sender.sendMessage("Usage: /mmorpg give <item_name> [player] [amount]");
+    private void handleReload(CommandSender sender) {
+        if (!sender.hasPermission("mmorpg.admin.reload")) {
+            sender.sendMessage(ChatUtils.format("<red>You do not have permission."));
+            return;
+        }
+        plugin.getItemManager().loadItems();
+        plugin.getMobManager().loadMobs();
+        plugin.getZoneManager().loadZones();
+        // reload other managers...
+        sender.sendMessage(ChatUtils.format("<green>MMORPGCore configs reloaded successfully.</green>"));
+    }
+
+    private void handleWandCommand(CommandSender sender) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatUtils.format("<red>This command can only be used by a player."));
+            return;
+        }
+        if (!sender.hasPermission("mmorpg.admin.wand")) {
+            sender.sendMessage(ChatUtils.format("<red>You do not have permission."));
             return;
         }
 
-        String itemName = args[1];
-        Player target = (args.length > 2) ? Bukkit.getPlayer(args[2]) : (sender instanceof Player ? (Player) sender : null);
-        int amount = (args.length > 3) ? Integer.parseInt(args[3]) : 1;
+        Player player = (Player) sender;
+        ItemStack wand = new ItemStack(Material.STICK);
+        ItemMeta meta = wand.getItemMeta();
+        meta.displayName(ChatUtils.format("<gold><b>Zone Wand</b></gold>"));
+        meta.lore(ChatUtils.formatList(Arrays.asList(
+                "<gray>Left-click to set Position 1.",
+                "<gray>Right-click to set Position 2."
+        )));
+        meta.getPersistentDataContainer().set(new NamespacedKey(plugin, "zone_wand"), PersistentDataType.BOOLEAN, true);
+        wand.setItemMeta(meta);
 
-        if (target == null) {
-            sender.sendMessage("Player not found or not specified.");
-            return;
-        }
-
-        plugin.getItemManager().giveItem(target, itemName, amount);
+        player.getInventory().addItem(wand);
+        player.sendMessage(ChatUtils.format("<green>You have received the Zone Wand!</green>"));
     }
 
     private void handleZoneCommand(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "Zone commands must be run by a player.");
+            sender.sendMessage(ChatUtils.format("<red>Zone commands can only be used by a player."));
             return;
         }
-        if (args.length < 2) {
-            sender.sendMessage(ChatColor.RED + "Usage: /mmorpg zone <" + String.join("|", ZONE_COMMANDS) + ">");
+        if (!sender.hasPermission("mmorpg.admin.zone")) {
+            sender.sendMessage(ChatUtils.format("<red>You do not have permission."));
             return;
         }
+        if (args.length < 3) {
+            sender.sendMessage(ChatUtils.format("<red>Usage: /mmorpg zone create <zone_id>"));
+            sender.sendMessage(ChatUtils.format("<red>Usage: /mmorpg zone createsub <parent_id> <subzone_id>"));
+            return;
+        }
+
         Player player = (Player) sender;
         String action = args[1].toLowerCase();
+        String zoneId = args[2];
 
-        switch (action) {
-            case "wand":
-                handleZoneWand(player);
-                break;
-            case "create":
-                handleZoneCreate(player, args);
-                break;
-            case "delete":
-                handleZoneDelete(player, args);
-                break;
-            case "list":
-                handleZoneList(player);
-                break;
-            case "modify":
-                handleZoneModify(player, args);
-                break;
-            default:
-                player.sendMessage(ChatColor.RED + "Unknown zone command. Usage: /mmorpg zone <" + String.join("|", ZONE_COMMANDS) + ">");
-                break;
+        if (action.equals("create")) {
+            createZone(player, zoneId, false, null);
+        } else if (action.equals("createsub") && args.length == 4) {
+            String parentId = args[2];
+            String subZoneId = args[3];
+            createZone(player, subZoneId, true, parentId);
+        } else {
+            sender.sendMessage(ChatUtils.format("<red>Invalid zone command usage."));
         }
     }
 
-    private void handleZoneWand(Player player) {
-        ItemStack wand = new ItemStack(Material.BLAZE_ROD);
-        ItemMeta meta = wand.getItemMeta();
-        meta.setDisplayName(ChatColor.GOLD + "Zone Wand");
-        meta.setLore(Collections.singletonList(ChatColor.YELLOW + "Left/Right click blocks to set positions."));
-        meta.getPersistentDataContainer().set(new NamespacedKey(plugin, "zone_wand"), PersistentDataType.INTEGER, 1);
-        wand.setItemMeta(meta);
-        player.getInventory().addItem(wand);
-        player.sendMessage(ChatColor.GREEN + "You have received the Zone Wand!");
-    }
-
-    private void handleZoneCreate(Player player, String[] args) {
-        if (args.length < 3) {
-            player.sendMessage(ChatColor.RED + "Usage: /mmorpg zone create <zone_id>");
+    private void createZone(Player player, String id, boolean isSubZone, String parentId) {
+        if (zoneWandListener == null) {
+            player.sendMessage(ChatUtils.format("<red>Error: Could not find ZoneWandListener instance."));
             return;
         }
-        String zoneId = args[2].toLowerCase();
-        Location pos1 = plugin.getZoneManager().getPlayerPos1(player.getUniqueId());
-        Location pos2 = plugin.getZoneManager().getPlayerPos2(player.getUniqueId());
+
+        Location pos1 = zoneWandListener.getPosition1(player);
+        Location pos2 = zoneWandListener.getPosition2(player);
 
         if (pos1 == null || pos2 == null) {
-            player.sendMessage(ChatColor.RED + "You must set both positions with the wand first!");
+            player.sendMessage(ChatUtils.format("<red>You must select two positions with the Zone Wand first!"));
+            return;
+        }
+        if (!pos1.getWorld().equals(pos2.getWorld())) {
+            player.sendMessage(ChatUtils.format("<red>Positions must be in the same world!"));
             return;
         }
 
-        FileConfiguration zonesConfig = YamlConfiguration.loadConfiguration(plugin.getZoneManager().getZonesFile());
-        String path = "zones." + zoneId;
-        zonesConfig.set(path + ".world", player.getWorld().getName());
-        zonesConfig.set(path + ".pos1.x", pos1.getX());
-        zonesConfig.set(path + ".pos1.y", pos1.getY());
-        zonesConfig.set(path + ".pos1.z", pos1.getZ());
-        zonesConfig.set(path + ".pos2.x", pos2.getX());
-        zonesConfig.set(path + ".pos2.y", pos2.getY());
-        zonesConfig.set(path + ".pos2.z", pos2.getZ());
+        File zonesFile = new File(plugin.getDataFolder(), "zones.yml");
+        FileConfiguration config = YamlConfiguration.loadConfiguration(zonesFile);
 
-        try {
-            zonesConfig.save(plugin.getZoneManager().getZonesFile());
-            plugin.getZoneManager().loadZones();
-            player.sendMessage(ChatColor.GREEN + "Zone '" + zoneId + "' created successfully!");
-        } catch (IOException e) {
-            e.printStackTrace();
-            player.sendMessage(ChatColor.RED + "An error occurred while saving the zone to file.");
-        }
-    }
-
-    private void handleZoneDelete(Player player, String[] args) {
-        if (args.length < 3) {
-            player.sendMessage(ChatColor.RED + "Usage: /mmorpg zone delete <zone_id>");
-            return;
-        }
-        String zoneId = args[2].toLowerCase();
-        FileConfiguration zonesConfig = YamlConfiguration.loadConfiguration(plugin.getZoneManager().getZonesFile());
-
-        if (!zonesConfig.contains("zones." + zoneId)) {
-            player.sendMessage(ChatColor.RED + "Zone '" + zoneId + "' does not exist.");
-            return;
-        }
-
-        zonesConfig.set("zones." + zoneId, null); // Remove the entire section
-        try {
-            zonesConfig.save(plugin.getZoneManager().getZonesFile());
-            plugin.getZoneManager().loadZones();
-            player.sendMessage(ChatColor.GREEN + "Zone '" + zoneId + "' has been deleted.");
-        } catch (IOException e) {
-            e.printStackTrace();
-            player.sendMessage(ChatColor.RED + "An error occurred while saving the zones file.");
-        }
-    }
-
-    private void handleZoneList(Player player) {
-        player.sendMessage(ChatColor.GOLD + "--- Custom Mob Zones ---");
-        plugin.getZoneManager().getZoneRegistry().keySet().forEach(zoneId -> {
-            player.sendMessage(ChatColor.YELLOW + "- " + zoneId);
-        });
-    }
-
-    private void handleZoneModify(Player player, String[] args) {
-        if (args.length < 6 && !"removemob".equalsIgnoreCase(args[3])) {
-            player.sendMessage(ChatColor.RED + "Usage: /mmorpg zone modify <zone_id> addmob <mob_id> <chance> <max_count>");
-            player.sendMessage(ChatColor.RED + "Usage: /mmorpg zone modify <zone_id> removemob <mob_id>");
-            return;
-        }
-
-        String zoneId = args[2].toLowerCase();
-        String action = args[3].toLowerCase();
-        String mobId = args[4].toLowerCase();
-
-        FileConfiguration zonesConfig = YamlConfiguration.loadConfiguration(plugin.getZoneManager().getZonesFile());
-        String zonePath = "zones." + zoneId;
-
-        if (!zonesConfig.contains(zonePath)) {
-            player.sendMessage(ChatColor.RED + "Zone '" + zoneId + "' does not exist.");
-            return;
-        }
-
-        if ("addmob".equals(action)) {
-            double chance;
-            int maxCount;
-            try {
-                chance = Double.parseDouble(args[5]);
-                maxCount = Integer.parseInt(args[6]);
-            } catch (NumberFormatException e) {
-                player.sendMessage(ChatColor.RED + "Invalid chance or max count. Must be numbers.");
+        String path;
+        if (isSubZone) {
+            if (!config.contains("zones." + parentId)) {
+                player.sendMessage(ChatUtils.format("<red>Parent zone '" + parentId + "' does not exist!"));
                 return;
             }
-
-            String mobPath = zonePath + ".mobs." + mobId;
-            zonesConfig.set(mobPath + ".id", mobId);
-            zonesConfig.set(mobPath + ".spawn_chance", chance);
-            zonesConfig.set(mobPath + ".max_in_zone", maxCount);
-
-            player.sendMessage(ChatColor.GREEN + "Added mob '" + mobId + "' to zone '" + zoneId + "'.");
-        } else if ("removemob".equals(action)) {
-            String mobPath = zonePath + ".mobs." + mobId;
-            if (!zonesConfig.contains(mobPath)) {
-                player.sendMessage(ChatColor.RED + "Mob '" + mobId + "' is not in zone '" + zoneId + "'.");
-                return;
-            }
-            zonesConfig.set(mobPath, null);
-            player.sendMessage(ChatColor.GREEN + "Removed mob '" + mobId + "' from zone '" + zoneId + "'.");
+            path = "zones." + parentId + ".sub-zones." + id;
         } else {
-            player.sendMessage(ChatColor.RED + "Unknown modify action. Use 'addmob' or 'removemob'.");
-            return;
+            path = "zones." + id;
         }
+
+        config.set(path + ".world", pos1.getWorld().getName());
+        config.set(path + ".pos1", pos1.toVector());
+        config.set(path + ".pos2", pos2.toVector());
 
         try {
-            zonesConfig.save(plugin.getZoneManager().getZonesFile());
-            plugin.getZoneManager().loadZones();
+            config.save(zonesFile);
+            plugin.getZoneManager().loadZones(); // Reload zones to make it active immediately
+            player.sendMessage(ChatUtils.format("<green>Successfully created zone '" + id + "'!</green>"));
         } catch (IOException e) {
+            player.sendMessage(ChatUtils.format("<red>An error occurred while saving the zone. See console.</red>"));
             e.printStackTrace();
-            player.sendMessage(ChatColor.RED + "An error occurred while saving the zones file.");
         }
     }
 
-    private void handleSpawn(CommandSender sender, String[] args) {
-        // /mmorpg spawn <mob_id> [amount]
-        if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "This command can only be run by a player.");
-            return;
-        }
-        if (args.length < 2) {
-            sender.sendMessage(ChatColor.RED + "Usage: /mmorpg spawn <mob_id> [amount]");
-            return;
-        }
-
-        Player player = (Player) sender;
-        String mobId = args[1];
-        int amount = 1;
-        if (args.length > 2) {
-            try {
-                amount = Integer.parseInt(args[2]);
-            } catch (NumberFormatException e) {
-                sender.sendMessage(ChatColor.RED + "Invalid amount specified.");
-                return;
-            }
-        }
-
-        for (int i = 0; i < amount; i++) {
-            plugin.getMobManager().spawnMob(mobId, player.getLocation());
-        }
-        sender.sendMessage(ChatColor.GREEN + "Spawned " + amount + " of " + mobId + ".");
-    }
-
+    @Nullable
     @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        final List<String> completions = new ArrayList<>();
-
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            // /mmorpg [?]
-            StringUtil.copyPartialMatches(args[0], BASE_COMMANDS, completions);
-        } else if (args.length == 2) {
-            // /mmorpg <subcommand> [?]
-            if (args[0].equalsIgnoreCase("give")) {
-                StringUtil.copyPartialMatches(args[1], plugin.getItemManager().getCustomItems().keySet(), completions);
-            } else if (args[0].equalsIgnoreCase("spawn")) {
-                StringUtil.copyPartialMatches(args[1], plugin.getMobManager().getMobRegistry().keySet(), completions);
-            } else if (args[0].equalsIgnoreCase("zone")) {
-                StringUtil.copyPartialMatches(args[1], ZONE_COMMANDS, completions);
-            }
-        } else if (args.length == 3) {
-            // /mmorpg <subcommand> <arg2> [?]
-            if (args[0].equalsIgnoreCase("give")) {
-                StringUtil.copyPartialMatches(args[2], Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()), completions);
-            } else if (args[0].equalsIgnoreCase("zone")) {
-                if (args[1].equalsIgnoreCase("delete") || args[1].equalsIgnoreCase("modify")) {
-                    StringUtil.copyPartialMatches(args[2], plugin.getZoneManager().getZoneRegistry().keySet(), completions);
-                }
-            }
-        } else if (args.length == 4) {
-            // /mmorpg zone modify <zone_id> [?]
-            if (args[0].equalsIgnoreCase("zone") && args[1].equalsIgnoreCase("modify")) {
-                StringUtil.copyPartialMatches(args[3], ZONE_MODIFY_COMMANDS, completions);
-            }
-        } else if (args.length == 5) {
-            // /mmorpg zone modify <zone_id> <addmob|removemob> [?]
-            if (args[0].equalsIgnoreCase("zone") && args[1].equalsIgnoreCase("modify")) {
-                if (args[3].equalsIgnoreCase("addmob")) {
-                    // Suggest all custom mobs that can be added
-                    StringUtil.copyPartialMatches(args[4], plugin.getMobManager().getMobRegistry().keySet(), completions);
-                } else if (args[3].equalsIgnoreCase("removemob")) {
-                    // Suggest only mobs that are currently in that zone
-                    CustomZone zone = plugin.getZoneManager().getZoneRegistry().get(args[2].toLowerCase());
-                    if (zone != null) {
-                        ConfigurationSection mobsSection = zone.getConfig().getConfigurationSection("mobs");
-                        if (mobsSection != null) {
-                            StringUtil.copyPartialMatches(args[4], mobsSection.getKeys(false), completions);
-                        }
-                    }
-                }
-            }
+            return Arrays.asList("reload", "zone", "wand");
         }
-
-        Collections.sort(completions);
-        return completions;
+        if (args.length == 2 && args[0].equalsIgnoreCase("zone")) {
+            return Arrays.asList("create", "createsub");
+        }
+        return Collections.emptyList();
     }
+
+
 }

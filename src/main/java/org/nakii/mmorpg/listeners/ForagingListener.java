@@ -7,10 +7,10 @@ import org.bukkit.event.inventory.SmithItemEvent;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.skills.Skill;
 
-public class ForgingListener implements Listener {
+public class ForagingListener implements Listener {
     private final MMORPGCore plugin;
 
-    public ForgingListener(MMORPGCore plugin) {
+    public ForagingListener(MMORPGCore plugin) {
         this.plugin = plugin;
     }
 
@@ -25,7 +25,7 @@ public class ForgingListener implements Listener {
                 .getDouble("skills.forging.xp_sources." + materialName, 0.0);
 
         if (xpToGive > 0) {
-            plugin.getSkillManager().addExperience(player, Skill.FORGING, xpToGive);
+            plugin.getSkillManager().addExperience(player, Skill.FORAGING, xpToGive);
         }
     }
 }

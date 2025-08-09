@@ -5,9 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.nakii.mmorpg.commands.MmorpgCommand;
-import org.nakii.mmorpg.commands.SkillsCommand;
-import org.nakii.mmorpg.commands.StatsCommand;
+import org.nakii.mmorpg.commands.*;
 import org.nakii.mmorpg.listeners.*;
 import org.nakii.mmorpg.managers.*;
 import java.io.File;
@@ -31,6 +29,10 @@ public final class MMORPGCore extends JavaPlugin {
     private AbilityManager abilityManager;
     private LootManager lootManager;
     private RecipeManager recipeManager;
+    private EnvironmentManager environmentManager;
+    private HUDManager hudManager;
+    private ZoneMobSpawnerManager zoneMobSpawner;
+    private ZoneWandListener zoneWandListener;
 
     // API Hooks
     private boolean libsDisguisesEnabled = false;
@@ -55,6 +57,7 @@ public final class MMORPGCore extends JavaPlugin {
             databaseManager = new DatabaseManager(this);
             databaseManager.connect();
 
+
             skillManager = new SkillManager(this);
             itemManager = new ItemManager(this);
             statsManager = new StatsManager(this);
@@ -62,14 +65,24 @@ public final class MMORPGCore extends JavaPlugin {
             damageManager = new DamageManager(this);
             guiManager = new GUIManager(this);
             mobManager = new MobManager(this);
-            zoneManager = new ZoneManager(this);
             recipeManager = new RecipeManager(this);
             abilityManager = new AbilityManager(this);
             lootManager = new LootManager(this);
+            environmentManager = new EnvironmentManager(this);
+            hudManager = new HUDManager(this);
+            zoneManager = new ZoneManager(this);
+            zoneMobSpawner = new ZoneMobSpawnerManager(this);
 
             // Register events + commands
             registerListeners();
             registerCommands();
+
+            healthManager.startHealthRegenTask();
+            environmentManager.startEnvironmentTask();
+            zoneMobSpawner.startSpawnTask();
+
+            hudManager.startHUDTask();
+            startAutoSaveTask();
 
         } catch (SQLException e) {
             getLogger().severe("Could not connect to the database! Disabling plugin...");
@@ -119,31 +132,39 @@ public final class MMORPGCore extends JavaPlugin {
         if (!itemsFolder.exists() && itemsFolder.mkdirs()) {
             saveResource("items/example_sword.yml", false);
         }
+        saveResource("mobs.yml", false);
+        saveResource("zones.yml", false);
     }
 
     private void registerListeners() {
         var pm = getServer().getPluginManager();
+
+        // 1. Create the listener instance and assign it to our class field.
+        this.zoneWandListener = new ZoneWandListener(this);
+        // 2. Register that specific, stored instance.
+        pm.registerEvents(this.zoneWandListener, this);
+
         pm.registerEvents(new PlayerJoinListener(this), this);
         pm.registerEvents(new InventoryListener(this), this);
         pm.registerEvents(new CombatListener(this), this);
         pm.registerEvents(new EntitySpawningListener(this), this);
         pm.registerEvents(new MiningListener(this), this);
         pm.registerEvents(new FarmingListener(this), this);
-        pm.registerEvents(new SmeltingListener(this), this);
-        pm.registerEvents(new CraftingListener(this), this);
+        pm.registerEvents(new CarpentryListener(this), this);
         pm.registerEvents(new AlchemyListener(this), this);
         pm.registerEvents(new FishingListener(this), this);
-        pm.registerEvents(new MagicListener(this), this);
-        pm.registerEvents(new ForgingListener(this), this);
+        pm.registerEvents(new ForagingListener(this), this);
         pm.registerEvents(new GUIListener(this), this);
         pm.registerEvents(new RecipeListener(this), this);
-        pm.registerEvents(new ZoneWandListener(this), this);
     }
 
     private void registerCommands() {
-        getCommand("mmorpg").setExecutor(new MmorpgCommand(this));
+        // The command constructor now needs the listener instance
+        getCommand("mmorpg").setExecutor(new MmorpgCommand(this, this.zoneWandListener));
         getCommand("stats").setExecutor(new StatsCommand(this));
         getCommand("skills").setExecutor(new SkillsCommand(this));
+        getCommand("giveitem").setExecutor(new GiveItemCommand(this));
+        getCommand("spawnmob").setExecutor(new SpawnMobCommand(this));
     }
 
     private void startAutoSaveTask() {
@@ -180,4 +201,6 @@ public final class MMORPGCore extends JavaPlugin {
     public ZoneManager getZoneManager() { return zoneManager; }
     public AbilityManager getAbilityManager() { return abilityManager; }
     public LootManager getLootManager() { return lootManager;  }
+    public EnvironmentManager getEnvironmentManager() { return environmentManager; }
+    public HUDManager getHudManager() { return hudManager; }
 }

@@ -1,139 +1,106 @@
 package org.nakii.mmorpg.managers;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
-import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
-import org.nakii.mmorpg.entity.CustomZone;
+import org.nakii.mmorpg.zone.CustomSubZone;
+import org.nakii.mmorpg.zone.CustomZone;
+import org.nakii.mmorpg.zone.EnvironmentSettings;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ZoneManager {
-
     private final MMORPGCore plugin;
     private final Map<String, CustomZone> zoneRegistry = new HashMap<>();
-    private final Map<UUID, Location> playerPos1 = new HashMap<>();
-    private final Map<UUID, Location> playerPos2 = new HashMap<>();
+    private final Map<String, Integer> mobCount = new ConcurrentHashMap<>();
+    private final Map<UUID, String> entityToZoneMap = new ConcurrentHashMap<>();
 
     public ZoneManager(MMORPGCore plugin) {
         this.plugin = plugin;
         loadZones();
-        startSpawningTask();
     }
 
     public void loadZones() {
         zoneRegistry.clear();
-        File zonesFile = getZonesFile();
-        FileConfiguration zonesConfig = YamlConfiguration.loadConfiguration(zonesFile);
-
-        ConfigurationSection zonesSection = zonesConfig.getConfigurationSection("zones");
-        if (zonesSection == null) return;
-
-        for (String key : zonesSection.getKeys(false)) {
-            ConfigurationSection section = zonesSection.getConfigurationSection(key);
-            if (section != null) {
-                World world = Bukkit.getWorld(section.getString("world", ""));
-                if (world != null) {
-                    zoneRegistry.put(key.toLowerCase(), new CustomZone(key, world, section));
-                } else {
-                    plugin.getLogger().warning("Could not load zone '" + key + "' because world '" + section.getString("world") + "' does not exist.");
-                }
-            }
+        File zonesFile = new File(plugin.getDataFolder(), "zones.yml");
+        if (!zonesFile.exists()) {
+            plugin.saveResource("zones.yml", false);
         }
-        plugin.getLogger().info("Loaded " + zoneRegistry.size() + " custom zones.");
+        FileConfiguration zoneConfig = YamlConfiguration.loadConfiguration(zonesFile);
+
+        if (!zoneConfig.isConfigurationSection("zones")) {
+            plugin.getLogger().info("No 'zones' section found in zones.yml. Skipping zone loading.");
+            return; // Exit the method early if there's nothing to load.
+        }
+
+        for (String key : zoneConfig.getConfigurationSection("zones").getKeys(false)) {
+            zoneRegistry.put(key, new CustomZone(key, zoneConfig.getConfigurationSection("zones." + key)));
+        }
+        plugin.getLogger().info("Loaded " + zoneRegistry.size() + " top-level zones.");
     }
 
-    public void saveZones() {
-        File zonesFile = getZonesFile();
-        FileConfiguration zonesConfig = new YamlConfiguration();
+    public CustomZone findZoneAt(Location location) {
         for (CustomZone zone : zoneRegistry.values()) {
-            zonesConfig.set("zones." + zone.getId(), zone.getConfig());
-        }
-        try {
-            zonesConfig.save(zonesFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void startSpawningTask() {
-        long spawnInterval = 100L; // 5 seconds
-        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                for (CustomZone zone : zoneRegistry.values()) {
-                    if (zone.contains(player.getLocation())) {
-                        trySpawnMobInZone(zone, player);
-                        break; // Player can only be in one zone at a time for spawning
+            if (zone.contains(location)) {
+                // Prioritize sub-zones
+                for (CustomSubZone subZone : zone.getSubZones().values()) {
+                    if (subZone.contains(location)) {
+                        return subZone;
                     }
                 }
+                return zone; // Return parent zone if no sub-zone matches
             }
-        }, spawnInterval, spawnInterval);
+        }
+        return null; // No zone found
     }
 
-    private void trySpawnMobInZone(CustomZone zone, Player player) {
-        ConfigurationSection mobsSection = zone.getConfig().getConfigurationSection("mobs");
-        if (mobsSection == null) return;
+    // These methods now work correctly by using findZoneAt()
+    public boolean isSafeZone(Location location) {
+        CustomZone zone = findZoneAt(location);
+        return zone != null && zone.getMobs().isEmpty();
+    }
 
-        for (String key : mobsSection.getKeys(false)) { // Note: The key here is the mob ID in the config
-            ConfigurationSection mobInfo = mobsSection.getConfigurationSection(key);
-            if (mobInfo == null) continue;
+    public String getZoneEnvironmentType(Location location) {
+        CustomZone zone = findZoneAt(location);
+        if (zone != null && zone.getEnvironment() != null) {
+            return zone.getEnvironment().type;
+        }
+        return "natural";
+    }
 
-            double spawnChance = mobInfo.getDouble("spawn_chance");
-
-            // BUG FIX: The check should be LESS THAN the chance, not greater than.
-            if (ThreadLocalRandom.current().nextDouble() >= spawnChance) {
-                continue;
-            }
-
-            int maxInZone = mobInfo.getInt("max_in_zone");
-            String mobId = mobInfo.getString("id");
-
-            // BUG FIX: More efficient entity counting within the zone's bounds.
-            Collection<Entity> entitiesInZone = zone.getWorld().getNearbyEntities(zone.getBounds());
-            int currentCount = 0;
-            for (Entity entity : entitiesInZone) {
-                String id = entity.getPersistentDataContainer().get(new NamespacedKey(plugin, "mob_id"), PersistentDataType.STRING);
-                if (mobId.equalsIgnoreCase(id)) {
-                    currentCount++;
-                }
-            }
-
-            if (currentCount < maxInZone) {
-                spawnMobNearPlayer(mobId, player);
-                return;
-            }
+    public double getZoneValue(Location location, String path, double defaultValue) {
+        CustomZone zone = findZoneAt(location);
+        if (zone == null || zone.getEnvironment() == null) return defaultValue;
+        EnvironmentSettings env = zone.getEnvironment();
+        switch (path) {
+            case "increase_per_second": return env.increasePerSecond;
+            case "max_value": return env.maxValue;
+            case "damage_threshold": return env.damageThreshold;
+            case "damage_amount": return env.damageAmount;
+            default: return defaultValue;
         }
     }
 
-    private void spawnMobNearPlayer(String mobId, Player player) {
-        Location playerLoc = player.getLocation();
-        int spawnRadius = 25;
-        int x = playerLoc.getBlockX() + ThreadLocalRandom.current().nextInt(-spawnRadius, spawnRadius + 1);
-        int z = playerLoc.getBlockZ() + ThreadLocalRandom.current().nextInt(-spawnRadius, spawnRadius + 1);
-        int y = playerLoc.getWorld().getHighestBlockYAt(x, z) + 1;
-        Location spawnLocation = new Location(player.getWorld(), x, y, z);
-
-        plugin.getMobManager().spawnMob(mobId, spawnLocation);
+    // --- Mob Spawning Helpers ---
+    public int getMobCountInZone(String zoneId) {
+        return mobCount.getOrDefault(zoneId, 0);
     }
 
-    public void setPlayerSelection(UUID uuid, int pos, Location loc) {
-        if (pos == 1) playerPos1.put(uuid, loc);
-        else playerPos2.put(uuid, loc);
+    public void trackMob(Entity entity, String zoneId) {
+        entityToZoneMap.put(entity.getUniqueId(), zoneId);
+        mobCount.put(zoneId, mobCount.getOrDefault(zoneId, 0) + 1);
     }
 
-    public Location getPlayerPos1(UUID uuid) { return playerPos1.get(uuid); }
-    public Location getPlayerPos2(UUID uuid) { return playerPos2.get(uuid); }
-    public Map<String, CustomZone> getZoneRegistry() { return zoneRegistry; }
-    public File getZonesFile() { return new File(plugin.getDataFolder(), "zones.yml"); }
+    public void untrackMob(Entity entity) {
+        String zoneId = entityToZoneMap.remove(entity.getUniqueId());
+        if (zoneId != null) {
+            mobCount.put(zoneId, Math.max(0, mobCount.getOrDefault(zoneId, 1) - 1));
+        }
+    }
 }

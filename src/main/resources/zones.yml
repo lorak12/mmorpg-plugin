@@ -1,32 +1,23 @@
-# ---------------------------------------------------
-# MMORPGCore Custom Spawning Zones
-# ---------------------------------------------------
-#
-# Create and manage zones in-game with the /mmorpg zone <...> commands.
-# This file serves as the storage for those zones.
-#
-# world: The name of the world the zone is in.
-# pos1 & pos2: The two corners defining the zone's bounding box.
-# mobs: A list of custom mobs that can spawn here.
-#   - id: The mob_id from mobs.yml.
-#   - spawn_chance: A value from 0.0 to 1.0. This is checked every spawn cycle for each player in the zone.
-#   - max_in_zone: The maximum number of this mob type allowed within the zone's boundaries at any time.
-#
-# ---------------------------------------------------
-
 zones:
-  haunted_crypt:
+  the_ice_caves: # Parent zone
     world: "world"
-    pos1:
-      x: 100.0
-      y: 50.0
-      z: 200.0
-    pos2:
-      x: 200.0
-      y: 70.0
-      z: 300.0
-    mobs:
-      # Ghoul minions are the common enemy here.
-      - id: "ghoul_minion"
-        spawn_chance: 0.15 # 15% chance to spawn per cycle
-        max_in_zone: 10
+    pos1: {x: 100, y: 30, z: 200}
+    pos2: {x: 300, y: 90, z: 400}
+    environment:
+      type: cold
+      increase_per_second: 1.0 # Slow cold gain in the general area
+    mobs: # Default mobs for the whole area
+      - {id: "ice_spirit", spawn_chance: 0.05, max_in_zone: 20}
+    sub-zones:
+      ghoul_den: # Sub-zone inside the ice caves
+        pos1: {x: 150, y: 40, z: 250}
+        pos2: {x: 180, y: 55, z: 280}
+        environment:
+          type: cold
+          increase_per_second: 2.5
+          max_value: 100.0
+          # damage_threshold is no longer used for cold, as damage starts at max_value
+          damage_at_max: 1.0 # New property: Vanilla damage to apply per second when at 100 cold.
+        mobs: # This list OVERRIDES the parent's list
+          - {id: "ghoul_minion", spawn_chance: 0.15, max_in_zone: 10}
+          - {id: "ghoul_brute", spawn_chance: 0.02, max_in_zone: 2}

@@ -7,10 +7,10 @@ import org.bukkit.event.inventory.CraftItemEvent;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.skills.Skill;
 
-public class CraftingListener implements Listener {
+public class CarpentryListener implements Listener {
     private final MMORPGCore plugin;
 
-    public CraftingListener(MMORPGCore plugin) {
+    public CarpentryListener(MMORPGCore plugin) {
         this.plugin = plugin;
     }
 
@@ -26,7 +26,7 @@ public class CraftingListener implements Listener {
                         plugin.getSkillManager().getSkillConfig().getDouble("skills.crafting.xp_sources.DEFAULT", 0.0));
 
         if (xpToGive > 0) {
-            plugin.getSkillManager().addExperience(player, Skill.CRAFTING, xpToGive);
+            plugin.getSkillManager().addExperience(player, Skill.CARPENTRY, xpToGive);
         }
     }
 }

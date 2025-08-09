@@ -4,6 +4,10 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class ChatUtils {
 
     private static final MiniMessage miniMessage = MiniMessage.miniMessage();
@@ -20,16 +24,41 @@ public class ChatUtils {
         return miniMessage.deserialize(text);
     }
 
-    /**
-     * Formats a string with legacy '&' codes into a chat Component.
-     * This is useful for compatibility if you still use them somewhere.
-     * @param text The string to format (e.g., "&cHello!")
-     * @return A Component ready to be sent to a player.
-     */
-    public static Component formatLegacy(String text) {
-        if (text == null || text.isEmpty()) {
-            return Component.empty();
+    public static String capitalizeWords(String input) {
+        if (input == null || input.isEmpty()) return input;
+
+        String[] words = input.split(" ");
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < words.length; i++) {
+            String word = words[i];
+            if (!word.isEmpty()) {
+                result.append(word.substring(0, 1).toUpperCase());
+                result.append(word.substring(1).toLowerCase());
+            }
+            if (i < words.length - 1) {
+                result.append(" ");
+            }
         }
-        return LegacyComponentSerializer.legacyAmpersand().deserialize(text);
+
+        return result.toString();
+    }
+
+    /**
+     * Formats a list of strings, applying MiniMessage formatting to each line.
+     * This is primarily used for setting item lore.
+     *
+     * @param list The list of strings to format.
+     * @return A new list containing formatted Components.
+     */
+    public static List<Component> formatList(List<String> list) {
+        if (list == null || list.isEmpty()) {
+            return Collections.emptyList();
+        }
+        // Use a Java Stream to apply the format() method to every string in the list
+        // and collect the results into a new list.
+        return list.stream()
+                .map(ChatUtils::format)
+                .collect(Collectors.toList());
     }
 }

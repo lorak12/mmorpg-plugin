@@ -1,13 +1,11 @@
 package org.nakii.mmorpg.managers;
 
-import hm.zelha.particlesfx.particles.ParticleDustColored;
-import hm.zelha.particlesfx.shapers.ParticleSphere;
-import hm.zelha.particlesfx.util.ParticleSFX;
 import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -16,7 +14,6 @@ import org.nakii.mmorpg.entity.CustomMob;
 import org.nakii.mmorpg.entity.ability.Ability;
 import org.nakii.mmorpg.entity.ability.TriggerType;
 import org.nakii.mmorpg.utils.ChatUtils;
-//import org.nakii.mmorpg.utils.EffectFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -215,5 +212,27 @@ public class AbilityManager {
                 }
             }
         }, 20L, 20L); // Run every second
+    }
+
+    /**
+     * Checks if a given damage event was caused by one of our custom abilities.
+     * @param event The damage event to check.
+     * @return True if it is ability damage, false otherwise.
+     */
+    public boolean isAbilityDamage(EntityDamageByEntityEvent event) {
+        // TODO: Implement the logic to detect ability damage.
+        // This could involve checking the projectile's metadata,
+        // or checking if the attacker has a specific "casting" tag.
+        return false;
+    }
+
+    /**
+     * Processes damage that has been confirmed to be from an ability.
+     * @param event The damage event to handle.
+     */
+    public void handleAbilityDamage(EntityDamageByEntityEvent event) {
+        // TODO: Implement the logic for applying ability-specific damage,
+        // applying status effects, and triggering visual/sound effects.
+        plugin.getLogger().info("Placeholder: Ability damage would be handled here.");
     }
 }

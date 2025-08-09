@@ -1,6 +1,6 @@
 package org.nakii.mmorpg.managers;
 
-import net.md_5.bungee.api.ChatColor;
+import net.kyori.adventure.text.Component; // <-- Import Component
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
@@ -11,6 +11,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.utils.ChatUtils; // <-- Import ChatUtils
 
 import java.io.File;
 import java.util.HashMap;
@@ -26,7 +27,6 @@ public class ItemManager {
 
     public ItemManager(MMORPGCore plugin) {
         this.plugin = plugin;
-        // The directory creation is handled in the main class now.
         loadItems();
     }
 
@@ -70,14 +70,20 @@ public class ItemManager {
         ItemStack item = new ItemStack(material, amount);
         ItemMeta meta = item.getItemMeta();
 
-        // Set basic properties
-        meta.setDisplayName(formatColors(itemConfig.getString("display_name", "")));
-        List<String> lore = itemConfig.getStringList("lore").stream()
-                .map(this::formatColors)
+
+        // Set basic properties using modern Component-based methods
+        meta.displayName(ChatUtils.format(itemConfig.getString("display_name", "")));
+
+        List<Component> lore = itemConfig.getStringList("lore").stream()
+                .map(ChatUtils::format) // Use the utility method for each line
                 .collect(Collectors.toList());
-        meta.setLore(lore);
+        meta.lore(lore);
+
+        // Use modern non-deprecated methods
         meta.setCustomModelData(itemConfig.getInt("custom_model_data", 0));
         meta.setUnbreakable(itemConfig.getBoolean("unbreakable", false));
+
+
 
         // Store stats in PersistentDataContainer
         ConfigurationSection statsSection = itemConfig.getConfigurationSection("stats");
@@ -99,9 +105,19 @@ public class ItemManager {
         ItemStack item = createItem(key, amount);
         if (item != null) {
             player.getInventory().addItem(item);
-            player.sendMessage(formatColors("<green>You have received " + item.getItemMeta().getDisplayName() + "</green>"));
+
+
+            // Build a component-based message for the player
+            Component itemName = item.displayName(); // Gets the name as a Component
+            Component message = ChatUtils.format("<green>You have received ").append(itemName);
+            player.sendMessage(message);
+
+
         } else {
-            player.sendMessage(formatColors("<red>The item '" + key + "' does not exist.</red>"));
+
+            // Use ChatUtils for the error message
+            player.sendMessage(ChatUtils.format("<red>The item '" + key + "' does not exist.</red>"));
+
         }
     }
 
@@ -109,8 +125,7 @@ public class ItemManager {
         return customItems;
     }
 
-    private String formatColors(String text) {
-        // A simple placeholder for a proper MiniMessage implementation
-        return ChatColor.translateAlternateColorCodes('&', text.replace("<red>", "&c").replace("<gray>", "&7").replace("<dark_red>", "&4").replace("<gold>", "&6").replace("<yellow>", "&e").replace("<green>", "&a").replace("<aqua>", "&b").replace("<blue>", "&9"));
-    }
+
+    // The formatColors method has been removed as it is now handled by ChatUtils.format()
+
 }

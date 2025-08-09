@@ -66,8 +66,13 @@ public class MobManager {
         // Set persistent data
         entity.getPersistentDataContainer().set(new NamespacedKey(plugin, "mob_id"), PersistentDataType.STRING, customMob.getId());
 
-        // Apply stats & equipment
-        plugin.getHealthManager().registerEntity(entity, customMob.getStatsConfig().getDouble("health", 20.0));
+        // --- THIS IS THE FIX ---
+        // Use the new method to set the mob's custom health from its config.
+        double health = customMob.getStatsConfig().getDouble("health", 20.0);
+        plugin.getHealthManager().setEntityHealth(entity, health);
+        // --- END OF FIX ---
+
+        // Apply equipment
         applyEquipment(entity, customMob);
 
         // Set name and other properties

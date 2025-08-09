@@ -56,7 +56,7 @@ public class DatabaseManager {
                 pstmt.setString(1, uuid.toString());
                 pstmt.setString(2, skill.name());
                 pstmt.setInt(3, data.getLevel(skill));
-                pstmt.setDouble(4, data.getExperience(skill));
+                pstmt.setDouble(4, data.getXp(skill));
                 pstmt.addBatch();
             }
             pstmt.executeBatch();
@@ -72,7 +72,7 @@ public class DatabaseManager {
             while (rs.next()) {
                 Skill skill = Skill.valueOf(rs.getString("skill"));
                 data.setLevel(skill, rs.getInt("level"));
-                data.setExperience(skill, rs.getDouble("experience"));
+                data.setXp(skill, rs.getDouble("experience"));
             }
         }
         return data;
