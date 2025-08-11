@@ -1,5 +1,7 @@
 package org.nakii.mmorpg.managers;
 
+import net.objecthunter.exp4j.Expression;
+import net.objecthunter.exp4j.ExpressionBuilder;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
@@ -9,6 +11,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.skills.PlayerSkillData;
 import org.nakii.mmorpg.skills.Skill;
 import org.nakii.mmorpg.stats.PlayerStats;
@@ -48,6 +51,7 @@ public class StatsManager {
         PlayerStats finalStats = new PlayerStats(); // Starts with fresh base stats
         PlayerStats itemStats = new PlayerStats(true); // Empty stats for items
         PlayerStats skillStats = new PlayerStats(true); // Empty stats for skills
+        PlayerStats enchantStats = new PlayerStats(true);
 
         // 1. Calculate stat bonuses from items
         PlayerInventory inventory = player.getInventory();
@@ -55,6 +59,13 @@ public class StatsManager {
         addStatsFromItem(itemStats, inventory.getItemInOffHand());
         for (ItemStack armor : inventory.getArmorContents()) {
             addStatsFromItem(itemStats, armor);
+        }
+
+        // --- NEW: Calculate stats from enchantments on those items ---
+        addStatsFromEnchantments(enchantStats, inventory.getItemInMainHand());
+        addStatsFromEnchantments(enchantStats, inventory.getItemInOffHand());
+        for (ItemStack armor : inventory.getArmorContents()) {
+            addStatsFromEnchantments(enchantStats, armor);
         }
         // TODO: Add stats from accessories in the future
 
@@ -201,5 +212,45 @@ public class StatsManager {
 
         // 5. Create and return the structured breakdown object.
         return new StatBreakdown(baseStats, itemStats, skillStats, totalStats);
+    }
+
+    /**
+     * Reads enchantments from an item and adds their stat bonuses to the provided PlayerStats object.
+     */
+    private void addStatsFromEnchantments(PlayerStats stats, ItemStack item) {
+        EnchantmentManager enchantManager = plugin.getEnchantmentManager();
+        Map<String, Integer> enchants = enchantManager.getEnchantments(item);
+
+        for (Map.Entry<String, Integer> entry : enchants.entrySet()) {
+            CustomEnchantment enchantment = enchantManager.getEnchantment(entry.getKey());
+            int level = entry.getValue();
+
+            if (enchantment == null || enchantment.getStatModifiers().isEmpty()) continue;
+
+            for (Map.Entry<String, String> modifier : enchantment.getStatModifiers().entrySet()) {
+                String statName = modifier.getKey().toUpperCase();
+                String formula = modifier.getValue();
+
+                try {
+                    // Evaluate the formula (e.g., "15 * level")
+                    Expression expression = new ExpressionBuilder(formula)
+                            .variable("level")
+                            .build()
+                            .setVariable("level", level);
+                    double value = expression.evaluate();
+
+                    // Apply the value to the correct stat
+                    switch (statName) {
+                        case "HEALTH": stats.addHealth(value); break;
+                        case "DEFENSE": stats.addDefense(value); break;
+                        case "STRENGTH": stats.addStrength(value); break;
+                        case "CRIT_DAMAGE": stats.addCritDamage(value); break;
+                        // Add cases for ALL other stats that can be modified
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Could not evaluate stat formula '" + formula + "' for enchantment '" + enchantment.getId() + "'.");
+                }
+            }
+        }
     }
 }

@@ -25,7 +25,7 @@ public class StatsCommand implements CommandExecutor {
         Player player = (Player) sender;
 
         // The command's only job is to open the main stats GUI.
-        plugin.getGuiManager().openStatsGUI(player);
+//        plugin.getGuiManager().openStatsGUI(player);
 
         return true;
     }

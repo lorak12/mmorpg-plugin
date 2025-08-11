@@ -1,0 +1,68 @@
+# ---------------------------------------------------
+#                CUSTOM ENCHANTMENTS
+# ---------------------------------------------------
+
+anvil-settings:
+  # The base XP level cost to combine two of the same enchantment.
+  # Formula: base_cost * new_level
+  # Example: Combining two Sharpness V books (new_level = 6) costs 10 * 6 = 60 levels.
+  combine-cost-per-level: 10
+
+  # The base XP level cost to apply an enchantment book to an item.
+  apply-book-cost-per-level: 5
+
+enchantments:
+  # --- STAT-BASED ENCHANTS ---
+  growth:
+    display-name: "Growth"
+    max-level: 7
+    description:
+      - "<gray>Grants +<red>{HEALTH}</red> ❤ Health</gray>"
+      - "<gray>per level.</gray>"
+    applicable-to: [ARMOR]
+    incompatibilities: []
+    effects:
+      stat-modifiers:
+        HEALTH: "15 * level"
+
+  critical:
+    display-name: "Critical"
+    max-level: 7
+    description:
+      - "<gray>Increases <red>☠ Crit Damage</red> by <red>{CRIT_DAMAGE}%</red>.</gray>"
+    applicable-to: [SWORD, BOW]
+    incompatibilities: []
+    effects:
+      stat-modifiers:
+        CRIT_DAMAGE: "10 * level" # Level 7 will give +70%
+
+  # --- LOGIC-BASED ENCHANTS ---
+  life_steal:
+    display-name: "Life Steal"
+    max-level: 5
+    description:
+      - "<gray>Heals for <green>{HEAL_PERCENT}%</green> of your max ❤ Health</gray>"
+      - "<gray>each time you hit a mob.</gray>"
+    applicable-to: [SWORD]
+    incompatibilities: [DRAIN, MANA_STEAL]
+    effects:
+      # This key tells our Java code which logic class to use.
+      custom-logic-key: "LIFE_STEAL"
+      # We can still store values for the logic class to use.
+      # The name can be anything, as long as the Java code knows what to look for.
+      attributes:
+        HEAL_PERCENT: "0.5 * level"
+
+  cleave:
+    display-name: "Cleave"
+    max-level: 6
+    description:
+      - "<gray>Deals <red>{DAMAGE_PERCENT}%</red> of your damage to nearby</gray>"
+      - "<gray>monsters within <green>{RADIUS}</green> blocks.</gray>"
+    applicable-to: [SWORD]
+    incompatibilities: []
+    effects:
+      custom-logic-key: "CLEAVE"
+      attributes:
+        DAMAGE_PERCENT: "5 * level"
+        RADIUS: "3 + 0.5 * level"

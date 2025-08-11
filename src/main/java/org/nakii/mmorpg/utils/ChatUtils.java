@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 public class ChatUtils {
 
     private static final MiniMessage miniMessage = MiniMessage.miniMessage();
+    private static final LegacyComponentSerializer legacySerializer = LegacyComponentSerializer.builder().character('&').hexColors().useUnusualXRepeatedCharacterHexFormat().build();
 
     /**
      * Formats a string with MiniMessage tags into a chat Component.

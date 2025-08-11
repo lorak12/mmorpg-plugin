@@ -33,6 +33,7 @@ public final class MMORPGCore extends JavaPlugin {
     private HUDManager hudManager;
     private ZoneMobSpawnerManager zoneMobSpawner;
     private ZoneWandListener zoneWandListener;
+    private EnchantmentManager enchantmentManager;
 
     // API Hooks
     private boolean libsDisguisesEnabled = false;
@@ -72,6 +73,7 @@ public final class MMORPGCore extends JavaPlugin {
             hudManager = new HUDManager(this);
             zoneManager = new ZoneManager(this);
             zoneMobSpawner = new ZoneMobSpawnerManager(this);
+            enchantmentManager = new EnchantmentManager(this);
 
             // Register events + commands
             registerListeners();
@@ -156,6 +158,8 @@ public final class MMORPGCore extends JavaPlugin {
         pm.registerEvents(new ForagingListener(this), this);
         pm.registerEvents(new GUIListener(this), this);
         pm.registerEvents(new RecipeListener(this), this);
+        pm.registerEvents(new EnchantingTableListener(this), this);
+        pm.registerEvents(new AnvilListener(this), this);
     }
 
     private void registerCommands() {
@@ -203,4 +207,5 @@ public final class MMORPGCore extends JavaPlugin {
     public LootManager getLootManager() { return lootManager;  }
     public EnvironmentManager getEnvironmentManager() { return environmentManager; }
     public HUDManager getHudManager() { return hudManager; }
+    public EnchantmentManager getEnchantmentManager() { return enchantmentManager; }
 }

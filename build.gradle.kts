@@ -13,7 +13,6 @@ description = "MMORPG Core Plugin"
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
-    maven("https://repo.triumphteam.dev/snapshots")
     maven("https://jitpack.io")
     maven("https://repo.md-5.net/content/groups/public/")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
@@ -23,8 +22,6 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
     compileOnly(group = "me.libraryaddict.disguises", name = "libsdisguises", version = "11.0.0")
 
-    implementation("net.kyori:adventure-platform-bukkit:4.4.1")
-    implementation("dev.triumphteam:triumph-gui:3.1.8-SNAPSHOT")
     implementation("net.objecthunter:exp4j:0.4.8")
 }
 
@@ -43,9 +40,9 @@ tasks {
     }
 
     shadowJar {
-        from(sourceSets.main.get().resources)
+        from(sourceSets.main.get().output)
+        configurations.add(project.configurations.runtimeClasspath)
 
-        relocate("dev.triumphteam.gui", "org.nakii.mmorpg.libs.gui")
         relocate("net.objecthunter.exp4j", "org.nakii.mmorpg.libs.exp4j")
 
         archiveClassifier.set("")
@@ -54,5 +51,10 @@ tasks {
 
     build {
         dependsOn(shadowJar)
+    }
+    jar {
+        archiveClassifier.set("")
+        dependsOn(shadowJar)
+        destinationDirectory.set(file("C:\\Users\\karol\\AppData\\Roaming\\.feather\\player-server\\servers\\66309597-64f4-441d-978f-06ed34fbee37\\plugins"))
     }
 }
