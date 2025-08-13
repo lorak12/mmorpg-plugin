@@ -169,6 +169,7 @@ public final class MMORPGCore extends JavaPlugin {
         getCommand("skills").setExecutor(new SkillsCommand(this));
         getCommand("giveitem").setExecutor(new GiveItemCommand(this));
         getCommand("spawnmob").setExecutor(new SpawnMobCommand(this));
+        getCommand("customenchant").setExecutor(new EnchantCommand(this));
     }
 
     private void startAutoSaveTask() {

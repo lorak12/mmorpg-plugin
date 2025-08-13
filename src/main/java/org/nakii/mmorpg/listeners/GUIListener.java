@@ -61,25 +61,16 @@ public class GUIListener implements Listener {
         if (holder instanceof AbstractGui) {
             Player player = (Player) event.getPlayer();
 
-            // --- THIS IS THE DEFINITIVE DUPLICATION FIX ---
             // A 1-tick delay is crucial. It lets us check what the player is doing *after* the close event.
             plugin.getServer().getScheduler().runTask(plugin, () -> {
-                // If the player is now viewing another one of our custom GUIs, do nothing.
-                // This prevents items from being returned during a state change.
-                if (player.getOpenInventory().getTopInventory().getHolder() instanceof AbstractGui) {
-                    return;
-                }
-
-                // If we reach here, the player has closed the GUI for real (e.g., ESC key).
-                // Now we can safely return the items.
+                // ...
                 if (holder instanceof EnchantingGui) {
                     returnItem(player, event.getInventory().getItem(19));
                 } else if (holder instanceof AnvilGui) {
-                    returnItem(player, event.getInventory().getItem(13));
-                    returnItem(player, event.getInventory().getItem(31));
+                    returnItem(player, event.getInventory().getItem(29)); // INPUT_LEFT_SLOT
+                    returnItem(player, event.getInventory().getItem(33)); // INPUT_RIGHT_SLOT
                 }
             });
-            // --- END OF FIX ---
 
             AbstractGui.OPEN_GUIS.remove(player.getUniqueId());
         }

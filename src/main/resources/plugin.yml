@@ -30,6 +30,10 @@ commands:
     description: Spawns a custom mob at your location.
     usage: /spawnmob <mob_id>
     permission: mmorpg.command.spawnmob
+  customenchant:
+    description: Applies a custom enchantment to an item or book.
+    usage: /<command> <player> <enchant> <level> [item]
+    permission: mmorpg.command.enchant
 
 permissions:
   mmorpg.admin:
@@ -50,4 +54,7 @@ permissions:
     default: true
   mmorpg.command.skills:
     description: Allows the user to use the /skills command.
+    default: true
+  mmorpg.command.enchant:
+    description: Allow the user to use the /customenchant command.
     default: true
