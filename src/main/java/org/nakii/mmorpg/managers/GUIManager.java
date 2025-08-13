@@ -25,19 +25,4 @@ public class GUIManager {
     public void openSkillsGUI(Player player) {
         new SkillsGui(plugin, player).open();
     }
-
-    /**
-     * Creates and opens the main stats hub GUI for a player.
-     * @param player The player to open the GUI for.
-     */
-//    public void openStatsGUI(Player player) {
-//        new StatsGui(plugin, player).open();
-//    }
-
-    /**
-     * Creates and opens the custom enchanting GUI.
-     */
-    public void openEnchantingGUI(Player player) {
-        new EnchantingGui(plugin, player).open();
-    }
 }

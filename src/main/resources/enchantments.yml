@@ -1,68 +1,245 @@
-# ---------------------------------------------------
+# ===================================================
 #                CUSTOM ENCHANTMENTS
+# ===================================================
+# - All text uses the MiniMessage format (<green>, <b>, etc.).
+# - Stat modifiers use the exp4j formula format with 'level' as a variable.
 # ---------------------------------------------------
-
-anvil-settings:
-  # The base XP level cost to combine two of the same enchantment.
-  # Formula: base_cost * new_level
-  # Example: Combining two Sharpness V books (new_level = 6) costs 10 * 6 = 60 levels.
-  combine-cost-per-level: 10
-
-  # The base XP level cost to apply an enchantment book to an item.
-  apply-book-cost-per-level: 5
 
 enchantments:
-  # --- STAT-BASED ENCHANTS ---
-  growth:
-    display-name: "Growth"
+  # ===================================================
+  #                  SWORD ENCHANTMENTS
+  # ===================================================
+  sharpness:
+    display-name: "<blue>Sharpness</blue>"
     max-level: 7
+    applicable-types: [SWORD]
+    incompatibilities: [bane_of_arthropods, smite]
     description:
-      - "<gray>Grants +<red>{HEALTH}</red> ❤ Health</gray>"
-      - "<gray>per level.</gray>"
-    applicable-to: [ARMOR]
-    incompatibilities: []
-    effects:
-      stat-modifiers:
-        HEALTH: "15 * level"
+      - "<gray>Increases melee damage by <green>{value}%</green>.</gray>"
+    stat-modifiers:
+      STRENGTH: "0" # This is a direct damage multiplier, handled in damage calculation, not a stat.
+    levels:
+      1: { value: 5,  cost: 5,  bookshelf-req: 0, skill-req: 0 }
+      2: { value: 10, cost: 10, bookshelf-req: 2, skill-req: 2 }
+      3: { value: 15, cost: 15, bookshelf-req: 4, skill-req: 5 }
+      4: { value: 20, cost: 20, bookshelf-req: 6, skill-req: 8 }
+      5: { value: 30, cost: 25, bookshelf-req: 8, skill-req: 12 }
+      6: { value: 45, cost: 35, bookshelf-req: 15, skill-req: 20 }
+      7: { value: 65, cost: 50, bookshelf-req: 20, skill-req: 28 }
 
   critical:
-    display-name: "Critical"
+    display-name: "<blue>Critical</blue>"
     max-level: 7
-    description:
-      - "<gray>Increases <red>☠ Crit Damage</red> by <red>{CRIT_DAMAGE}%</red>.</gray>"
-    applicable-to: [SWORD, BOW]
+    applicable-types: [SWORD]
     incompatibilities: []
-    effects:
-      stat-modifiers:
-        CRIT_DAMAGE: "10 * level" # Level 7 will give +70%
+    description:
+      - "<gray>Increases <red>☠ Crit Damage</red> by <green>{value}%</green>.</gray>"
+    stat-modifiers:
+      CRIT_DAMAGE: "value" # 'value' is pulled directly from the level
+    levels:
+      1: { value: 10,  cost: 10, bookshelf-req: 0,  skill-req: 0 }
+      2: { value: 20,  cost: 15, bookshelf-req: 2,  skill-req: 5 }
+      3: { value: 30,  cost: 20, bookshelf-req: 4,  skill-req: 10 }
+      4: { value: 40,  cost: 25, bookshelf-req: 8,  skill-req: 15 }
+      5: { value: 50,  cost: 30, bookshelf-req: 12, skill-req: 20 }
+      6: { value: 70,  cost: 45, bookshelf-req: 16, skill-req: 25 }
+      7: { value: 100, cost: 60, bookshelf-req: 20, skill-req: 30 }
 
-  # --- LOGIC-BASED ENCHANTS ---
-  life_steal:
-    display-name: "Life Steal"
+  first_strike:
+    display-name: "<blue>First Strike</blue>"
     max-level: 5
+    applicable-types: [SWORD]
+    incompatibilities: [triple_strike]
     description:
-      - "<gray>Heals for <green>{HEAL_PERCENT}%</green> of your max ❤ Health</gray>"
-      - "<gray>each time you hit a mob.</gray>"
-    applicable-to: [SWORD]
-    incompatibilities: [DRAIN, MANA_STEAL]
-    effects:
-      # This key tells our Java code which logic class to use.
-      custom-logic-key: "LIFE_STEAL"
-      # We can still store values for the logic class to use.
-      # The name can be anything, as long as the Java code knows what to look for.
-      attributes:
-        HEAL_PERCENT: "0.5 * level"
+      - "<gray>First hit deals <green>+{value}%</green> increased damage.</gray>"
+    levels:
+      1: { value: 25,  cost: 8,  bookshelf-req: 0, skill-req: 1 }
+      2: { value: 50,  cost: 12, bookshelf-req: 2, skill-req: 4 }
+      3: { value: 75,  cost: 18, bookshelf-req: 5, skill-req: 8 }
+      4: { value: 100, cost: 25, bookshelf-req: 9, skill-req: 12 }
+      5: { value: 125, cost: 35, bookshelf-req: 14, skill-req: 16 }
 
-  cleave:
-    display-name: "Cleave"
-    max-level: 6
+  life_steal:
+    display-name: "<blue>Life Steal</blue>"
+    max-level: 5
+    applicable-types: [SWORD]
+    incompatibilities: [drain, mana_steal]
     description:
-      - "<gray>Deals <red>{DAMAGE_PERCENT}%</red> of your damage to nearby</gray>"
-      - "<gray>monsters within <green>{RADIUS}</green> blocks.</gray>"
-    applicable-to: [SWORD]
+      - "<gray>Heals for <green>{value}%</green> of your max health on hit.</gray>"
+    levels:
+      1: { value: 1, cost: 15, bookshelf-req: 5,  skill-req: 8 } # Representing 0.5% as 1 for int, will divide by 2 in code.
+      2: { value: 2, cost: 20, bookshelf-req: 8,  skill-req: 12 } # 1.0%
+      3: { value: 3, cost: 25, bookshelf-req: 11, skill-req: 16 } # 1.5%
+      4: { value: 4, cost: 30, bookshelf-req: 15, skill-req: 20 } # 2.0%
+      5: { value: 5, cost: 40, bookshelf-req: 20, skill-req: 24 } # 2.5%
+
+  looting:
+    display-name: "<blue>Looting</blue>"
+    max-level: 5
+    applicable-types: [SWORD]
     incompatibilities: []
-    effects:
-      custom-logic-key: "CLEAVE"
-      attributes:
-        DAMAGE_PERCENT: "5 * level"
-        RADIUS: "3 + 0.5 * level"
+    description:
+      - "<gray>Increases chance for mob drops by <green>{value}%</green>.</gray>"
+    stat-modifiers:
+      MAGIC_FIND: "0" # This is handled by custom logic, not a direct stat buff.
+    levels:
+      1: { value: 15, cost: 10, bookshelf-req: 0, skill-req: 5 }
+      2: { value: 30, cost: 15, bookshelf-req: 4, skill-req: 10 }
+      3: { value: 45, cost: 20, bookshelf-req: 8, skill-req: 15 }
+      4: { value: 60, cost: 30, bookshelf-req: 12, skill-req: 20 }
+      5: { value: 75, cost: 40, bookshelf-req: 18, skill-req: 25 }
+
+  # ... (and so on for all other sword enchants)
+
+  # ===================================================
+  #                    BOW ENCHANTMENTS
+  # ===================================================
+  power:
+    display-name: "<blue>Power</blue>"
+    max-level: 7
+    applicable-types: [BOW]
+    incompatibilities: []
+    description:
+      - "<gray>Increases bow damage by <green>{value}%</green>.</gray>"
+    levels:
+      1: { value: 8,  cost: 5,  bookshelf-req: 0, skill-req: 0 }
+      2: { value: 16, cost: 10, bookshelf-req: 1, skill-req: 2 }
+      3: { value: 24, cost: 15, bookshelf-req: 2, skill-req: 5 }
+      4: { value: 32, cost: 20, bookshelf-req: 4, skill-req: 8 }
+      5: { value: 40, cost: 25, bookshelf-req: 6, skill-req: 12 }
+      6: { value: 50, cost: 35, bookshelf-req: 10, skill-req: 18 }
+      7: { value: 65, cost: 50, bookshelf-req: 15, skill-req: 25 }
+
+  # ... (and so on for all other bow enchants)
+
+  # ===================================================
+  #                   ARMOR ENCHANTMENTS
+  # ===================================================
+  growth:
+    display-name: "<blue>Growth</blue>"
+    max-level: 7
+    applicable-types: [ARMOR]
+    incompatibilities: []
+    description:
+      - "<gray>Grants <red>+{value} ❤ Health</red>.</gray>"
+    stat-modifiers:
+      HEALTH: "value"
+    levels:
+      1: { value: 15, cost: 8,  bookshelf-req: 0,  skill-req: 3 }
+      2: { value: 30, cost: 12, bookshelf-req: 2,  skill-req: 6 }
+      3: { value: 45, cost: 16, bookshelf-req: 4,  skill-req: 9 }
+      4: { value: 60, cost: 20, bookshelf-req: 7,  skill-req: 12 }
+      5: { value: 75, cost: 25, bookshelf-req: 10, skill-req: 16 }
+      6: { value: 90, cost: 35, bookshelf-req: 15, skill-req: 22 }
+      7: { value: 105,cost: 50, bookshelf-req: 20, skill-req: 28 }
+
+  protection:
+    display-name: "<blue>Protection</blue>"
+    max-level: 7
+    applicable-types: [ARMOR]
+    incompatibilities: [blast_protection, fire_protection, projectile_protection]
+    description:
+      - "<gray>Grants <green>+{value} ❈ Defense</green>.</gray>"
+    stat-modifiers:
+      DEFENSE: "value"
+    levels:
+      1: { value: 3,  cost: 5,  bookshelf-req: 0, skill-req: 0 }
+      2: { value: 6,  cost: 10, bookshelf-req: 1, skill-req: 2 }
+      3: { value: 9,  cost: 15, bookshelf-req: 2, skill-req: 4 }
+      4: { value: 12, cost: 20, bookshelf-req: 4, skill-req: 6 }
+      5: { value: 15, cost: 25, bookshelf-req: 6, skill-req: 8 }
+      6: { value: 18, cost: 35, bookshelf-req: 10, skill-req: 14 }
+      7: { value: 21, cost: 50, bookshelf-req: 15, skill-req: 20 }
+
+  sugar_rush:
+    display-name: "<blue>Sugar Rush</blue>"
+    max-level: 3
+    applicable-types: [ARMOR] # Should be BOOTS, but ARMOR is a good catch-all
+    incompatibilities: []
+    description:
+      - "<gray>Grants <white>+{value} ✦ Speed</white>.</gray>"
+    stat-modifiers:
+      SPEED: "value"
+    levels:
+      1: { value: 2, cost: 10, bookshelf-req: 4, skill-req: 5 }
+      2: { value: 4, cost: 20, bookshelf-req: 8, skill-req: 10 }
+      3: { value: 6, cost: 30, bookshelf-req: 12, skill-req: 15 }
+
+  # ... (and so on for all other armor enchants)
+
+  # ===================================================
+  #                   TOOL ENCHANTMENTS
+  # ===================================================
+  efficiency:
+    display-name: "<blue>Efficiency</blue>"
+    max-level: 10
+    applicable-types: [TOOL]
+    incompatibilities: []
+    description:
+      - "<gray>Grants <green>+{value} ⸕ Mining Speed</green>.</gray>"
+    stat-modifiers:
+      MINING_SPEED: "value"
+    levels:
+      1: { value: 30,  cost: 5,  bookshelf-req: 0, skill-req: 0 }
+      2: { value: 50,  cost: 8,  bookshelf-req: 1, skill-req: 2 }
+      3: { value: 70,  cost: 12, bookshelf-req: 2, skill-req: 4 }
+      4: { value: 90,  cost: 16, bookshelf-req: 3, skill-req: 6 }
+      5: { value: 110, cost: 20, bookshelf-req: 4, skill-req: 8 }
+      6: { value: 130, cost: 25, bookshelf-req: 6, skill-req: 10 }
+      7: { value: 150, cost: 30, bookshelf-req: 8, skill-req: 12 }
+      8: { value: 170, cost: 35, bookshelf-req: 10, skill-req: 15 }
+      9: { value: 190, cost: 40, bookshelf-req: 13, skill-req: 18 }
+      10: { value: 210, cost: 50, bookshelf-req: 16, skill-req: 22 }
+
+  fortune:
+    display-name: "<blue>Fortune</blue>"
+    max-level: 4
+    applicable-types: [TOOL]
+    incompatibilities: [silk_touch]
+    description:
+      - "<gray>Grants <green>+{value} ☘ Mining Fortune</green>.</gray>"
+    stat-modifiers:
+      MINING_FORTUNE: "value"
+    levels:
+      1: { value: 10, cost: 15, bookshelf-req: 3, skill-req: 5 }
+      2: { value: 20, cost: 22, bookshelf-req: 6, skill-req: 10 }
+      3: { value: 30, cost: 30, bookshelf-req: 10, skill-req: 15 }
+      4: { value: 45, cost: 45, bookshelf-req: 15, skill-req: 20 }
+
+  # ... (and so on for all other tool enchants)
+
+  # ===================================================
+  #                FISHING ROD ENCHANTMENTS
+  # ===================================================
+  lure:
+    display-name: "<blue>Lure</blue>"
+    max-level: 6
+    applicable-types: [FISHING_ROD]
+    incompatibilities: []
+    description:
+      - "<gray>Decreases max fishing time by <green>{value}%</green>.</gray>"
+    levels:
+      1: { value: 5,  cost: 8,  bookshelf-req: 1, skill-req: 2 }
+      2: { value: 10, cost: 12, bookshelf-req: 3, skill-req: 5 }
+      3: { value: 15, cost: 16, bookshelf-req: 5, skill-req: 8 }
+      4: { value: 20, cost: 20, bookshelf-req: 8, skill-req: 11 }
+      5: { value: 25, cost: 25, bookshelf-req: 12, skill-req: 14 }
+      6: { value: 30, cost: 30, bookshelf-req: 16, skill-req: 18 }
+
+  luck_of_the_sea:
+    display-name: "<blue>Luck of the Sea</blue>"
+    max-level: 7
+    applicable-types: [FISHING_ROD]
+    incompatibilities: []
+    description:
+      - "<gray>Increases chance for treasure by <green>{value}%</green>.</gray>"
+    stat-modifiers:
+      TREASURE_CHANCE: "value / 2" # Value is stored as int (1), effect is 0.5
+    levels:
+      1: { value: 1, cost: 10, bookshelf-req: 2, skill-req: 4 } # 0.5%
+      2: { value: 2, cost: 15, bookshelf-req: 4, skill-req: 8 } # 1.0%
+      3: { value: 3, cost: 20, bookshelf-req: 7, skill-req: 12 } # 1.5%
+      4: { value: 4, cost: 25, bookshelf-req: 10, skill-req: 16 } # 2.0%
+      5: { value: 5, cost: 30, bookshelf-req: 14, skill-req: 20 } # 2.5%
+      6: { value: 6, cost: 35, bookshelf-req: 18, skill-req: 24 } # 3.0%
+      7: { value: 7, cost: 40, bookshelf-req: 20, skill-req: 28 } # 3.5%

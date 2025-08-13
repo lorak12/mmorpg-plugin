@@ -227,4 +227,18 @@ public class SkillManager {
             return 100 * level * level; // Fallback
         }
     }
+
+    /**
+     * REVISED: Gets the current level of a specific skill for a player.
+     * This now correctly uses the unified data structure.
+     */
+    public int getLevel(Player player, Skill skill) {
+        PlayerSkillData data = skillDataMap.get(player.getUniqueId());
+        if (data == null) {
+            // This can happen if a player's data isn't loaded properly.
+            // Returning 0 is a safe fallback.
+            return 0;
+        }
+        return data.getLevel(skill);
+    }
 }

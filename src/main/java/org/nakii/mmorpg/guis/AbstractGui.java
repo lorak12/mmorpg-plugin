@@ -40,10 +40,12 @@ public abstract class AbstractGui implements InventoryHolder {
     public abstract void populateItems();
 
     public void open() {
-        inventory = Bukkit.createInventory(this, getSize(), ChatUtils.format(getTitle()));
-        populateItems();
+        // Use ChatUtils to format the title string into a Component
+        this.inventory = Bukkit.createInventory(this, getSize(), ChatUtils.format(getTitle()));
+        this.populateItems();
+
         OPEN_GUIS.put(player.getUniqueId(), this);
-        player.openInventory(inventory);
+        player.openInventory(this.inventory);
     }
 
     public void handleClick(InventoryClickEvent event) {

@@ -1,6 +1,7 @@
 package org.nakii.mmorpg.guis;
 
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.nakii.mmorpg.MMORPGCore;
@@ -13,16 +14,18 @@ import java.util.stream.Collectors;
 public class EnchantmentGuideGui extends AbstractGui {
 
     private final List<CustomEnchantment> allEnchantments;
+    private final Block enchantingTable;
 
-    public EnchantmentGuideGui(MMORPGCore plugin, Player player) {
+    public EnchantmentGuideGui(MMORPGCore plugin, Player player, Block enchantingTable) {
         super(plugin, player);
-        // Get all enchantments and sort them alphabetically
+        this.enchantingTable = enchantingTable; // <-- Store the passed block
+
         this.allEnchantments = plugin.getEnchantmentManager().getAllEnchantments().values()
                 .stream()
                 .sorted((e1, e2) -> e1.getDisplayName().compareToIgnoreCase(e2.getDisplayName()))
                 .collect(Collectors.toList());
 
-        this.maxItemsPerPage = 28; // 4 rows of 7 slots in the content area
+        this.maxItemsPerPage = 28;
         this.totalPages = (int) Math.ceil((double) this.allEnchantments.size() / this.maxItemsPerPage);
     }
 
@@ -83,9 +86,13 @@ public class EnchantmentGuideGui extends AbstractGui {
         int slot = event.getSlot();
 
         if (event.getClickedInventory() == inventory) {
-            // Override the "Close" button to go back to the enchanting table
+            // FIX: The "Close" button now correctly opens the EnchantingGui WITH the block
             if (slot == 49) {
-                new EnchantingGui(plugin, player).open();
+                if (this.enchantingTable != null) {
+                    new EnchantingGui(plugin, player, this.enchantingTable).open();
+                } else {
+                    player.closeInventory(); // Fallback if no table was provided
+                }
             }
         }
     }

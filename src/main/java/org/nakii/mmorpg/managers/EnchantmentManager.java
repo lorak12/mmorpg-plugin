@@ -1,5 +1,8 @@
 package org.nakii.mmorpg.managers;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -20,6 +23,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import org.nakii.mmorpg.enchantment.ApplicableType;
+import org.nakii.mmorpg.utils.ChatUtils;
+
 import java.util.stream.Collectors;
 
 public class EnchantmentManager {
@@ -28,6 +33,8 @@ public class EnchantmentManager {
     private final Map<String, CustomEnchantment> enchantmentRegistry = new HashMap<>();
     private final Gson gson;
     private final NamespacedKey ENCHANTS_KEY;
+
+    private static final Component LORE_MARKER = Component.text("").decoration(TextDecoration.ITALIC, false);
 
 
     public EnchantmentManager(MMORPGCore plugin) {
@@ -73,10 +80,6 @@ public class EnchantmentManager {
         return enchantmentRegistry.get(id.toLowerCase());
     }
 
-    /**
-     * Gets an unmodifiable view of all registered enchantments.
-     * @return A map of all enchantments.
-     */
     public Map<String, CustomEnchantment> getAllEnchantments() {
         return Collections.unmodifiableMap(enchantmentRegistry);
     }
@@ -107,51 +110,75 @@ public class EnchantmentManager {
         String json = gson.toJson(enchantments);
         meta.getPersistentDataContainer().set(ENCHANTS_KEY, PersistentDataType.STRING, json);
         item.setItemMeta(meta);
-
-        // This is now called every time an item's enchants are changed.
-        updateItemLoreWithEnchants(item);
+        updateItemLoreWithEnchants(item); // This will now correctly format the lore
     }
 
     /**
-     * Updates an item's lore to display its custom enchantments and adds a glint effect.
+     * UPDATED: This method now works with Components to correctly parse MiniMessage tags.
      */
     private void updateItemLoreWithEnchants(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return;
 
         ItemMeta meta = item.getItemMeta();
-        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        List<Component> newLore = new ArrayList<>();
 
-        // 1. Remove all existing custom enchant lines AND any blank lines that might be left over.
-        lore.removeIf(line -> line.startsWith("§9") || line.trim().isEmpty());
-
-        Map<String, Integer> enchants = getEnchantments(item);
-        if (!enchants.isEmpty()) {
-            // Build the new enchantment line, e.g., "Critical V, Sharpness V"
-            StringJoiner enchantJoiner = new StringJoiner("§7, §9"); // Changed for better formatting
-            for (Map.Entry<String, Integer> entry : enchants.entrySet()) {
-                CustomEnchantment enchant = getEnchantment(entry.getKey());
-                if (enchant != null) {
-                    enchantJoiner.add(enchant.getDisplayName() + " " + toRoman(entry.getValue()));
+        // 1. Get the original lore, but filter out our old enchantment lines.
+        if (meta.hasLore() && meta.lore() != null) {
+            boolean ourSectionFound = false;
+            for(Component line : meta.lore()) {
+                // If we find our invisible marker, stop adding old lines
+                if (line.equals(LORE_MARKER)) {
+                    ourSectionFound = true;
+                    break;
                 }
-            }
-            // Add a blank line for spacing before the enchantments list.
-            lore.add("");
-            lore.add("§9" + enchantJoiner.toString());
-
-            // --- FIX: Add Glint Effect ---
-            // Add a harmless vanilla enchantment to make the item glow.
-            meta.addEnchant(Enchantment.AQUA_AFFINITY, 1, true);
-            // Hide the vanilla enchantment from the lore.
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-
-        } else {
-            // --- FIX: Remove Glint if no custom enchants exist ---
-            if (meta.hasEnchant(Enchantment.AQUA_AFFINITY)) {
-                meta.removeEnchant(Enchantment.AQUA_AFFINITY);
+                newLore.add(line);
             }
         }
 
-        meta.setLore(lore);
+        // Remove trailing blank lines to prevent weird spacing
+        while(!newLore.isEmpty() && PlainTextComponentSerializer.plainText().serialize(newLore.get(newLore.size() - 1)).trim().isEmpty()){
+            newLore.remove(newLore.size() - 1);
+        }
+
+        Map<String, Integer> enchants = getEnchantments(item);
+        if (!enchants.isEmpty()) {
+            // Add a blank line for spacing if there was other lore
+            if (!newLore.isEmpty()) {
+                newLore.add(Component.empty());
+            }
+
+            // Add our invisible marker first
+            newLore.add(LORE_MARKER);
+
+            // Build the new enchantment line string with MiniMessage tags
+            StringJoiner enchantJoiner = new StringJoiner("<blue>, </blue>");
+            // Sort enchantments alphabetically for consistent lore
+            List<String> sortedEnchantIds = new ArrayList<>(enchants.keySet());
+            Collections.sort(sortedEnchantIds);
+
+            for (String enchantId : sortedEnchantIds) {
+                CustomEnchantment enchant = getEnchantment(enchantId);
+                int level = enchants.get(enchantId);
+                if (enchant != null) {
+                    enchantJoiner.add(enchant.getDisplayName() + " " + toRoman(level));
+                }
+            }
+
+            // Parse the entire line as one component and add it to the lore
+            newLore.add(ChatUtils.format(enchantJoiner.toString()));
+
+            // Add glint effect
+            meta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true);
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        } else {
+            // Remove glint effect if no enchantments are left
+            if (meta.hasEnchant(Enchantment.LUCK_OF_THE_SEA)) {
+                meta.removeEnchant(Enchantment.LUCK_OF_THE_SEA);
+            }
+        }
+
+        // 2. Set the new lore using the Component-based method
+        meta.lore(newLore);
         item.setItemMeta(meta);
     }
 

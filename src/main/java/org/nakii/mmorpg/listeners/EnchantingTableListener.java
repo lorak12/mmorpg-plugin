@@ -31,6 +31,6 @@ public class EnchantingTableListener implements Listener {
         Player player = event.getPlayer();
 
         // Open our new custom GUI instead of the old GUIManager method
-        new EnchantingGui(plugin, player).open();
+        new EnchantingGui(plugin, player, clickedBlock).open();
     }
 }
