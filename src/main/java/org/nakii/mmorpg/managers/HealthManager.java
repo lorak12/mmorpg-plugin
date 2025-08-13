@@ -6,7 +6,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.MMORPGCore;
-import org.nakii.mmorpg.stats.PlayerStats;
+import org.nakii.mmorpg.player.PlayerStats;
 
 import java.util.HashMap;
 import java.util.Map;

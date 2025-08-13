@@ -21,15 +21,26 @@ import org.nakii.mmorpg.utils.ChatUtils;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class MobManager {
 
     private final MMORPGCore plugin;
     private final Map<String, CustomMob> mobRegistry = new HashMap<>();
+    private final Map<UUID, Integer> mobLevels = new HashMap<>();
 
     public MobManager(MMORPGCore plugin) {
         this.plugin = plugin;
         loadMobs();
+    }
+
+    public void registerCustomMob(LivingEntity entity, int level) {
+        mobLevels.put(entity.getUniqueId(), level);
+        updateHealthDisplay(entity);
+    }
+
+    public int getMobLevel(LivingEntity entity) {
+        return mobLevels.getOrDefault(entity.getUniqueId(), 1);
     }
 
     public void loadMobs() {
@@ -80,7 +91,7 @@ public class MobManager {
         entity.setRemoveWhenFarAway(false);
 
         // Use the centralized name updater
-        plugin.getDamageManager().updateMobHealthDisplay(entity);
+        this.updateHealthDisplay(entity);
 
         return entity;
     }
@@ -164,5 +175,29 @@ public class MobManager {
     }
     public boolean isCustomMob(Entity entity) {
         return entity.getPersistentDataContainer().has(new NamespacedKey(plugin, "mob_id"), PersistentDataType.STRING);
+    }
+
+    ///  The new refactior part begins here ----------------------------------------------------------------------------------
+
+    /**
+     * Updates the custom name of a mob to reflect its current health.
+     * @param entity The mob whose display should be updated.
+     */
+    public void updateHealthDisplay(LivingEntity entity) {
+        if (entity == null || entity.isDead()) {
+            mobLevels.remove(entity.getUniqueId());
+            return;
+        }
+
+        int level = getMobLevel(entity);
+        String mobName = entity.getType().name().substring(0, 1) + entity.getType().name().substring(1).toLowerCase();
+        double health = entity.getHealth();
+        double maxHealth = entity.getMaxHealth();
+
+        String formattedName = String.format("<gray>[</gray><white>Lv%d</white><gray>]</gray> <red>%s</red> <green>%.0f</green><white>/</white><green>%.0f</green><red>❤</red>",
+                level, mobName, health, maxHealth);
+
+        entity.customName(ChatUtils.format(formattedName));
+        entity.setCustomNameVisible(true);
     }
 }

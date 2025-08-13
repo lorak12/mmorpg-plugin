@@ -1,4 +1,4 @@
-package org.nakii.mmorpg.stats;
+package org.nakii.mmorpg.player;
 
 /**
  * A structured container for breaking down a player's stats by their source.

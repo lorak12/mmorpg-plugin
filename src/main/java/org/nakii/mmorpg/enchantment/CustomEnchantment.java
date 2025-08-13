@@ -16,6 +16,7 @@ public class CustomEnchantment {
     private final int maxLevel;
     private final List<String> description;
     private final List<String> incompatibilities;
+    private final String customLogicKey;
     private final List<ApplicableType> applicableTypes;
 
     // NEW: A map to hold data for each specific level
@@ -33,6 +34,7 @@ public class CustomEnchantment {
         this.maxLevel = section.getInt("max-level", 1);
         this.description = section.getStringList("description");
         this.incompatibilities = section.getStringList("incompatibilities");
+        this.customLogicKey = section.getString("custom-logic-key", null);
         this.applicableTypes = section.getStringList("applicable-types").stream()
                 .map(s -> {
                     try {
@@ -113,6 +115,10 @@ public class CustomEnchantment {
     public int getSkillRequirement(int level) {
         EnchantmentLevelData data = getDataForLevel(level);
         return (data != null) ? data.skillReq() : 999;
+    }
+
+    public String getCustomLogicKey() {
+        return customLogicKey;
     }
 
     /**

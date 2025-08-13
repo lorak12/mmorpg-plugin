@@ -37,12 +37,6 @@ public class EntitySpawningListener implements Listener {
             return;
         }
 
-        // Prevent natural mobs from spawning in safe zones
-//        if (plugin.getZoneManager().isSafeZone(entity.getLocation())) {
-//            event.setCancelled(true);
-//            return;
-//        }
-
         // We schedule the entire logic block to run one server tick later.
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
 
@@ -65,7 +59,7 @@ public class EntitySpawningListener implements Listener {
 
             // 4. Update its nameplate. By now, the server has finished its own
             // spawning logic, so our name tag change will not be overwritten.
-            plugin.getDamageManager().updateMobHealthDisplay(entity);
+            plugin.getMobManager().updateHealthDisplay(entity);
 
         }, 1L); // The '1L' means "1 tick from now".
     }

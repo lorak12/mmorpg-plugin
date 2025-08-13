@@ -49,6 +49,7 @@ enchantments:
     display-name: "<blue>First Strike</blue>"
     max-level: 5
     applicable-types: [SWORD]
+    custom-logic-key: "first_strike"
     incompatibilities: [triple_strike]
     description:
       - "<gray>First hit deals <green>+{value}%</green> increased damage.</gray>"
@@ -62,6 +63,7 @@ enchantments:
   life_steal:
     display-name: "<blue>Life Steal</blue>"
     max-level: 5
+    custom-logic-key: "life_steal"
     applicable-types: [SWORD]
     incompatibilities: [drain, mana_steal]
     description:
@@ -88,7 +90,198 @@ enchantments:
       3: { value: 45, cost: 20, bookshelf-req: 8, skill-req: 15 }
       4: { value: 60, cost: 30, bookshelf-req: 12, skill-req: 20 }
       5: { value: 75, cost: 40, bookshelf-req: 18, skill-req: 25 }
+  execute:
+    display-name: "<blue>Execute</blue>"
+    max-level: 6
+    custom-logic-key: "execute" # Link to the effect class
+    applicable-types: [ SWORD ]
+    incompatibilities: [ prosecute ]
+    description:
+      - "<gray>Increases damage by <green>{value}%</green> for each</gray>"
+      - "<gray>percent of health missing on your target.</gray>"
+    levels:
+      1: { value: 0.2, cost: 10, bookshelf-req: 2, skill-req: 5 }
+      2: { value: 0.4, cost: 15, bookshelf-req: 4, skill-req: 8 }
+      3: { value: 0.6, cost: 20, bookshelf-req: 7, skill-req: 12 }
+      4: { value: 0.8, cost: 25, bookshelf-req: 10, skill-req: 16 }
+      5: { value: 1.0, cost: 30, bookshelf-req: 14, skill-req: 20 }
+      6: { value: 1.25, cost: 40, bookshelf-req: 18, skill-req: 25 }
 
+  giant_killer:
+    display-name: "<blue>Giant Killer</blue>"
+    max-level: 7
+    custom-logic-key: "giant_killer" # Link to the effect class
+    applicable-types: [ SWORD ]
+    incompatibilities: [ titan_killer ]
+    description:
+      - "<gray>Deal more damage based on target's extra health.</gray>"
+    levels:
+      # 'value' is the damage % per 1% extra health
+      # 'cost' is used as the damage cap in %
+      1: { value: 0.1, cost: 5,  bookshelf-req: 3, skill-req: 6 }
+      2: { value: 0.2, cost: 10, bookshelf-req: 5, skill-req: 9 }
+      3: { value: 0.3, cost: 15, bookshelf-req: 8, skill-req: 13 }
+      4: { value: 0.4, cost: 20, bookshelf-req: 11, skill-req: 17 }
+      5: { value: 0.6, cost: 30, bookshelf-req: 14, skill-req: 21 }
+      6: { value: 0.9, cost: 45, bookshelf-req: 17, skill-req: 25 }
+      7: { value: 1.2, cost: 60, bookshelf-req: 20, skill-req: 30 }
+
+  vampirism:
+    display-name: "<blue>Vampirism</blue>"
+    max-level: 6
+    custom-logic-key: "vampirism" # Link to the effect class
+    applicable-types: [ SWORD ]
+    description:
+      - "<gray>Heals for <green>{value}%</green> of your missing</gray>"
+      - "<gray>health whenever you kill an enemy.</gray>"
+    levels:
+      1: { value: 1, cost: 12, bookshelf-req: 4, skill-req: 7 }
+      2: { value: 2, cost: 16, bookshelf-req: 7, skill-req: 11 }
+      3: { value: 3, cost: 20, bookshelf-req: 10, skill-req: 15 }
+      4: { value: 4, cost: 25, bookshelf-req: 13, skill-req: 19 }
+      5: { value: 5, cost: 30, bookshelf-req: 16, skill-req: 23 }
+      6: { value: 6, cost: 35, bookshelf-req: 20, skill-req: 27 }
+
+  lethality:
+    display-name: "<blue>Lethality</blue>"
+    max-level: 6
+    custom-logic-key: "lethality"
+    applicable-types: [ SWORD ]
+    description:
+      - "<gray>Reduces target's armor by <green>{value}%</green> per hit.</gray>"
+      - "<gray>Stacks up to 4 times.</gray>"
+    levels:
+      1: { value: 1.2, cost: 10, bookshelf-req: 5, skill-req: 8 }
+      2: { value: 2.4, cost: 15, bookshelf-req: 8, skill-req: 12 }
+      3: { value: 3.6, cost: 20, bookshelf-req: 11, skill-req: 16 }
+      4: { value: 4.8, cost: 25, bookshelf-req: 14, skill-req: 20 }
+      5: { value: 6.0, cost: 30, bookshelf-req: 17, skill-req: 24 }
+      6: { value: 9.0, cost: 40, bookshelf-req: 20, skill-req: 28 }
+
+  venomous:
+    display-name: "<blue>Venomous</blue>"
+    max-level: 6
+    custom-logic-key: "venomous"
+    applicable-types: [ SWORD ]
+    description:
+      - "<gray>Slows target and increases damage taken.</gray>"
+    levels:
+      # 'value' is the % damage increase per stack
+      # 'cost' is the slowness strength (5 per level)
+      1: { value: 0.3, cost: 5,  bookshelf-req: 6, skill-req: 9 }
+      2: { value: 0.6, cost: 10, bookshelf-req: 9, skill-req: 13 }
+      3: { value: 0.9, cost: 15, bookshelf-req: 12, skill-req: 17 }
+      4: { value: 1.2, cost: 20, bookshelf-req: 15, skill-req: 21 }
+      5: { value: 1.5, cost: 25, bookshelf-req: 18, skill-req: 25 }
+      6: { value: 1.8, cost: 30, bookshelf-req: 20, skill-req: 30 }
+
+  triple_strike:
+    display-name: "<blue>Triple-Strike</blue>"
+    max-level: 5
+    custom-logic-key: "triple_strike"
+    applicable-types: [ SWORD ]
+    incompatibilities: [ first_strike ]
+    description:
+      - "<gray>Increases damage by <green>{value}%</green> for the</gray>"
+      - "<gray>first three hits on a mob.</gray>"
+    levels:
+      1: { value: 10, cost: 10, bookshelf-req: 2, skill-req: 5 }
+      2: { value: 20, cost: 15, bookshelf-req: 5, skill-req: 10 }
+      3: { value: 30, cost: 20, bookshelf-req: 8, skill-req: 15 }
+      4: { value: 40, cost: 25, bookshelf-req: 12, skill-req: 20 }
+      5: { value: 50, cost: 30, bookshelf-req: 16, skill-req: 25 }
+
+  fire_aspect:
+    display-name: "<gold>Fire Aspect</gold>"
+    max-level: 3
+    custom-logic-key: "fire_aspect"
+    applicable-types: [ SWORD ]
+    description:
+      - "<gray>Ignites enemies, dealing damage over time.</gray>"
+    levels:
+      # 'value' is duration in seconds
+      # 'cost' is % of weapon damage per second
+      1: { value: 3, cost: 50, bookshelf-req: 6, skill-req: 10 }
+      2: { value: 4, cost: 50, bookshelf-req: 11, skill-req: 18 }
+      3: { value: 6, cost: 50, bookshelf-req: 16, skill-req: 26 }
+
+  smite:
+    display-name: "<blue>Smite</blue>"
+    max-level: 7
+    custom-logic-key: "damage_by_type" # Use the generic key
+    applicable-types: [ SWORD ]
+    incompatibilities: [ sharpness, bane_of_arthropods ]
+    # We list the target entity types here. Our Java code will read these.
+    description:
+      - "ZOMBIE"
+      - "SKELETON"
+      - "WITHER"
+      - "WITHER_SKELETON"
+      - "ZOMBIFIED_PIGLIN"
+      - "STRAY"
+      - "DROWNED"
+      - "HUSK"
+    levels:
+      1: { value: 10, cost: 5,  bookshelf-req: 0,  skill-req: 0 }
+      2: { value: 20, cost: 8,  bookshelf-req: 1,  skill-req: 3 }
+      3: { value: 30, cost: 12, bookshelf-req: 3,  skill-req: 6 }
+      4: { value: 40, cost: 16, bookshelf-req: 5,  skill-req: 9 }
+      5: { value: 60, cost: 20, bookshelf-req: 7,  skill-req: 12 }
+      6: { value: 80, cost: 30, bookshelf-req: 14, skill-req: 18 }
+      7: { value: 100, cost: 45, bookshelf-req: 19, skill-req: 25 }
+
+  bane_of_arthropods:
+    display-name: "<blue>Bane of Arthropods</blue>"
+    max-level: 7
+    custom-logic-key: "damage_by_type"
+    applicable-types: [ SWORD ]
+    incompatibilities: [ sharpness, smite ]
+    description:
+      - "SPIDER"
+      - "CAVE_SPIDER"
+      - "SILVERFISH"
+      - "ENDERMITE"
+      - "BEE"
+    levels:
+      1: { value: 8,  cost: 5,  bookshelf-req: 0,  skill-req: 0 }
+      # ... fill out other levels similar to Smite
+
+  cubism:
+    display-name: "<blue>Cubism</blue>"
+    max-level: 6
+    custom-logic-key: "damage_by_type"
+    applicable-types: [ SWORD, BOW ]
+    description:
+      - "CREEPER"
+      - "SLIME"
+      - "MAGMA_CUBE"
+    levels:
+      1: { value: 10, cost: 6, bookshelf-req: 1, skill-req: 2 }
+      # ... fill out other levels
+
+  knockback:
+    display-name: "<blue>Knockback</blue>"
+    max-level: 2
+    custom-logic-key: "knockback"
+    applicable-types: [ SWORD ]
+    description:
+      - "<gray>Increases knockback dealt to enemies.</gray>"
+    levels:
+      # 'value' is the strength multiplier
+      1: { value: 1, cost: 10, bookshelf-req: 0, skill-req: 0 }
+      2: { value: 2, cost: 20, bookshelf-req: 4, skill-req: 5 }
+
+  champion:
+    display-name: "<gold>Champion</gold>"
+    max-level: 10
+    custom-logic-key: "champion"
+    applicable-types: [ SWORD ]
+    description:
+      - "<gray>Gain extra Combat XP and coins on the 2nd hit.</gray>"
+    stat-modifiers:
+      COMBAT_WISDOM: "3 + 0.7 * level" # Bonus Combat XP
+    levels:
+      1: { value: 3.7, cost: 1, bookshelf-req: 0, skill-req: 0 }
   # ... (and so on for all other sword enchants)
 
   # ===================================================
@@ -109,6 +302,25 @@ enchantments:
       5: { value: 40, cost: 25, bookshelf-req: 6, skill-req: 12 }
       6: { value: 50, cost: 35, bookshelf-req: 10, skill-req: 18 }
       7: { value: 65, cost: 50, bookshelf-req: 15, skill-req: 25 }
+
+  overload:
+    display-name: "<light_purple>Overload</light_purple>"
+    max-level: 5
+    custom-logic-key: "overload"
+    applicable-types: [ BOW ]
+    description:
+      - "<gray>Grants stats and a Mega Critical Hit chance.</gray>"
+    stat-modifiers:
+      CRIT_CHANCE: "level * 1"  # +1% CC per level
+      CRIT_DAMAGE: "level * 1"  # +1% CD per level
+    levels:
+      # 'value' is the CC/CD bonus (handled by stat-modifiers)
+      # 'cost' is the Mega Crit damage bonus %
+      1: { value: 1, cost: 10, bookshelf-req: 10, skill-req: 20 }
+      2: { value: 2, cost: 20, bookshelf-req: 12, skill-req: 22 }
+      3: { value: 3, cost: 30, bookshelf-req: 15, skill-req: 25 }
+      4: { value: 4, cost: 40, bookshelf-req: 18, skill-req: 28 }
+      5: { value: 5, cost: 50, bookshelf-req: 20, skill-req: 30 }
 
   # ... (and so on for all other bow enchants)
 
@@ -164,6 +376,35 @@ enchantments:
       1: { value: 2, cost: 10, bookshelf-req: 4, skill-req: 5 }
       2: { value: 4, cost: 20, bookshelf-req: 8, skill-req: 10 }
       3: { value: 6, cost: 30, bookshelf-req: 12, skill-req: 15 }
+
+  reflection:
+    display-name: "<light_purple>Reflection</light_purple>"
+    max-level: 5
+    custom-logic-key: "reflection"
+    applicable-types: [ ARMOR ]
+    incompatibilities: [ thorns ]
+    description:
+      - "<gray>Reflects damage back at attackers based on Intelligence.</gray>"
+    levels:
+      # 'value' is the multiplier for your Intelligence stat
+      1: { value: 0.02, cost: 20, bookshelf-req: 8, skill-req: 15 } # 2% of Int as damage
+      2: { value: 0.05, cost: 25, bookshelf-req: 11, skill-req: 20 } # 5%
+      3: { value: 0.10, cost: 30, bookshelf-req: 14, skill-req: 25 } # 10%
+      4: { value: 0.20, cost: 35, bookshelf-req: 17, skill-req: 28 } # 20%
+      5: { value: 0.30, cost: 40, bookshelf-req: 20, skill-req: 30 } # 30%
+
+  counter_strike:
+    display-name: "<yellow>Counter-Strike</yellow>"
+    max-level: 5
+    custom-logic-key: "counter_strike"
+    applicable-types: [ ARMOR ]
+    description:
+      - "<gray>Gain Defense for 7s after being hit.</gray>"
+    levels:
+      # 'value' is the amount of Defense granted
+      1: { value: 6, cost: 15, bookshelf-req: 5, skill-req: 10 }
+      2: { value: 8, cost: 20, bookshelf-req: 8, skill-req: 14 }
+      3: { value: 10, cost: 25, bookshelf-req: 11, skill-req: 18 }
 
   # ... (and so on for all other armor enchants)
 

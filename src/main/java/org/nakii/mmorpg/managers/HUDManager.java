@@ -1,11 +1,15 @@
 package org.nakii.mmorpg.managers;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.MMORPGCore;
-import org.nakii.mmorpg.stats.PlayerStats;
+import org.nakii.mmorpg.player.PlayerState;
+import org.nakii.mmorpg.player.PlayerStats;
 import org.nakii.mmorpg.utils.ChatUtils;
 import java.text.DecimalFormat;
 
@@ -32,39 +36,10 @@ public class HUDManager {
 
     private void updatePlayerUI(Player player) {
         // --- 1. Update the Action Bar ---
-        updateActionBar(player);
+        updateHud(player);
 
         // --- 2. Synchronize the Vanilla Health Bar ---
         syncVisualHealth(player);
-    }
-
-    private void updateActionBar(Player player) {
-        PlayerStats stats = plugin.getStatsManager().getStats(player);
-        double currentHealth = plugin.getHealthManager().getCurrentHealth(player);
-        double maxHealth = stats.getHealth();
-        double defense = stats.getDefense();
-        double mana = stats.getIntelligence();
-        double cold = stats.getPlayerCold();
-        double heat = stats.getPlayerHeat();
-
-        String healthBar = "<dark_red>❤ " + df.format(currentHealth) + "/" + df.format(maxHealth) + "</dark_red>";
-        String defenseBar = "<green>❈ " + df.format(defense) + "</green>";
-        String manaBar = "<blue>✎ " + df.format(mana) + "/" + df.format(mana) + "</blue>";
-
-        // Environment Bar (only appears when needed)
-        String environmentBar = "";
-        if (heat > 0) {
-            environmentBar = " <gold>♨ " + df.format(heat) + "%</gold>";
-        } else if (cold > 0) {
-            environmentBar = " <aqua>❄ " + df.format(cold) + "%</aqua>";
-        }
-
-        // --- Combine Components into Final Message ---
-        // Example Layout: ❤ 150/200     ❈ 75     ✎ 80/100 ♨ 45%
-        String actionBarMessage = healthBar + "    " + defenseBar + "    " + manaBar + environmentBar;
-
-        // Send the formatted message to the player's action bar
-        player.sendActionBar(ChatUtils.format(actionBarMessage));
     }
 
     private void syncVisualHealth(Player player) {
@@ -86,5 +61,62 @@ public class HUDManager {
 
         // Apply the synchronized value, ensuring it doesn't exceed the vanilla max
         player.setHealth(Math.min(targetVanillaHealth, vanillaMaxHealth));
+    }
+
+    public void updateHud(Player player) {
+        PlayerStats stats = plugin.getStatsManager().getStats(player);
+        double currentHealth = plugin.getHealthManager().getCurrentHealth(player);
+        double maxHealth = stats.getHealth();
+        double defense = stats.getDefense();
+        double mana = stats.getIntelligence();
+        PlayerState state = plugin.getPlayerStateManager().getState(player);
+        double cold = state.getCold();
+        double heat = state.getHeat();
+
+        String healthBar = "<dark_red>❤ " + df.format(currentHealth) + "/" + df.format(maxHealth) + "</dark_red>";
+        String defenseBar = "<green>❈ " + df.format(defense) + "</green>";
+        String manaBar = "<blue>✎ " + df.format(mana) + "/" + df.format(mana) + "</blue>";
+
+        // Environment Bar (only appears when needed)
+        String environmentBar = "";
+        if (heat > 0) {
+            environmentBar = " <gold>♨ " + df.format(heat) + "%</gold>";
+        } else if (cold > 0) {
+            environmentBar = " <aqua>❄ " + df.format(cold) + "%</aqua>";
+        }
+
+        // --- Combine Components into Final Message ---
+        // Example Layout: ❤ 150/200     ❈ 75     ✎ 80/100 ♨ 45%
+        String actionBarMessage = healthBar + "    " + defenseBar + "    " + manaBar + environmentBar;
+
+        // Send the formatted message to the player's action bar
+        player.sendActionBar(ChatUtils.format(actionBarMessage));
+    }
+
+    /**
+     * Spawns a floating holographic damage indicator at a location.
+     * @param location Where to spawn the indicator.
+     * @param damage The amount of damage to display.
+     * @param isCrit True if the damage was a critical hit.
+     */
+    public void showDamageIndicator(Location location, double damage, boolean isCrit) {
+        if (location.getWorld() == null) return;
+
+        location.add(Math.random() * 0.5 - 0.25, 0.5 + (Math.random() * 0.5), Math.random() * 0.5 - 0.25);
+
+        ArmorStand armorStand = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
+        armorStand.setInvisible(true);
+        armorStand.setGravity(false);
+        armorStand.setMarker(true);
+        armorStand.setSmall(true);
+
+        String damageText = String.format("%.0f", damage);
+        String formattedText = isCrit ? "<red><b>✧" + damageText + "✧</b></red>" : "<gray>" + damageText + "</gray>";
+
+        armorStand.customName(ChatUtils.format(formattedText));
+        armorStand.setCustomNameVisible(true);
+
+        // Schedule the armor stand to be removed after a short time
+        plugin.getServer().getScheduler().runTaskLater(plugin, armorStand::remove, 30L); // 1.5 seconds
     }
 }

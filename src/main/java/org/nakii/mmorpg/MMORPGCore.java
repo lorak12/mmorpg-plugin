@@ -8,15 +8,15 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.commands.*;
 import org.nakii.mmorpg.listeners.*;
 import org.nakii.mmorpg.managers.*;
+
 import java.io.File;
 import java.sql.SQLException;
-
 
 public final class MMORPGCore extends JavaPlugin {
 
     private static MMORPGCore instance;
 
-    // Manager Instances
+    // All manager instances
     private ItemManager itemManager;
     private StatsManager statsManager;
     private HealthManager healthManager;
@@ -34,62 +34,88 @@ public final class MMORPGCore extends JavaPlugin {
     private ZoneMobSpawnerManager zoneMobSpawner;
     private ZoneWandListener zoneWandListener;
     private EnchantmentManager enchantmentManager;
+    private EnchantmentEffectManager enchantmentEffectManager;
+    private CombatTracker combatTracker;
+    private DebuffManager debuffManager;
+    private DoTManager doTManager;
+    private TimedBuffManager timedBuffManager;
+    private PlayerStateManager playerStateManager;
 
-    // API Hooks
     private boolean libsDisguisesEnabled = false;
 
     @Override
     public void onEnable() {
         instance = this;
+        getLogger().info("Initializing MMORPGCore...");
 
-        // Hook into APIs first
         setupAPIHooks();
-
-        startAutoSaveTask();
-
-        // Create config folders + files
         saveDefaultConfig();
         createItemsFolder();
-        saveResource("mobs.yml", false);
-        saveResource("zones.yml", false);
 
         try {
-            // Initialize managers
+            // --- STEP 1: INITIALIZE ALL MANAGERS FIRST ---
+            // This is the critical fix. All manager instances must be created before
+            // any listeners that might use them are registered.
             databaseManager = new DatabaseManager(this);
             databaseManager.connect();
 
-
-            skillManager = new SkillManager(this);
-            itemManager = new ItemManager(this);
+            // Core Systems
             statsManager = new StatsManager(this);
-            healthManager = new HealthManager(this);
+            skillManager = new SkillManager(this);
             damageManager = new DamageManager(this);
-            guiManager = new GUIManager(this);
+            playerStateManager = new PlayerStateManager();
+
+            // Item & Content Systems
+            itemManager = new ItemManager(this);
             mobManager = new MobManager(this);
             recipeManager = new RecipeManager(this);
             abilityManager = new AbilityManager(this);
             lootManager = new LootManager(this);
+
+            // Enchantment Systems
+            enchantmentManager = new EnchantmentManager(this);
+            enchantmentEffectManager = new EnchantmentEffectManager(this);
+
+            // Combat & Environment Systems
+            combatTracker = new CombatTracker(); // This was the source of the NullPointerException
+            debuffManager = new DebuffManager();
+            doTManager = new DoTManager(this);
+            timedBuffManager = new TimedBuffManager();
             environmentManager = new EnvironmentManager(this);
-            hudManager = new HUDManager(this);
+
+            // World & UI Systems
             zoneManager = new ZoneManager(this);
             zoneMobSpawner = new ZoneMobSpawnerManager(this);
-            enchantmentManager = new EnchantmentManager(this);
+            guiManager = new GUIManager(this);
+            hudManager = new HUDManager(this);
 
-            // Register events + commands
+            // Standalone manager for health regen task
+            healthManager = new HealthManager(this);
+
+            getLogger().info("All managers initialized successfully.");
+
+            // --- STEP 2: REGISTER LISTENERS ---
+            // Now that all managers are guaranteed to be non-null, we can safely register listeners.
             registerListeners();
+            getLogger().info("Listeners registered.");
+
+            // --- STEP 3: REGISTER COMMANDS ---
             registerCommands();
+            getLogger().info("Commands registered.");
 
+            // --- STEP 4: START TASKS ---
             healthManager.startHealthRegenTask();
-            environmentManager.startEnvironmentTask();
+            environmentManager.startTask();
             zoneMobSpawner.startSpawnTask();
-
             hudManager.startHUDTask();
             startAutoSaveTask();
+            getLogger().info("Tasks started.");
 
         } catch (SQLException e) {
             getLogger().severe("Could not connect to the database! Disabling plugin...");
             e.printStackTrace();
             Bukkit.getPluginManager().disablePlugin(this);
+            return; // Stop execution if DB connection fails
         }
 
         getLogger().info("MMORPGCore enabled successfully.");
@@ -97,7 +123,6 @@ public final class MMORPGCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Save all online player data FIRST
         if (skillManager != null && databaseManager != null) {
             getLogger().info("Saving data for all online players before shutdown...");
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -107,7 +132,6 @@ public final class MMORPGCore extends JavaPlugin {
             getLogger().info("Player data saving complete.");
         }
 
-        // Now, it's safe to disconnect from the database
         if (databaseManager != null) {
             databaseManager.disconnect();
         }
@@ -115,7 +139,32 @@ public final class MMORPGCore extends JavaPlugin {
         getLogger().info("MMORPGCore disabled.");
     }
 
+    private void registerListeners() {
+        var pm = getServer().getPluginManager();
 
+        this.zoneWandListener = new ZoneWandListener(this);
+        pm.registerEvents(this.zoneWandListener, this);
+
+        pm.registerEvents(new InventoryListener(this), this);
+        pm.registerEvents(new EntitySpawningListener(this), this);
+        pm.registerEvents(new MiningListener(this), this);
+        pm.registerEvents(new FarmingListener(this), this);
+        pm.registerEvents(new CarpentryListener(this), this);
+        pm.registerEvents(new AlchemyListener(this), this);
+        pm.registerEvents(new FishingListener(this), this);
+        pm.registerEvents(new ForagingListener(this), this);
+        pm.registerEvents(new GUIListener(this), this);
+        pm.registerEvents(new RecipeListener(this), this);
+        pm.registerEvents(new EnchantingTableListener(this), this);
+        pm.registerEvents(new AnvilListener(this), this);
+        // Cleaned up duplicate registration
+        pm.registerEvents(new PlayerDamageListener(this), this);
+        pm.registerEvents(new ProjectileListener(this), this);
+        pm.registerEvents(new PlayerConnectionListener(this), this);
+        pm.registerEvents(new GenericDamageListener(this), this);
+    }
+
+    // --- All other methods and getters remain the same as your original file ---
     private void setupAPIHooks() {
 
         // --- LIBSDISGUISES ---
@@ -128,7 +177,6 @@ public final class MMORPGCore extends JavaPlugin {
             getLogger().warning("LibsDisguises not found. Mob disguises disabled.");
         }
     }
-
     private void createItemsFolder() {
         File itemsFolder = new File(getDataFolder(), "items");
         if (!itemsFolder.exists() && itemsFolder.mkdirs()) {
@@ -136,30 +184,6 @@ public final class MMORPGCore extends JavaPlugin {
         }
         saveResource("mobs.yml", false);
         saveResource("zones.yml", false);
-    }
-
-    private void registerListeners() {
-        var pm = getServer().getPluginManager();
-
-        // 1. Create the listener instance and assign it to our class field.
-        this.zoneWandListener = new ZoneWandListener(this);
-        // 2. Register that specific, stored instance.
-        pm.registerEvents(this.zoneWandListener, this);
-
-        pm.registerEvents(new PlayerJoinListener(this), this);
-        pm.registerEvents(new InventoryListener(this), this);
-        pm.registerEvents(new CombatListener(this), this);
-        pm.registerEvents(new EntitySpawningListener(this), this);
-        pm.registerEvents(new MiningListener(this), this);
-        pm.registerEvents(new FarmingListener(this), this);
-        pm.registerEvents(new CarpentryListener(this), this);
-        pm.registerEvents(new AlchemyListener(this), this);
-        pm.registerEvents(new FishingListener(this), this);
-        pm.registerEvents(new ForagingListener(this), this);
-        pm.registerEvents(new GUIListener(this), this);
-        pm.registerEvents(new RecipeListener(this), this);
-        pm.registerEvents(new EnchantingTableListener(this), this);
-        pm.registerEvents(new AnvilListener(this), this);
     }
 
     private void registerCommands() {
@@ -170,8 +194,8 @@ public final class MMORPGCore extends JavaPlugin {
         getCommand("giveitem").setExecutor(new GiveItemCommand(this));
         getCommand("spawnmob").setExecutor(new SpawnMobCommand(this));
         getCommand("customenchant").setExecutor(new EnchantCommand(this));
+        getCommand("openhex").setExecutor(new HexCommand(this));
     }
-
     private void startAutoSaveTask() {
         long interval = 20L * 60 * 5; // Every 5 minutes
         new BukkitRunnable() {
@@ -186,12 +210,7 @@ public final class MMORPGCore extends JavaPlugin {
         }.runTaskTimer(this, interval, interval);
     }
 
-    // Static access to plugin
-    public static MMORPGCore getInstance() {
-        return instance;
-    }
-
-    // API + Manager Getters
+    public static MMORPGCore getInstance() { return instance; }
     public boolean isLibsDisguisesEnabled() { return libsDisguisesEnabled; }
 
     public ItemManager getItemManager() { return itemManager; }
@@ -207,6 +226,12 @@ public final class MMORPGCore extends JavaPlugin {
     public AbilityManager getAbilityManager() { return abilityManager; }
     public LootManager getLootManager() { return lootManager;  }
     public EnvironmentManager getEnvironmentManager() { return environmentManager; }
-    public HUDManager getHudManager() { return hudManager; }
+    public HUDManager getHUDManager() { return hudManager; }
     public EnchantmentManager getEnchantmentManager() { return enchantmentManager; }
+    public EnchantmentEffectManager getEnchantmentEffectManager() { return enchantmentEffectManager; }
+    public CombatTracker getCombatTracker() { return combatTracker; }
+    public DebuffManager getDebuffManager() { return debuffManager; }
+    public DoTManager getDoTManager() { return doTManager; }
+    public TimedBuffManager getTimedBuffManager() { return timedBuffManager; }
+    public PlayerStateManager getPlayerStateManager() { return playerStateManager; }
 }

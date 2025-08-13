@@ -90,20 +90,28 @@ public class EnchantingGui extends AbstractGui {
 
     @Override
     public void populateItems() {
-        ItemStack currentItem = (this.itemToEnchant != null) ? this.itemToEnchant : inventory.getItem(ITEM_SLOT);
-        this.itemToEnchant = null;
+        // We now get the item from the inventory directly if it exists,
+        // otherwise we use the one passed from the constructor on first open.
+        ItemStack currentItem = inventory.getItem(ITEM_SLOT);
+        if (currentItem == null && this.itemToEnchant != null) {
+            currentItem = this.itemToEnchant;
+        }
 
-        inventory.clear();
+        inventory.clear(); // Clear for a full redraw
+
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < getSize(); i++) { inventory.setItem(i, filler); }
 
-        inventory.setItem(ITEM_SLOT, currentItem);
+        inventory.setItem(ITEM_SLOT, currentItem); // Put the item back
         inventory.setItem(28, createItem(Material.ENCHANTING_TABLE, "<light_purple>Place Item Above</light_purple>"));
+
         calculateBookshelfPower();
         inventory.setItem(48, createItem(Material.BOOKSHELF, "<gold>Bookshelf Power: <yellow>" + this.bookshelfPower + "</yellow></gold>"));
+
         inventory.setItem(49, createItem(Material.BARRIER, "<red><b>Close</b></red>"));
         inventory.setItem(50, createItem(Material.BOOK, "<green>Enchantment Guide</green>"));
 
+        // The correct view is now drawn based on the current state
         if (currentState == ViewState.SELECTING_ENCHANTMENT) {
             drawEnchantmentSelection(currentItem);
         } else if (currentState == ViewState.SELECTING_LEVEL) {
@@ -257,9 +265,11 @@ public class EnchantingGui extends AbstractGui {
             if (slot == enchantSlots[i]) {
                 int enchantIndex = (page * maxItemsPerPage) + i;
                 if (enchantIndex < applicableEnchants.size()) {
+                    // 1. Update the state
                     this.selectedEnchantment = applicableEnchants.get(enchantIndex);
                     this.currentState = ViewState.SELECTING_LEVEL;
-                    openAsStateChange();
+                    // 2. Redraw the CURRENT inventory. No new GUI is created.
+                    populateItems();
                 }
                 return;
             }
@@ -268,9 +278,11 @@ public class EnchantingGui extends AbstractGui {
 
     private void handleLevelSelectionClick(int slot) {
         if (slot == 47) { // Back button
+            // 1. Update the state
             this.currentState = ViewState.SELECTING_ENCHANTMENT;
             this.selectedEnchantment = null;
-            openAsStateChange();
+            // 2. Redraw the CURRENT inventory.
+            populateItems();
             return;
         }
         if (slot == 49) { player.closeInventory(); return; }
@@ -302,15 +314,6 @@ public class EnchantingGui extends AbstractGui {
             }
         }
     }
-
-    private void openAsStateChange() {
-        // Use the internal constructor to carry over the state
-        EnchantingGui newGui = new EnchantingGui(plugin, player, this.enchantingTable, this.inventory.getItem(ITEM_SLOT));
-        newGui.currentState = this.currentState;
-        newGui.selectedEnchantment = this.selectedEnchantment;
-        newGui.open();
-    }
-
 
     // --- MAJOR OVERHAUL of handleEnchantmentApply ---
     private void handleEnchantmentApply(int level) {

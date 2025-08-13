@@ -34,6 +34,10 @@ commands:
     description: Applies a custom enchantment to an item or book.
     usage: /<command> <player> <enchant> <level> [item]
     permission: mmorpg.command.enchant
+  openhex:
+    description: Opens The Hex GUI for enchantment removal.
+    usage: /<command>
+    permission: mmorpg.command.openhex
 
 permissions:
   mmorpg.admin:
@@ -57,4 +61,7 @@ permissions:
     default: true
   mmorpg.command.enchant:
     description: Allow the user to use the /customenchant command.
+    default: true
+  mmorpg.command.openhex:
+    description: Allow the user to use the /openhex command.
     default: true
