@@ -4,6 +4,8 @@ import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemFlag;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
 
@@ -17,7 +19,6 @@ import org.bukkit.persistence.PersistentDataType;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
-import org.bukkit.inventory.ItemStack;
 import org.nakii.mmorpg.enchantment.ApplicableType;
 import java.util.stream.Collectors;
 
@@ -112,7 +113,7 @@ public class EnchantmentManager {
     }
 
     /**
-     * Updates an item's lore to display its custom enchantments in the correct format.
+     * Updates an item's lore to display its custom enchantments and adds a glint effect.
      */
     private void updateItemLoreWithEnchants(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return;
@@ -126,15 +127,28 @@ public class EnchantmentManager {
         Map<String, Integer> enchants = getEnchantments(item);
         if (!enchants.isEmpty()) {
             // Build the new enchantment line, e.g., "Critical V, Sharpness V"
-            StringJoiner enchantJoiner = new StringJoiner(", ");
+            StringJoiner enchantJoiner = new StringJoiner("§7, §9"); // Changed for better formatting
             for (Map.Entry<String, Integer> entry : enchants.entrySet()) {
                 CustomEnchantment enchant = getEnchantment(entry.getKey());
                 if (enchant != null) {
                     enchantJoiner.add(enchant.getDisplayName() + " " + toRoman(entry.getValue()));
                 }
             }
+            // Add a blank line for spacing before the enchantments list.
             lore.add("");
             lore.add("§9" + enchantJoiner.toString());
+
+            // --- FIX: Add Glint Effect ---
+            // Add a harmless vanilla enchantment to make the item glow.
+            meta.addEnchant(Enchantment.AQUA_AFFINITY, 1, true);
+            // Hide the vanilla enchantment from the lore.
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+
+        } else {
+            // --- FIX: Remove Glint if no custom enchants exist ---
+            if (meta.hasEnchant(Enchantment.AQUA_AFFINITY)) {
+                meta.removeEnchant(Enchantment.AQUA_AFFINITY);
+            }
         }
 
         meta.setLore(lore);

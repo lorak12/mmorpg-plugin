@@ -145,7 +145,23 @@ public class EnchantingGui extends AbstractGui {
 
     private void handleEnchantSelectionClick(int slot) {
         if (slot == 49) { player.closeInventory(); return; }
-        if (slot == 50) { new EnchantmentGuideGui(plugin, player).open(); return; }
+
+        if (slot == 50) { // Enchantment Guide button
+            // --- FIX: Return the item before opening the guide ---
+            ItemStack itemInSlot = inventory.getItem(ITEM_SLOT);
+            if (itemInSlot != null && itemInSlot.getType() != Material.AIR) {
+                // Clear the slot in the GUI first
+                inventory.setItem(ITEM_SLOT, null);
+                // Give the item back to the player, or drop it if their inventory is full
+                if (!player.getInventory().addItem(itemInSlot).isEmpty()) {
+                    player.getWorld().dropItemNaturally(player.getLocation(), itemInSlot);
+                }
+            }
+            // Now it's safe to open the guide
+            new EnchantmentGuideGui(plugin, player).open();
+            return;
+        }
+
         if (slot == 47) { previousPage(); return; }
         if (slot == 35) { nextPage(); return; }
 
@@ -171,7 +187,22 @@ public class EnchantingGui extends AbstractGui {
             return;
         }
         if (slot == 49) { player.closeInventory(); return; }
-        if (slot == 50) { new EnchantmentGuideGui(plugin, player).open(); return; }
+
+        if (slot == 50) { // Enchantment Guide button
+            // --- FIX: Return the item before opening the guide ---
+            ItemStack itemInSlot = inventory.getItem(ITEM_SLOT);
+            if (itemInSlot != null && itemInSlot.getType() != Material.AIR) {
+                // Clear the slot in the GUI first
+                inventory.setItem(ITEM_SLOT, null);
+                // Give the item back to the player, or drop it if their inventory is full
+                if (!player.getInventory().addItem(itemInSlot).isEmpty()) {
+                    player.getWorld().dropItemNaturally(player.getLocation(), itemInSlot);
+                }
+            }
+            // Now it's safe to open the guide
+            new EnchantmentGuideGui(plugin, player).open();
+            return;
+        }
 
         int[] levelSlots = {21, 22, 23, 24, 25};
         for (int i = 0; i < levelSlots.length; i++) {
@@ -179,7 +210,6 @@ public class EnchantingGui extends AbstractGui {
                 int level = i + 1;
                 int xpCost = 10 * level;
                 applyEnchantment(level, xpCost);
-
                 return;
             }
         }
@@ -201,7 +231,7 @@ public class EnchantingGui extends AbstractGui {
     private void applyEnchantment(int level, int xpCost) {
         ItemStack itemToApplyTo = inventory.getItem(ITEM_SLOT);
 
-        // --- Safety Checks (remain the same) ---
+        // --- Safety Checks ---
         if (itemToApplyTo == null || itemToApplyTo.getType() == Material.AIR) {
             player.sendMessage(ChatUtils.format("<red>The item was removed from the enchanting table!</red>"));
             player.closeInventory();
@@ -213,7 +243,7 @@ public class EnchantingGui extends AbstractGui {
             return;
         }
 
-        // --- Application Logic (remains the same) ---
+        // --- Application Logic ---
         EnchantmentManager em = plugin.getEnchantmentManager();
         Map<String, Integer> currentEnchants = em.getEnchantments(itemToApplyTo);
 
@@ -228,9 +258,11 @@ public class EnchantingGui extends AbstractGui {
         plugin.getSkillManager().addXp(player, Skill.ENCHANTING, xpCost * 5.0);
         player.playSound(player.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1.0f, 1.0f);
 
+        // --- FIX: Reset State and Redraw GUI ---
         // 1. Set the state back to selecting an enchantment.
         this.currentState = ViewState.SELECTING_ENCHANTMENT;
         this.selectedEnchantment = null;
+
 
         // 2. Simply re-populate the items in the CURRENT inventory.
         //    This redraws the GUI in place, without closing and re-opening the window.

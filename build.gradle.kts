@@ -23,6 +23,7 @@ dependencies {
     compileOnly(group = "me.libraryaddict.disguises", name = "libsdisguises", version = "11.0.0")
 
     implementation("net.objecthunter:exp4j:0.4.8")
+    shadow("net.objecthunter:exp4j:0.4.8")
 }
 
 java {
@@ -40,21 +41,16 @@ tasks {
     }
 
     shadowJar {
-        from(sourceSets.main.get().output)
-        configurations.add(project.configurations.runtimeClasspath)
+        archiveClassifier.set("")
+        configurations = listOf(project.configurations.runtimeClasspath.get())
 
+        // Relokacja biblioteki żeby uniknąć konfliktów
         relocate("net.objecthunter.exp4j", "org.nakii.mmorpg.libs.exp4j")
 
-        archiveClassifier.set("")
         destinationDirectory.set(file("C:\\Users\\karol\\AppData\\Roaming\\.feather\\player-server\\servers\\66309597-64f4-441d-978f-06ed34fbee37\\plugins"))
     }
 
     build {
         dependsOn(shadowJar)
-    }
-    jar {
-        archiveClassifier.set("")
-        dependsOn(shadowJar)
-        destinationDirectory.set(file("C:\\Users\\karol\\AppData\\Roaming\\.feather\\player-server\\servers\\66309597-64f4-441d-978f-06ed34fbee37\\plugins"))
     }
 }

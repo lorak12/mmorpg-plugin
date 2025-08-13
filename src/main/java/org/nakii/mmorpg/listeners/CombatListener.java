@@ -10,8 +10,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.nakii.mmorpg.MMORPGCore;
-import org.nakii.mmorpg.entity.ability.TriggerType;
-import org.nakii.mmorpg.skills.Skill;
 
 public class CombatListener implements Listener {
 
