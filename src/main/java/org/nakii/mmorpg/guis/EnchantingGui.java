@@ -158,6 +158,37 @@ public class EnchantingGui extends AbstractGui {
             if(i > levelSlots.length) break;
 
             int level = i;
+            String romanLevel = toRoman(level);
+            String displayName = selectedEnchantment.getDisplayName() + " " + romanLevel;
+
+            // --- THIS IS THE NEW LOGIC FOR DISPLAYING THE REMOVAL BUTTON ---
+            if (level == currentLevel) {
+                int removalCost = selectedEnchantment.getCost(level);
+                boolean canAffordRemoval = player.getLevel() >= removalCost;
+
+                List<String> lore = new ArrayList<>();
+                lore.add(" ");
+                lore.add("<gray>You already have this level.</gray>");
+                lore.add(" ");
+                lore.add((canAffordRemoval ? "<gray>" : "<red>") + "Cost to Remove: <gold>" + removalCost + " XP Levels</gold>");
+                lore.add(" ");
+                lore.add(canAffordRemoval ? "<yellow>Click to remove this enchantment.</yellow>" : "<red>You cannot afford to remove this.</red>");
+
+                inventory.setItem(levelSlots[i-1], createItem(
+                        (canAffordRemoval ? Material.REDSTONE_BLOCK : Material.BARRIER), // Visual cue
+                        "<red><b>Remove " + displayName + "</b></red>",
+                        lore
+                ));
+                continue; // Skip to the next level in the loop
+            }
+
+            // This logic handles displaying levels lower than the current one
+            if (level < currentLevel) {
+                inventory.setItem(levelSlots[i-1], createItem(Material.GLASS_BOTTLE, "<dark_gray>" + displayName + "</dark_gray>", List.of("<gray>This level is lower than your current one.</gray>")));
+                continue;
+            }
+
+            // This is the existing logic for displaying levels for upgrade
             int cost = selectedEnchantment.getCost(level);
             int bookshelfReq = selectedEnchantment.getBookshelfRequirement(level);
             int skillReq = selectedEnchantment.getSkillRequirement(level);
@@ -167,30 +198,20 @@ public class EnchantingGui extends AbstractGui {
             boolean hasSkill = playerSkillLevel >= skillReq;
             boolean canApply = canAfford && hasBookshelves && hasSkill;
 
-            // UPDATED: ItemBuilder now uses a custom 'createItem' which handles MiniMessage
-            String displayName = selectedEnchantment.getDisplayName() + " " + toRoman(level);
             List<String> lore = new ArrayList<>();
+            lore.add(" ");
+            lore.addAll(selectedEnchantment.getDescription(level));
+            lore.add(" ");
+            lore.add((canAfford ? "<gray>" : "<red>") + "Cost: <gold>" + cost + " XP Levels</gold>");
+            lore.add((hasBookshelves ? "<gray>" : "<red>") + "Requires: <gold>" + bookshelfReq + " Bookshelf Power</gold>");
+            lore.add((hasSkill ? "<gray>" : "<red>") + "Requires: <gold>Enchanting Skill " + skillReq + "</gold>");
 
-            if(level == currentLevel) {
-                inventory.setItem(levelSlots[i-1], createItem(Material.DIAMOND, "<aqua><b>" + displayName + "</b></aqua>", List.of("<green>You already have this level.</green>")));
-            } else if (level < currentLevel) {
-                inventory.setItem(levelSlots[i-1], createItem(Material.GLASS_BOTTLE, "<gray>" + displayName + "</gray>", List.of("<dark_gray>This level is lower than your current one.</dark_gray>")));
-            } else {
+            if(canApply) {
                 lore.add(" ");
-                lore.addAll(selectedEnchantment.getDescription(level));
-                lore.add(" ");
-                lore.add((canAfford ? "<gray>" : "<red>") + "Cost: <gold>" + cost + " XP Levels</gold>");
-                lore.add((hasBookshelves ? "<gray>" : "<red>") + "Requires: <gold>" + bookshelfReq + " Bookshelf Power</gold>");
-                lore.add((hasSkill ? "<gray>" : "<red>") + "Requires: <gold>Enchanting Skill " + skillReq + "</gold>");
-
-                if(canApply) {
-                    lore.add(" ");
-                    lore.add("<yellow>Click to apply!</yellow>");
-                }
-                inventory.setItem(levelSlots[i-1], createItem(Material.EXPERIENCE_BOTTLE, (canApply ? "<green>" : "<red>") + displayName, lore));
+                lore.add("<yellow>Click to upgrade!</yellow>");
             }
+            inventory.setItem(levelSlots[i-1], createItem(Material.EXPERIENCE_BOTTLE, (canApply ? "<green>" : "<red>") + displayName, lore));
         }
-
     }
 
 
@@ -253,7 +274,7 @@ public class EnchantingGui extends AbstractGui {
             return;
         }
         if (slot == 49) { player.closeInventory(); return; }
-        if (slot == 50) { // Enchantment Guide button logic remains
+        if (slot == 50) { // Enchantment Guide
             returnItem(inventory.getItem(ITEM_SLOT));
             new EnchantmentGuideGui(plugin, player, this.enchantingTable).open();
             return;
@@ -263,8 +284,20 @@ public class EnchantingGui extends AbstractGui {
         for (int i = 0; i < levelSlots.length; i++) {
             if (slot == levelSlots[i]) {
                 int level = i + 1;
-                if(level > selectedEnchantment.getMaxLevel()) return;
-                applyEnchantment(level); // Pass level to the validation method
+                if (level > selectedEnchantment.getMaxLevel()) return;
+
+                ItemStack item = inventory.getItem(ITEM_SLOT);
+                if (item == null) return;
+                int currentLevel = plugin.getEnchantmentManager().getEnchantments(item).getOrDefault(selectedEnchantment.getId(), 0);
+
+                if (level == currentLevel) {
+                    // This is a removal action
+                    handleEnchantmentRemoval(level);
+                } else if (level > currentLevel) {
+                    // This is an upgrade/apply action
+                    handleEnchantmentApply(level);
+                }
+                // If level < currentLevel, do nothing.
                 return;
             }
         }
@@ -279,8 +312,8 @@ public class EnchantingGui extends AbstractGui {
     }
 
 
-    // --- MAJOR OVERHAUL of applyEnchantment ---
-    private void applyEnchantment(int level) {
+    // --- MAJOR OVERHAUL of handleEnchantmentApply ---
+    private void handleEnchantmentApply(int level) {
         ItemStack itemToApplyTo = inventory.getItem(ITEM_SLOT);
         if (itemToApplyTo == null || itemToApplyTo.getType() == Material.AIR) {
             player.sendMessage(ChatUtils.format("<red>The item was removed from the enchanting table!</red>"));
@@ -333,6 +366,29 @@ public class EnchantingGui extends AbstractGui {
         player.playSound(player.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1.0f, 1.0f);
 
         // Reset state and redraw the GUI to the enchantment list
+        this.currentState = ViewState.SELECTING_ENCHANTMENT;
+        this.selectedEnchantment = null;
+        populateItems();
+    }
+
+    private void handleEnchantmentRemoval(int level) {
+        ItemStack itemToRemoveFrom = inventory.getItem(ITEM_SLOT);
+        if (itemToRemoveFrom == null || itemToRemoveFrom.getType() == Material.AIR) { /* ... */ return; }
+
+        int removalCost = selectedEnchantment.getCost(level);
+        if (player.getLevel() < removalCost) {
+            player.sendMessage(ChatUtils.format("<red>You don't have enough experience to remove this enchantment!</red>"));
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+            return;
+        }
+
+        // --- All checks passed, remove the enchantment ---
+        plugin.getEnchantmentManager().removeEnchantment(itemToRemoveFrom, selectedEnchantment.getId());
+        player.setLevel(player.getLevel() - removalCost);
+        plugin.getSkillManager().addXp(player, Skill.ENCHANTING, removalCost * 2.5); // Grant half XP for removal
+        player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1.0f, 0.8f);
+
+        // Reset state back to enchantment selection and refresh the GUI
         this.currentState = ViewState.SELECTING_ENCHANTMENT;
         this.selectedEnchantment = null;
         populateItems();
