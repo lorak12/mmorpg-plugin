@@ -244,7 +244,12 @@ enchantments:
       - "BEE"
     levels:
       1: { value: 8,  cost: 5,  bookshelf-req: 0,  skill-req: 0 }
-      # ... fill out other levels similar to Smite
+      2: { value: 16, cost: 8,  bookshelf-req: 1,  skill-req: 2 }
+      3: { value: 24, cost: 12, bookshelf-req: 3,  skill-req: 4 }
+      4: { value: 32, cost: 16, bookshelf-req: 5,  skill-req: 6 }
+      5: { value: 40, cost: 20, bookshelf-req: 7,  skill-req: 8 }
+      6: { value: 48, cost: 28, bookshelf-req: 12, skill-req: 14 }
+      7: { value: 56, cost: 38, bookshelf-req: 18, skill-req: 20 }
 
   cubism:
     display-name: "<blue>Cubism</blue>"
@@ -257,19 +262,11 @@ enchantments:
       - "MAGMA_CUBE"
     levels:
       1: { value: 10, cost: 6, bookshelf-req: 1, skill-req: 2 }
-      # ... fill out other levels
-
-  knockback:
-    display-name: "<blue>Knockback</blue>"
-    max-level: 2
-    custom-logic-key: "knockback"
-    applicable-types: [ SWORD ]
-    description:
-      - "<gray>Increases knockback dealt to enemies.</gray>"
-    levels:
-      # 'value' is the strength multiplier
-      1: { value: 1, cost: 10, bookshelf-req: 0, skill-req: 0 }
-      2: { value: 2, cost: 20, bookshelf-req: 4, skill-req: 5 }
+      2: { value: 20, cost: 10, bookshelf-req: 3, skill-req: 5 }
+      3: { value: 30, cost: 14, bookshelf-req: 5, skill-req: 8 }
+      4: { value: 40, cost: 18, bookshelf-req: 8, skill-req: 11 }
+      5: { value: 60, cost: 24, bookshelf-req: 12, skill-req: 16 }
+      6: { value: 80, cost: 30, bookshelf-req: 16, skill-req: 22 }
 
   champion:
     display-name: "<gold>Champion</gold>"
@@ -281,7 +278,164 @@ enchantments:
     stat-modifiers:
       COMBAT_WISDOM: "3 + 0.7 * level" # Bonus Combat XP
     levels:
-      1: { value: 3.7, cost: 1, bookshelf-req: 0, skill-req: 0 }
+      # 'value' is extra Combat XP. 'cost' is coin multiplier.
+      1: { value: 3.7, cost: 1.4, bookshelf-req: 0, skill-req: 0 }
+      2: { value: 4.4, cost: 1.8, bookshelf-req: 2, skill-req: 3 }
+      3: { value: 5.1, cost: 2.2, bookshelf-req: 4, skill-req: 6 }
+      4: { value: 5.8, cost: 2.6, bookshelf-req: 6, skill-req: 9 }
+      5: { value: 6.5, cost: 3.0, bookshelf-req: 8, skill-req: 12 }
+      6: { value: 7.2, cost: 3.4, bookshelf-req: 10, skill-req: 15 }
+      7: { value: 7.9, cost: 3.8, bookshelf-req: 12, skill-req: 18 }
+      8: { value: 8.6, cost: 4.2, bookshelf-req: 15, skill-req: 21 }
+      9: { value: 9.3, cost: 4.6, bookshelf-req: 18, skill-req: 24 }
+      10: { value: 10.0, cost: 5.0, bookshelf-req: 20, skill-req: 27 }
+
+  prosecute:
+    display-name: "<blue>Prosecute</blue>"
+    max-level: 6
+    custom-logic-key: "prosecute"
+    applicable-types: [ SWORD ]
+    incompatibilities: [ execute ]
+    description:
+      - "<gray>Increases damage by <green>{value}%</green> for each</gray>"
+      - "<gray>percent of health on your target.</gray>"
+    levels:
+      1: { value: 0.1, cost: 10, bookshelf-req: 2, skill-req: 5 }
+      2: { value: 0.2, cost: 15, bookshelf-req: 4, skill-req: 8 }
+      3: { value: 0.3, cost: 20, bookshelf-req: 7, skill-req: 12 }
+      4: { value: 0.4, cost: 25, bookshelf-req: 10, skill-req: 16 }
+      5: { value: 0.7, cost: 30, bookshelf-req: 14, skill-req: 20 }
+      6: { value: 1.0, cost: 40, bookshelf-req: 18, skill-req: 25 }
+
+  titan_killer:
+    display-name: "<blue>Titan Killer</blue>"
+    max-level: 7
+    custom-logic-key: "titan_killer"
+    applicable-types: [ SWORD ]
+    incompatibilities: [ giant_killer ]
+    description:
+      - "<gray>Deal more damage based on target's defense.</gray>"
+    levels:
+      # 'value' is % damage bonus per 100 defense
+      # 'cost' is damage cap in %
+      1: { value: 2, cost: 6, bookshelf-req: 4, skill-req: 8 }
+      2: { value: 4, cost: 12, bookshelf-req: 6, skill-req: 11 }
+      3: { value: 6, cost: 18, bookshelf-req: 9, skill-req: 14 }
+      4: { value: 8, cost: 24, bookshelf-req: 12, skill-req: 18 }
+      5: { value: 10, cost: 40, bookshelf-req: 15, skill-req: 22 }
+      6: { value: 12, cost: 60, bookshelf-req: 18, skill-req: 26 }
+      7: { value: 14, cost: 80, bookshelf-req: 20, skill-req: 30 }
+
+  vicious:
+    display-name: "<red>Vicious</red>"
+    max-level: 5
+    custom-logic-key: "vicious"
+    applicable-types: [ SWORD ]
+    description:
+      - "<gray>Grants Ferocity on kill.</gray>"
+    levels:
+      # 'value' is the amount of Ferocity granted
+      # 'cost' is the duration in seconds
+      1: { value: 3, cost: 5, bookshelf-req: 10, skill-req: 15 }
+      2: { value: 3, cost: 6, bookshelf-req: 12, skill-req: 18 }
+      3: { value: 3, cost: 7, bookshelf-req: 14, skill-req: 21 }
+      4: { value: 4, cost: 8, bookshelf-req: 17, skill-req: 25 }
+      5: { value: 5, cost: 10, bookshelf-req: 20, skill-req: 30 }
+
+  ender_slayer:
+    display-name: "<dark_purple>Ender Slayer</dark_purple>"
+    max-level: 7
+    custom-logic-key: "damage_by_type"
+    applicable-types: [ SWORD ]
+    description:
+      - "ENDERMAN"
+      - "ENDER_DRAGON"
+      - "SHULKER"
+    levels:
+      1: { value: 15, cost: 8, bookshelf-req: 2, skill-req: 5 }
+      2: { value: 30, cost: 12, bookshelf-req: 4, skill-req: 8 }
+      3: { value: 45, cost: 16, bookshelf-req: 6, skill-req: 12 }
+      4: { value: 60, cost: 20, bookshelf-req: 9, skill-req: 16 }
+      5: { value: 80, cost: 25, bookshelf-req: 12, skill-req: 20 }
+      6: { value: 100, cost: 35, bookshelf-req: 16, skill-req: 25 }
+      7: { value: 130, cost: 50, bookshelf-req: 20, skill-req: 30 }
+
+  impaling:
+    display-name: "<aqua>Impaling</aqua>"
+    max-level: 3
+    custom-logic-key: "damage_by_type"
+    applicable-types: [ SWORD, BOW ]
+    description:
+      - "GUARDIAN"
+      - "ELDER_GUARDIAN"
+      - "SQUID"
+      - "GLOW_SQUID"
+      - "DOLPHIN"
+    levels:
+      1: { value: 25, cost: 10, bookshelf-req: 3, skill-req: 4 }
+      2: { value: 50, cost: 15, bookshelf-req: 6, skill-req: 8 }
+      3: { value: 75, cost: 20, bookshelf-req: 9, skill-req: 12 }
+
+  smoldering:
+    display-name: "<gold>Smoldering</gold>"
+    max-level: 5
+    custom-logic-key: "damage_by_type"
+    applicable-types: [ SWORD ]
+    description:
+      - "BLAZE"
+    levels:
+      1: { value: 3, cost: 5, bookshelf-req: 0, skill-req: 0 }
+      2: { value: 6, cost: 8, bookshelf-req: 2, skill-req: 3 }
+      3: { value: 9, cost: 12, bookshelf-req: 4, skill-req: 6 }
+      4: { value: 12, cost: 16, bookshelf-req: 6, skill-req: 9 }
+      5: { value: 15, cost: 20, bookshelf-req: 8, skill-req: 12 }
+
+    # --- Simple Stat-Based & Other Sword Enchantments ---
+  divine_gift:
+    display-name: "<yellow>Divine Gift</yellow>"
+    max-level: 3
+    applicable-types: [ SWORD ]
+    description:
+      - "<gray>Grants <green>+{value} ✯ Magic Find</green>.</gray>"
+    stat-modifiers:
+      MAGIC_FIND: "value"
+    levels:
+      1: { value: 2, cost: 15, bookshelf-req: 5, skill-req: 10 }
+      2: { value: 4, cost: 25, bookshelf-req: 10, skill-req: 18 }
+      3: { value: 6, cost: 40, bookshelf-req: 15, skill-req: 25 }
+
+  luck:
+    display-name: "<green>Luck</green>"
+    max-level: 7
+    # This is a special case that will need custom logic in your LootManager
+    # For now, it doesn't need a custom-logic-key as it's not a combat effect
+    applicable-types: [ SWORD ]
+    description:
+      - "<gray>Increases chance for mobs to drop armor by <green>{value}%</green>.</gray>"
+    levels:
+      1: { value: 5, cost: 10, bookshelf-req: 3, skill-req: 5 }
+      2: { value: 10, cost: 14, bookshelf-req: 5, skill-req: 8 }
+      3: { value: 15, cost: 18, bookshelf-req: 7, skill-req: 11 }
+      4: { value: 20, cost: 22, bookshelf-req: 10, skill-req: 14 }
+      5: { value: 25, cost: 28, bookshelf-req: 13, skill-req: 18 }
+      6: { value: 30, cost: 35, bookshelf-req: 16, skill-req: 22 }
+      7: { value: 35, cost: 45, bookshelf-req: 20, skill-req: 26 }
+
+  scavenger:
+    display-name: "<gold>Scavenger</gold>"
+    max-level: 6
+    # This will require an onKill effect to give coins.
+    # We can add this logic later.
+    applicable-types: [ SWORD ]
+    description:
+      - "<gray>Enemies drop extra coins on kill.</gray>"
+    levels:
+      1: { value: 1, cost: 8, bookshelf-req: 2, skill-req: 4 }
+      2: { value: 2, cost: 12, bookshelf-req: 4, skill-req: 7 }
+      3: { value: 3, cost: 16, bookshelf-req: 6, skill-req: 10 }
+      4: { value: 4, cost: 20, bookshelf-req: 8, skill-req: 13 }
+      5: { value: 5, cost: 25, bookshelf-req: 10, skill-req: 16 }
+      6: { value: 6, cost: 30, bookshelf-req: 12, skill-req: 20 }
   # ... (and so on for all other sword enchants)
 
   # ===================================================
@@ -322,7 +476,61 @@ enchantments:
       4: { value: 4, cost: 40, bookshelf-req: 18, skill-req: 28 }
       5: { value: 5, cost: 50, bookshelf-req: 20, skill-req: 30 }
 
-  # ... (and so on for all other bow enchants)
+  snipe:
+    display-name: "<blue>Snipe</blue>"
+    max-level: 4
+    # This enchantment is handled entirely by ProjectileListener, so no custom-logic-key is needed.
+    applicable-types: [ BOW ]
+    description:
+      - "<gray>Arrows deal +<green>{value}%</green> damage per 10 blocks traveled.</gray>"
+    levels:
+      1: { value: 1, cost: 10, bookshelf-req: 3, skill-req: 8 }
+      2: { value: 2, cost: 15, bookshelf-req: 6, skill-req: 12 }
+      3: { value: 3, cost: 20, bookshelf-req: 10, skill-req: 16 }
+      4: { value: 4, cost: 25, bookshelf-req: 15, skill-req: 20 }
+      10: { value: 30, cost: 30, bookshelf-req: 18, skill-req: 18 }
+
+  flame:
+    display-name: "<gold>Flame</gold>"
+    max-level: 1
+    # This will need a custom-logic-key and an onAttack effect similar to Fire Aspect
+    # but triggered from a projectile.
+    applicable-types: [ BOW ]
+    description:
+      - "<gray>Ignites enemies with arrows.</gray>"
+    levels:
+      1: { value: 5, cost: 20, bookshelf-req: 8, skill-req: 10 } # 5 second burn
+
+  punch:
+    display-name: "<blue>Punch</blue>"
+    max-level: 2
+    # This will need a custom-logic-key and an onAttack projectile effect
+    # similar to the sword Knockback effect.
+    applicable-types: [ BOW ]
+    description:
+      - "<gray>Increases arrow knockback.</gray>"
+    levels:
+      1: { value: 1, cost: 10, bookshelf-req: 0, skill-req: 0 }
+      2: { value: 2, cost: 20, bookshelf-req: 4, skill-req: 5 }
+
+  infinite_quiver:
+    display-name: "<aqua>Infinite Quiver</aqua>"
+    max-level: 10
+    # This requires a new check in the EntityShootBowEvent
+    applicable-types: [ BOW ]
+    description:
+      - "<gray>Grants a <green>{value}%</green> chance to not consume arrows.</gray>"
+    levels:
+      1: { value: 3, cost: 10, bookshelf-req: 3,  skill-req: 5 }
+      2: { value: 6, cost: 12, bookshelf-req: 4,  skill-req: 6 }
+      3: { value: 9, cost: 14, bookshelf-req: 5,  skill-req: 7 }
+      4: { value: 12, cost: 16, bookshelf-req: 6,  skill-req: 8 }
+      5: { value: 15, cost: 18, bookshelf-req: 7,  skill-req: 9 }
+      6: { value: 18, cost: 20, bookshelf-req: 8,  skill-req: 10 }
+      7: { value: 21, cost: 22, bookshelf-req: 10, skill-req: 12 }
+      8: { value: 24, cost: 25, bookshelf-req: 12, skill-req: 14 }
+      9: { value: 27, cost: 28, bookshelf-req: 15, skill-req: 16 }
+      10: { value: 30, cost: 30, bookshelf-req: 18, skill-req: 18 }
 
   # ===================================================
   #                   ARMOR ENCHANTMENTS
@@ -403,10 +611,101 @@ enchantments:
     levels:
       # 'value' is the amount of Defense granted
       1: { value: 6, cost: 15, bookshelf-req: 5, skill-req: 10 }
-      2: { value: 8, cost: 20, bookshelf-req: 8, skill-req: 14 }
-      3: { value: 10, cost: 25, bookshelf-req: 11, skill-req: 18 }
+      2: { value: 7, cost: 18, bookshelf-req: 7, skill-req: 12 }
+      3: { value: 8, cost: 21, bookshelf-req: 9, skill-req: 15 }
+      4: { value: 9, cost: 24, bookshelf-req: 12, skill-req: 18 }
+      5: { value: 10, cost: 28, bookshelf-req: 15, skill-req: 22 }
 
-  # ... (and so on for all other armor enchants)
+  thorns:
+    display-name: "<green>Thorns</green>"
+    max-level: 3
+    custom-logic-key: "thorns"
+    applicable-types: [ ARMOR ]
+    incompatibilities: [ reflection ]
+    description:
+      - "<gray>50% chance to reflect <red>{value}%</red> of damage dealt.</gray>"
+    levels:
+      1: { value: 3, cost: 10, bookshelf-req: 1, skill-req: 2 }
+      2: { value: 6, cost: 18, bookshelf-req: 5, skill-req: 8 }
+      3: { value: 9, cost: 25, bookshelf-req: 10, skill-req: 15 }
+
+  rejuvenate:
+    display-name: "<green>Rejuvenate</green>"
+    max-level: 5
+    custom-logic-key: "rejuvenate"
+    applicable-types: [ ARMOR ]
+    incompatibilities: [ respite ]
+    description:
+      - "<gray>Grants <red>+{value} ❣ Health Regen</red>.</gray>"
+    levels:
+      1: { value: 2, cost: 12, bookshelf-req: 3, skill-req: 6 }
+      2: { value: 4, cost: 16, bookshelf-req: 6, skill-req: 10 }
+      3: { value: 6, cost: 20, bookshelf-req: 9, skill-req: 14 }
+      4: { value: 8, cost: 24, bookshelf-req: 13, skill-req: 19 }
+      5: { value: 10, cost: 28, bookshelf-req: 17, skill-req: 24 }
+
+  big_brain:
+    display-name: "<light_purple>Big Brain</light_purple>"
+    max-level: 5
+    incompatibilities: [small_brain]
+    applicable-types: [ARMOR]
+    description:
+      - "<gray>Increases <green>+{value} ✎ Intelligence</green>.</gray>"
+    stat-modifiers:
+      INTELLIGENCE: "value"
+    levels:
+      1: { value: 5, cost: 10, bookshelf-req: 2, skill-req: 5 }
+      2: { value: 10, cost: 15, bookshelf-req: 4, skill-req: 8 }
+      3: { value: 15, cost: 20, bookshelf-req: 7, skill-req: 12 }
+      4: { value: 20, cost: 25, bookshelf-req: 10, skill-req: 16 }
+      5: { value: 25, cost: 30, bookshelf-req: 14, skill-req: 20 }
+
+  smarty_pants:
+    display-name: "<light_purple>Smarty Pants</light_purple>"
+    max-level: 5
+    applicable-types: [ARMOR]
+    description:
+      - "<gray>Increases <green>+{value} ✎ Intelligence</green>.</gray>"
+    stat-modifiers:
+      INTELLIGENCE: "value"
+    levels:
+      1: { value: 5, cost: 10, bookshelf-req: 2, skill-req: 5 }
+      2: { value: 10, cost: 15, bookshelf-req: 4, skill-req: 8 }
+      3: { value: 15, cost: 20, bookshelf-req: 7, skill-req: 12 }
+      4: { value: 20, cost: 25, bookshelf-req: 10, skill-req: 16 }
+      5: { value: 25, cost: 30, bookshelf-req: 14, skill-req: 20 }
+
+  true_protection:
+    display-name: "<white>True Protection</white>"
+    max-level: 1
+    applicable-types: [ARMOR]
+    description:
+      - "<gray>Grants <green>+{value} ❂ True Defense</green>.</gray>"
+    stat-modifiers:
+      TRUE_DEFENSE: "value"
+    levels:
+      1: { value: 5, cost: 25, bookshelf-req: 10, skill-req: 15 }
+
+  # --- Feather Falling (Special Case) ---
+  feather_falling:
+    display-name: "<aqua>Feather Falling</aqua>"
+    max-level: 20
+    # This will require a new listener for PlayerMoveEvent or a custom fall damage calculation
+    applicable-types: [ARMOR] # Specifically boots
+    description:
+      - "<gray>Reduces fall damage by <green>{value}%</green>.</gray>"
+    levels:
+      1: { value: 5, cost: 5, bookshelf-req: 0, skill-req: 0 }
+      2: { value: 10, cost: 6, bookshelf-req: 1, skill-req: 1 }
+      3: { value: 15, cost: 7, bookshelf-req: 1, skill-req: 2 }
+      4: { value: 20, cost: 8, bookshelf-req: 2, skill-req: 2 }
+      5: { value: 25, cost: 10, bookshelf-req: 2, skill-req: 3 }
+      6: { value: 30, cost: 12, bookshelf-req: 3, skill-req: 4 }
+      7: { value: 35, cost: 14, bookshelf-req: 4, skill-req: 5 }
+      8: { value: 40, cost: 16, bookshelf-req: 5, skill-req: 6 }
+      9: { value: 45, cost: 18, bookshelf-req: 6, skill-req: 7 }
+      10: { value: 50, cost: 20, bookshelf-req: 7, skill-req: 8 }
+      20: { value: 100, cost: 45, bookshelf-req: 20, skill-req: 28 }
 
   # ===================================================
   #                   TOOL ENCHANTMENTS

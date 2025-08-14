@@ -102,16 +102,34 @@ public class HUDManager {
     public void showDamageIndicator(Location location, double damage, boolean isCrit) {
         if (location.getWorld() == null) return;
 
-        location.add(Math.random() * 0.5 - 0.25, 0.5 + (Math.random() * 0.5), Math.random() * 0.5 - 0.25);
+        // Add a slight random offset to prevent indicators from perfectly overlapping
+        location.add(
+                (Math.random() - 0.5) * 0.75, // Random X
+                0.5 + (Math.random() * 0.5),    // Random Y (always above)
+                (Math.random() - 0.5) * 0.75  // Random Z
+        );
 
-        ArmorStand armorStand = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
-        armorStand.setInvisible(true);
-        armorStand.setGravity(false);
-        armorStand.setMarker(true);
-        armorStand.setSmall(true);
+        ArmorStand armorStand = location.getWorld().spawn(location, ArmorStand.class, (as) -> {
+            as.setInvisible(true);
+            as.setGravity(false);
+            as.setMarker(true);
+            as.setSmall(true);
+        });
 
-        String damageText = String.format("%.0f", damage);
-        String formattedText = isCrit ? "<red><b>✧" + damageText + "✧</b></red>" : "<gray>" + damageText + "</gray>";
+        String damageText = String.format("%,.0f", damage); // Format with commas for large numbers
+        String formattedText;
+
+        if (isCrit) {
+            // --- NEW: Critical Hit Formatting ---
+            // The star icon is '✧'.
+            // The <gradient> tag creates the color transition.
+            // #FFFFFF = White, #FFFF00 = Yellow, #FF8000 = Orange, #FF0000 = Red
+            String gradientDamage = "<gradient:#FFFFFF:#FFFF00:#FF8000:#FF0000:#FF8000:#FFFF00:#FFFFFF>" + damageText + "</gradient>";
+            formattedText = "<white>✧</white> " + gradientDamage + " <white>✧</white>";
+        } else {
+            // Standard non-critical hit formatting
+            formattedText = "<gray>" + damageText + "</gray>";
+        }
 
         armorStand.customName(ChatUtils.format(formattedText));
         armorStand.setCustomNameVisible(true);

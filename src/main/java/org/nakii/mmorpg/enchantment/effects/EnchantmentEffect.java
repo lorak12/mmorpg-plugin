@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
+import org.nakii.mmorpg.player.PlayerStats;
 
 public interface EnchantmentEffect {
 
@@ -38,4 +39,13 @@ public interface EnchantmentEffect {
      * @param level The level of the enchantment on the worn item.
      */
     default void onDamaged(EntityDamageByEntityEvent event, CustomEnchantment enchantment, int level) {}
+
+    /**
+     * Called by the StatsManager when recalculating stats for the wearer.
+     * Used for passive, non-combat stat buffs.
+     * @param stats The PlayerStats object being built.
+     * @param enchantment The CustomEnchantment object.
+     * @param level The level of the enchantment.
+     */
+    default void onStatRecalculate(PlayerStats stats, CustomEnchantment enchantment, int level) {}
 }

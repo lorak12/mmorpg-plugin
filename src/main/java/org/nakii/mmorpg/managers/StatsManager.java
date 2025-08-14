@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
+import org.nakii.mmorpg.enchantment.effects.EnchantmentEffect;
 import org.nakii.mmorpg.player.PlayerStats;
 import org.nakii.mmorpg.player.Stat;
 
@@ -93,6 +94,14 @@ public class StatsManager {
                         plugin.getLogger().warning("Invalid stat '" + modEntry.getKey() + "' in enchantment '" + enchantment.getId() + "'.");
                     } catch (Exception e) {
                         plugin.getLogger().warning("Could not evaluate formula for enchant '" + enchantment.getId() + "': " + e.getMessage());
+                    }
+                }
+
+                if (enchantment.getCustomLogicKey() != null) {
+                    EnchantmentEffect effect = plugin.getEnchantmentEffectManager().getEffect(enchantment.getCustomLogicKey());
+                    if (effect != null) {
+                        // Call the new method for passive effects
+                        effect.onStatRecalculate(finalStats, enchantment, level);
                     }
                 }
             }

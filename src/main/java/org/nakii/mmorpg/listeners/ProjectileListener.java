@@ -1,14 +1,17 @@
 package org.nakii.mmorpg.listeners;
 
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.enchantment.CustomEnchantment;
 
 import java.util.Map;
 
@@ -20,7 +23,6 @@ public class ProjectileListener implements Listener {
         this.plugin = plugin;
     }
 
-    // This event fires when a player shoots a bow.
     @EventHandler
     public void onEntityShootBow(EntityShootBowEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
@@ -32,21 +34,42 @@ public class ProjectileListener implements Listener {
         Map<String, Integer> enchantments = plugin.getEnchantmentManager().getEnchantments(bow);
         if (enchantments.isEmpty()) return;
 
-        // "Tag" the arrow with the bow's enchantments by storing them in its metadata.
-        // This makes the enchant data available when the arrow hits.
+        // "Tag" the arrow with the bow's enchantments and the shooter's UUID.
         arrow.setMetadata("CustomEnchants", new FixedMetadataValue(plugin, enchantments));
+        arrow.setMetadata("ShooterUUID", new FixedMetadataValue(plugin, player.getUniqueId()));
     }
 
-    // This event fires when any projectile hits something.
+    /**
+     * --- THIS METHOD NOW CONTAINS THE SNIPE LOGIC ---
+     */
     @EventHandler
     public void onProjectileHit(ProjectileHitEvent event) {
         if (!(event.getEntity() instanceof Arrow arrow)) return;
-        if (event.getHitEntity() == null) return; // We only care about hits on entities
+        if (event.getHitEntity() == null || !(event.getHitEntity() instanceof LivingEntity victim)) return;
+        if (!arrow.hasMetadata("CustomEnchants") || !arrow.hasMetadata("ShooterUUID")) return;
 
-        if (arrow.hasMetadata("CustomEnchants")) {
-            // Here you could implement Snipe by calculating distance.
-            // For now, we'll let the PlayerDamageListener handle Overload.
-            // This listener is ready for future projectile-specific enchantments.
-        }
+        // Retrieve the enchantment data we stored when the arrow was fired.
+        Map<String, Integer> enchantments = (Map<String, Integer>) arrow.getMetadata("CustomEnchants").get(0).value();
+
+        Integer snipeLevel = enchantments.get("snipe");
+        if (snipeLevel == null || snipeLevel <= 0) return;
+
+        CustomEnchantment snipeEnchant = plugin.getEnchantmentManager().getEnchantment("snipe");
+        if (snipeEnchant == null) return;
+
+        // Calculate the distance the arrow traveled.
+        double distance = arrow.getLocation().distance(arrow.getOrigin());
+
+        // 'value' is the damage % bonus per 10 blocks.
+        double bonusPer10Blocks = snipeEnchant.getValue(snipeLevel) / 100.0;
+
+        // Calculate the damage multiplier.
+        double bonusMultiplier = (distance / 10.0) * bonusPer10Blocks;
+
+        // To apply the damage, we find the original damage event this hit will cause.
+        // We can do this by waiting one tick and modifying the next damage event for this entity.
+        // This is a bit complex. A simpler, more direct way is to just deal extra damage.
+        double extraDamage = victim.getLastDamage() * bonusMultiplier;
+        victim.damage(extraDamage);
     }
 }

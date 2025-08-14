@@ -31,6 +31,11 @@ public class EnchantmentEffectManager {
         register("champion", new ChampionEffect());
         register("reflection", new ReflectionEffect());
         register("counter_strike", new CounterStrikeEffect());
+        register("prosecute", new ProsecuteEffect());
+        register("titan_killer", new TitanKillerEffect());
+        register("thorns", new ThornsEffect());
+        register("rejuvenate", new RejuvenateEffect());
+        register("vicious", new ViciousEffect());
     }
 
     public void register(String key, EnchantmentEffect effect) {

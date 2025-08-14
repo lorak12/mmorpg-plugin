@@ -8,6 +8,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.enchantment.effects.EnchantmentEffect;
@@ -71,7 +72,9 @@ public class PlayerDamageListener implements Listener {
         finalDamage = damageManager.applyDefense(victim, finalDamage);
 
         // --- Finalization ---
-        event.setDamage(Math.floor(finalDamage));
+        event.getEntity().setMetadata("last_hit_crit", new FixedMetadataValue(plugin, isCustomCrit));
+
+        event.setDamage(Math.floor(finalDamage));;
 
         // --- Phase 3: Post-Hit Triggers ---
         // (This happens after the final damage value has been set)
