@@ -1,16 +1,20 @@
 package org.nakii.mmorpg.managers;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 import net.objecthunter.exp4j.Expression;
 import net.objecthunter.exp4j.ExpressionBuilder;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.enchantment.effects.EnchantmentEffect;
 import org.nakii.mmorpg.player.PlayerStats;
 import org.nakii.mmorpg.player.Stat;
 
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -19,6 +23,7 @@ public class StatsManager {
 
     private final MMORPGCore plugin;
     private final Map<UUID, PlayerStats> playerStatsMap = new HashMap<>();
+    private final Gson gson = new Gson();
 
     public StatsManager(MMORPGCore plugin) {
         this.plugin = plugin;
@@ -42,101 +47,174 @@ public class StatsManager {
      */
     public void recalculateStats(Player player) {
         PlayerStats finalStats = new PlayerStats();
-        EnchantmentManager enchantmentManager = plugin.getEnchantmentManager();
 
-        // --- Layer 1: Base & Permanent Stats ---
+        // Layer 1: Base & Permanent Stats
         applyBaseStats(finalStats);
         applySkillBonuses(player, finalStats);
 
-        // --- Layer 2: Equipment Stats ---
-        // We check all armor slots plus the item in the main hand.
-        ItemStack[] itemsToCheck = {
-                player.getInventory().getHelmet(),
-                player.getInventory().getChestplate(),
-                player.getInventory().getLeggings(),
-                player.getInventory().getBoots(),
-                player.getInventory().getItemInMainHand()
-                // In the future, you can add Equipment slots (Gloves, etc.) here
+        // Layer 2: Equipment Stats
+        Map<String, Integer> wornSetPieces = new HashMap<>();
+
+        // --- 2a: Process EQUIPPED ARMOR ONLY ---
+        ItemStack[] equippedArmor = {
+                player.getInventory().getHelmet(), player.getInventory().getChestplate(),
+                player.getInventory().getLeggings(), player.getInventory().getBoots()
         };
+        for (ItemStack armorPiece : equippedArmor) {
+            if (armorPiece == null || !armorPiece.hasItemMeta()) continue;
 
-        for (ItemStack item : itemsToCheck) {
-            if (item == null || item.getType().isAir()) continue;
+            applyItemStats(armorPiece, finalStats); // Apply its stats
 
-            // 2a: Add base stats from the custom item itself (from ItemManager)
-            // Map<Stat, Double> itemBaseStats = plugin.getItemManager().getBaseStats(item);
-            // itemBaseStats.forEach(finalStats::addStat);
+            // Count pieces for set bonus
+            String setId = armorPiece.getItemMeta().getPersistentDataContainer().get(ItemManager.ARMOR_SET_ID_KEY, PersistentDataType.STRING);
+            if (setId != null) {
+                wornSetPieces.put(setId, wornSetPieces.getOrDefault(setId, 0) + 1);
+            }
+        }
 
-            // 2b: Add stats from the item's custom enchantments
-            Map<String, Integer> enchantments = enchantmentManager.getEnchantments(item);
-            for (Map.Entry<String, Integer> enchantEntry : enchantments.entrySet()) {
-                CustomEnchantment enchantment = enchantmentManager.getEnchantment(enchantEntry.getKey());
-                int level = enchantEntry.getValue();
+        // --- 2b: Process HELD ITEM (if it's not armor) ---
+        ItemStack mainHandItem = player.getInventory().getItemInMainHand();
+        if (mainHandItem != null && !mainHandItem.getType().isAir()) {
+            String typeName = mainHandItem.getType().name();
+            // This check ensures we don't add stats from armor being held in the hand.
+            if (!typeName.endsWith("_HELMET") && !typeName.endsWith("_CHESTPLATE") && !typeName.endsWith("_LEGGINGS") && !typeName.endsWith("_BOOTS")) {
+                applyItemStats(mainHandItem, finalStats);
+            }
+        }
 
-                if (enchantment == null) continue;
+        // --- 2c: Apply Full Set Bonuses ---
+        // This check is now separate and runs after all pieces have been counted.
+        for (ItemStack armorPiece : equippedArmor) {
+            if (armorPiece == null || !armorPiece.hasItemMeta()) continue;
+            var data = armorPiece.getItemMeta().getPersistentDataContainer();
+            String setId = data.get(ItemManager.ARMOR_SET_ID_KEY, PersistentDataType.STRING);
 
-                // Process stat-modifying enchantments (e.g., Growth, Protection)
-                Map<String, String> modifiers = enchantment.getStatModifiers();
-                for (Map.Entry<String, String> modEntry : modifiers.entrySet()) {
-                    try {
-                        Stat stat = Stat.valueOf(modEntry.getKey().toUpperCase());
-                        String formula = modEntry.getValue();
-
-                        // Evaluate the formula, replacing 'level' and 'value' with actual numbers
-                        Expression expression = new ExpressionBuilder(formula)
-                                .variables("level", "value")
-                                .build()
-                                .setVariable("level", level)
-                                .setVariable("value", enchantment.getValue(level));
-
-                        finalStats.addStat(stat, expression.evaluate());
-
-                    } catch (IllegalArgumentException e) {
-                        plugin.getLogger().warning("Invalid stat '" + modEntry.getKey() + "' in enchantment '" + enchantment.getId() + "'.");
-                    } catch (Exception e) {
-                        plugin.getLogger().warning("Could not evaluate formula for enchant '" + enchantment.getId() + "': " + e.getMessage());
-                    }
-                }
-
-                if (enchantment.getCustomLogicKey() != null) {
-                    EnchantmentEffect effect = plugin.getEnchantmentEffectManager().getEffect(enchantment.getCustomLogicKey());
-                    if (effect != null) {
-                        // Call the new method for passive effects
-                        effect.onStatRecalculate(finalStats, enchantment, level);
-                    }
+            if (setId != null && wornSetPieces.getOrDefault(setId, 0) >= 4) { // Assuming 4 pieces
+                if (data.has(ItemManager.ARMOR_SET_STATS_KEY, PersistentDataType.STRING)) {
+                    String statsJson = data.get(ItemManager.ARMOR_SET_STATS_KEY, PersistentDataType.STRING);
+                    Type type = new TypeToken<Map<String, Double>>(){}.getType();
+                    Map<String, Double> setBonusStats = gson.fromJson(statsJson, type);
+                    setBonusStats.forEach((statName, value) -> finalStats.addStat(Stat.valueOf(statName), value));
                 }
             }
-            // 2c: In the future, you would add stats from Reforges here.
         }
 
         // --- Layer 3: Temporary Buffs ---
-        // 3a: Add stats from the TimedBuffManager (e.g., Counter-Strike)
         for (Stat stat : Stat.values()) {
             finalStats.addStat(stat, plugin.getTimedBuffManager().getBuffsForStat(player, stat));
         }
 
-        // 3b: In the future, you would add stats from Pets and Potions here.
-
-
         // --- Finalization ---
-        // Cache the newly calculated stats
         playerStatsMap.put(player.getUniqueId(), finalStats);
-
-        // Apply the relevant stats to the live Bukkit Player object
         applyStatsToPlayer(player, finalStats);
     }
 
     /**
-     * Sets the default base stats for a player.
+     * --- NEW HELPER METHOD ---
+     * A private helper method to apply all stat types (base, reforge, enchant)
+     * from a single ItemStack to a PlayerStats object.
+     * This avoids code duplication.
+     */
+    private void applyItemStats(ItemStack item, PlayerStats stats) {
+        if (item == null || !item.hasItemMeta()) return;
+
+        var data = item.getItemMeta().getPersistentDataContainer();
+        Gson gson = new Gson();
+        Type statMapType = new TypeToken<Map<String, Double>>(){}.getType();
+
+        // Base stats
+        if (data.has(ItemManager.BASE_STATS_KEY, PersistentDataType.STRING)) {
+            String statsJson = data.get(ItemManager.BASE_STATS_KEY, PersistentDataType.STRING);
+            Map<String, Double> baseStats = gson.fromJson(statsJson, statMapType);
+            baseStats.forEach((statName, value) -> stats.addStat(Stat.valueOf(statName), value));
+        }
+
+        // Reforge stats
+        if (data.has(ItemManager.REFORGE_STATS_KEY, PersistentDataType.STRING)) {
+            String statsJson = data.get(ItemManager.REFORGE_STATS_KEY, PersistentDataType.STRING);
+            Map<String, Double> reforgeStats = gson.fromJson(statsJson, statMapType);
+            reforgeStats.forEach((statName, value) -> stats.addStat(Stat.valueOf(statName), value));
+        }
+
+        // Enchantment stats
+        Map<String, Integer> enchantments = plugin.getEnchantmentManager().getEnchantments(item);
+        for (Map.Entry<String, Integer> enchantEntry : enchantments.entrySet()) {
+            CustomEnchantment enchantment = plugin.getEnchantmentManager().getEnchantment(enchantEntry.getKey());
+            if (enchantment == null) continue;
+            int level = enchantEntry.getValue();
+
+            enchantment.getStatModifiers().forEach((statName, formula) -> {
+                try {
+                    Stat stat = Stat.valueOf(statName);
+                    Expression expression = new ExpressionBuilder(formula).variables("level", "value").build()
+                            .setVariable("level", level).setVariable("value", enchantment.getValue(level));
+                    stats.addStat(stat, expression.evaluate());
+                } catch (Exception e) { /* Log error */ }
+            });
+
+            if (enchantment.getCustomLogicKey() != null) {
+                EnchantmentEffect effect = plugin.getEnchantmentEffectManager().getEffect(enchantment.getCustomLogicKey());
+                if (effect != null) {
+                    effect.onStatRecalculate(stats, enchantment, level);
+                }
+            }
+        }
+    }
+
+    /**
+     * Sets the default base stats for a player, as defined in the project documentation.
+     * This is the starting point before any skills, items, or buffs are applied.
      */
     private void applyBaseStats(PlayerStats stats) {
+        // --- Combat Stats ---
         stats.setStat(Stat.HEALTH, 100);
         stats.setStat(Stat.DEFENSE, 0);
         stats.setStat(Stat.STRENGTH, 0);
         stats.setStat(Stat.INTELLIGENCE, 100);
         stats.setStat(Stat.CRIT_CHANCE, 30);
         stats.setStat(Stat.CRIT_DAMAGE, 50);
-        stats.setStat(Stat.SPEED, 100);
-        // ... set other base stats from your documentation
+        stats.setStat(Stat.BONUS_ATTACK_SPEED, 0);
+        stats.setStat(Stat.ABILITY_DAMAGE, 0);
+        stats.setStat(Stat.TRUE_DEFENSE, 0);
+        stats.setStat(Stat.FEROCITY, 0);
+        stats.setStat(Stat.HEALTH_REGEN, 100);
+        stats.setStat(Stat.VITALITY, 100);
+        stats.setStat(Stat.SWING_RANGE, 3);
+
+        // --- Gathering Stats ---
+        stats.setStat(Stat.MINING_SPEED, 0);
+        stats.setStat(Stat.BREAKING_POWER, 0);
+        stats.setStat(Stat.FORAGING_FORTUNE, 0);
+        stats.setStat(Stat.FARMING_FORTUNE, 0);
+        stats.setStat(Stat.MINING_FORTUNE, 0);
+        stats.setStat(Stat.ORE_FORTUNE, 0);
+        stats.setStat(Stat.BLOCK_FORTUNE, 0);
+
+        // --- Wisdom Stats ---
+        stats.setStat(Stat.COMBAT_WISDOM, 0);
+        stats.setStat(Stat.MINING_WISDOM, 0);
+        stats.setStat(Stat.FARMING_WISDOM, 0);
+        stats.setStat(Stat.FORAGING_WISDOM, 0);
+        stats.setStat(Stat.FISHING_WISDOM, 0);
+        stats.setStat(Stat.ENCHANTING_WISDOM, 0);
+        stats.setStat(Stat.ALCHEMY_WISDOM, 0);
+        stats.setStat(Stat.CARPENTRY_WISDOM, 0);
+
+        // --- Misc Stats ---
+        stats.setStat(Stat.SPEED, 100); // Represented as a percentage
+        stats.setStat(Stat.MAGIC_FIND, 0);
+        stats.setStat(Stat.COLD_RESISTANCE, 0);
+        stats.setStat(Stat.HEAT_RESISTANCE, 0);
+
+        // --- Fishing Stats ---
+        stats.setStat(Stat.SEA_CREATURE_CHANCE, 20); // Represented as a percentage
+        stats.setStat(Stat.FISHING_SPEED, 0);
+        stats.setStat(Stat.TREASURE_CHANCE, 0);
+
+        // --- Special Stats (Not in Stat enum, handled separately) ---
+        // MANA: Base value is derived from Intelligence.
+        // ABSORPTION: Handled by Bukkit effects.
+        // EFFECTIVE_HEALTH: A calculated value, not a base stat.
     }
 
     /**

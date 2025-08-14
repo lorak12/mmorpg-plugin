@@ -1,0 +1,24 @@
+LIVID_DAGGER:
+  material: DIAMOND_SWORD
+  display-name: "Livid Dagger"
+  rarity: LEGENDARY
+  item-type: SWORD
+  flags: [ ENCHANTABLE, REFORGABLE ]
+  stats:
+    DAMAGE: 160
+    STRENGTH: 60
+    BONUS_ATTACK_SPEED: 50
+    CRIT_DAMAGE: 50
+    CRIT_CHANCE: 100
+  requirements:
+    - "SKILL:COMBAT:20"
+  passive-effect:
+    - "<gray>Your critical hits deal <blue>100%</blue> more damage</gray>"
+    - "<gray>if you are behind the enemy.</gray>"
+  ability:
+    key: "DAGGER_THROW"
+    name: "Throw"
+    mana-cost: 100
+    cooldown-seconds: 5
+    description:
+      - "<gray>Throw your dagger at your enemies!</gray>"

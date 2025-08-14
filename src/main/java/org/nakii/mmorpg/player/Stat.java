@@ -2,6 +2,7 @@ package org.nakii.mmorpg.player;
 
 public enum Stat {
     // --- Combat Stats ---
+    DAMAGE("⚔ Damage", "⚔"),
     HEALTH("❤ Health", "❤"),
     DEFENSE("❈ Defense", "❈"),
     STRENGTH("❁ Strength", "❁"),
@@ -60,5 +61,11 @@ public enum Stat {
 
     public String getSymbol() {
         return symbol;
+    }
+
+    public String getSimpleName() {
+        // Removes the symbol and any extra words for cleaner lore
+        return this.displayName.replaceAll("^[❤❈❁✎☣☠⚔๑❂⫽❣♨Ⓢ⸕Ⓟ☘☯✦✯❄α☂⛃] ", "")
+                .replace("Bonus ", "");
     }
 }

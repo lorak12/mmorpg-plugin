@@ -1,0 +1,9 @@
+LEATHER_TUNIC_RED:
+  material: LEATHER_CHESTPLATE
+  display-name: "Adventurer's Tunic"
+  rarity: COMMON
+  item-type: CHESTPLATE
+  flags: [ ENCHANTABLE ]
+  color: "#AA0000" # Hex color code for red
+  stats:
+    HEALTH: 15

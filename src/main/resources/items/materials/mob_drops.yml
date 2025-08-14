@@ -1,0 +1,7 @@
+BONE:
+  material: BONE
+  display-name: "Bone"
+  rarity: COMMON
+  lore:
+    - "<gray>Bone Collection</gray>"
+  sell-price: 2

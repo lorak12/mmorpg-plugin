@@ -1,0 +1,26 @@
+FINAL_DESTINATION_BOOTS:
+  material: DIAMOND_BOOTS
+  display-name: "Final Destination Boots"
+  rarity: LEGENDARY
+  item-type: BOOTS
+  flags: [ ENCHANTABLE, REFORGABLE ]
+  stats:
+    HEALTH: 100
+    DEFENSE: 100
+    INTELLIGENCE: 100
+  armor-set:
+    id: "FINAL_DESTINATION"
+    name: "Vivacious Darkness"
+    pieces: 4
+    bonus-description:
+      - "<gray>Costs <aqua>2 ✎ Intelligence</aqua> per 5s in combat while sneaking:"
+      - "<dark_aqua>⁍</dark_aqua> <red>+30❁ Strength</red>"
+      - "<dark_aqua>⁍</dark_aqua> <yellow>+20⚔ Bonus Attack Speed</yellow>"
+      - "<dark_aqua>⁍</dark_aqua> <white>+10✦ Speed</white>"
+      - "<dark_aqua>⁍</dark_aqua> <white>Multiply</white> <aqua>✎ Intelligence</aqua> <white>by</white> <aqua>1.25x</aqua>"
+      - "<dark_aqua>⁍</dark_aqua> <red>+200⫽ Ferocity</red> <white>against Endermen</white>"
+      - "<dark_aqua>⁍</dark_aqua> <green>+100%</green> <white>damage against Endermen</white>"
+    full-set-stats:
+      STRENGTH: 30
+      BONUS_ATTACK_SPEED: 20
+      SPEED: 10

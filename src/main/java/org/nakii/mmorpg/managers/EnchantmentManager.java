@@ -8,6 +8,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
@@ -113,73 +114,30 @@ public class EnchantmentManager {
         updateItemLoreWithEnchants(item); // This will now correctly format the lore
     }
 
-    /**
-     * UPDATED: This method now works with Components to correctly parse MiniMessage tags.
-     */
+    // We need to slightly modify updateItemLoreWithEnchants to use this new method.
+    // This will prevent us from having two separate places that generate the same lore.
     private void updateItemLoreWithEnchants(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return;
+        // This method is now only responsible for adding/removing the glint.
+        // The ItemLoreGenerator is the sole controller of the visible lore.
 
         ItemMeta meta = item.getItemMeta();
-        List<Component> newLore = new ArrayList<>();
-
-        // 1. Get the original lore, but filter out our old enchantment lines.
-        if (meta.hasLore() && meta.lore() != null) {
-            boolean ourSectionFound = false;
-            for(Component line : meta.lore()) {
-                // If we find our invisible marker, stop adding old lines
-                if (line.equals(LORE_MARKER)) {
-                    ourSectionFound = true;
-                    break;
-                }
-                newLore.add(line);
-            }
-        }
-
-        // Remove trailing blank lines to prevent weird spacing
-        while(!newLore.isEmpty() && PlainTextComponentSerializer.plainText().serialize(newLore.get(newLore.size() - 1)).trim().isEmpty()){
-            newLore.remove(newLore.size() - 1);
-        }
-
         Map<String, Integer> enchants = getEnchantments(item);
+
         if (!enchants.isEmpty()) {
-            // Add a blank line for spacing if there was other lore
-            if (!newLore.isEmpty()) {
-                newLore.add(Component.empty());
+            if (!meta.hasEnchant(Enchantment.LUCK_OF_THE_SEA)) {
+                meta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true);
+                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
-
-            // Add our invisible marker first
-            newLore.add(LORE_MARKER);
-
-            // Build the new enchantment line string with MiniMessage tags
-            StringJoiner enchantJoiner = new StringJoiner("<blue>, </blue>");
-            // Sort enchantments alphabetically for consistent lore
-            List<String> sortedEnchantIds = new ArrayList<>(enchants.keySet());
-            Collections.sort(sortedEnchantIds);
-
-            for (String enchantId : sortedEnchantIds) {
-                CustomEnchantment enchant = getEnchantment(enchantId);
-                int level = enchants.get(enchantId);
-                if (enchant != null) {
-                    enchantJoiner.add(enchant.getDisplayName() + " " + toRoman(level));
-                }
-            }
-
-            // Parse the entire line as one component and add it to the lore
-            newLore.add(ChatUtils.format(enchantJoiner.toString()));
-
-            // Add glint effect
-            meta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         } else {
-            // Remove glint effect if no enchantments are left
             if (meta.hasEnchant(Enchantment.LUCK_OF_THE_SEA)) {
                 meta.removeEnchant(Enchantment.LUCK_OF_THE_SEA);
             }
         }
-
-        // 2. Set the new lore using the Component-based method
-        meta.lore(newLore);
         item.setItemMeta(meta);
+
+        // We now call the global lore update to make the visual change.
+        MMORPGCore.getInstance().getItemLoreGenerator().updateLore(item, null);
     }
 
     /**
@@ -218,5 +176,47 @@ public class EnchantmentManager {
             }
         }
         return result.toString();
+    }
+
+    /**
+     * --- THIS IS THE UPDATED METHOD ---
+     * Gets a formatted string for an item's lore representing all its custom enchantments.
+     * @param item The ItemStack to check.
+     * @param viewer The Player viewing the item (can be null if no player context).
+     * @return A MiniMessage-formatted string, or null if no enchantments.
+     */
+    public String getFormattedEnchantLine(ItemStack item, Player viewer) {
+        Map<String, Integer> enchants = getEnchantments(item);
+        if (enchants.isEmpty()) {
+            return null;
+        }
+
+        StringJoiner enchantJoiner = new StringJoiner("<gray>, </gray>");
+        List<String> sortedEnchantIds = new ArrayList<>(enchants.keySet());
+        Collections.sort(sortedEnchantIds);
+
+        for (String enchantId : sortedEnchantIds) {
+            CustomEnchantment enchant = getEnchantment(enchantId);
+            if (enchant != null) {
+                String enchantText = enchant.getDisplayName() + " " + toRoman(enchants.get(enchantId));
+
+                // --- NEW LOGIC: Check requirements ---
+                // Here you would check if the player meets the skill requirement for the enchant.
+                // For now, let's just show an example by making it red if they don't.
+                boolean meetsReq = true; // Placeholder for SkillManager check
+                if (viewer != null) {
+                    // meetsReq = plugin.getSkillManager().getLevel(viewer, enchant.getRequiredSkill()) >= enchant.getRequiredSkillLevel();
+                }
+
+                if (meetsReq) {
+                    enchantJoiner.add(enchantText);
+                } else {
+                    // If the player doesn't meet the requirement, show the enchant in red.
+                    enchantJoiner.add("<red>" + enchantText + "</red>");
+                }
+            }
+        }
+
+        return "<blue>" + enchantJoiner.toString() + "</blue>";
     }
 }

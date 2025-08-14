@@ -1,0 +1,15 @@
+TERMINATOR_BOW:
+  material: BOW
+  display-name: "Terminator"
+  rarity: MYTHIC
+  item-type: BOW
+  flags: [ ENCHANTABLE, REFORGABLE ]
+  stats:
+    DAMAGE: 250
+    STRENGTH: 100
+    CRIT_DAMAGE: 300
+  requirements:
+    - "SLAYER:ENDERMAN:7" # Example of a different requirement type
+  passive-effect:
+    - "<gray>Shoots three arrows at once!</gray>"
+    - "<gray>Can damage the same enemy multiple times.</gray>"

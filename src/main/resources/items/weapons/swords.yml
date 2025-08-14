@@ -1,0 +1,15 @@
+UNDEAD_SWORD:
+  material: IRON_SWORD
+  display-name: "Undead Sword"
+  rarity: RARE
+  item-type: SWORD
+  flags: [ ENCHANTABLE, REFORGABLE ]
+  stats:
+    DAMAGE: 75
+    STRENGTH: 20
+  passive-effect:
+    - "<gray>Deals <green>+150%</green> damage to <red>Zombies</red>,</gray>"
+    - "<red>Skeletons</red><gray>, and <red>Wither Skeletons</red>.</gray>"
+  requirements:
+    - "SKILL:COMBAT:5"
+  sell-price: 500

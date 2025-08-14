@@ -32,6 +32,7 @@ public class GiveItemCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+
         if (args.length < 1) {
             sender.sendMessage(ChatUtils.format("<red>Usage: /giveitem <item_id> [amount] [player]</red>"));
             return true;
@@ -65,17 +66,20 @@ public class GiveItemCommand implements CommandExecutor, TabCompleter {
             target = (Player) sender;
         }
 
-        ItemStack item = plugin.getItemManager().createItem(itemId, amount);
+        // 1. Create the item with its NBT data
+        ItemStack item = plugin.getItemManager().createItemStack(itemId);
         if (item == null) {
-            sender.sendMessage(ChatUtils.format("<red>Item with ID '" + itemId + "' does not exist.</red>"));
+            sender.sendMessage(ChatUtils.format("<red>Item ID '" + itemId + "' not found!</red>"));
             return true;
         }
 
+        // 2. Generate and apply the visual lore
+        plugin.getItemLoreGenerator().updateLore(item, ((Player) sender).getPlayer());
+
+        // 3. Give the fully formed item to the player
         target.getInventory().addItem(item);
-        sender.sendMessage(ChatUtils.format("<green>Gave " + amount + "x " + itemId + " to " + target.getName() + ".</green>"));
-        if (sender != target) {
-            target.sendMessage(ChatUtils.format("<green>You have received " + amount + "x " + itemId + ".</green>"));
-        }
+
+        sender.sendMessage(ChatUtils.format("<green>Gave " + target.getName() + " a " + itemId + ".</green>"));
         return true;
     }
 

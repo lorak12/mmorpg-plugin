@@ -28,6 +28,7 @@ public class PlayerStats {
 
 
     // --- CONVENIENCE GETTERS ---
+    public double getDamage() { return getStat(Stat.DAMAGE); }
     public double getHealth() { return getStat(Stat.HEALTH); }
     public double getDefense() { return getStat(Stat.DEFENSE); }
     public double getStrength() { return getStat(Stat.STRENGTH); }

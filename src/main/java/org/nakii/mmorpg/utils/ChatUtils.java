@@ -1,8 +1,7 @@
 package org.nakii.mmorpg.utils;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.nakii.mmorpg.MMORPGCore;
 
 import java.util.Collections;
 import java.util.List;
@@ -10,8 +9,6 @@ import java.util.stream.Collectors;
 
 public class ChatUtils {
 
-    private static final MiniMessage miniMessage = MiniMessage.miniMessage();
-    private static final LegacyComponentSerializer legacySerializer = LegacyComponentSerializer.builder().character('&').hexColors().useUnusualXRepeatedCharacterHexFormat().build();
 
     /**
      * Formats a string with MiniMessage tags into a chat Component.
@@ -22,7 +19,8 @@ public class ChatUtils {
         if (text == null || text.isEmpty()) {
             return Component.empty();
         }
-        return miniMessage.deserialize(text);
+        return MMORPGCore.getInstance().getMiniMessage().deserialize(text);
+
     }
 
     public static String capitalizeWords(String input) {

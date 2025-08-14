@@ -1,0 +1,14 @@
+ENCHANTED_BONE:
+  material: BONE_MEAL
+  display-name: "Enchanted Bone"
+  rarity: UNCOMMON
+  flags: [ UNSTACKABLE ]
+  lore:
+    - "<gray>A dense, magical bone."
+  crafting-recipe:
+    shape:
+      - " B "
+      - "B B"
+      - " B "
+    ingredients:
+      B: "BONE"

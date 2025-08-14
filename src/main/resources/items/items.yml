@@ -1,0 +1,64 @@
+# -----------------------------------------------------------------
+#                  CUSTOM ITEM DEFINITION
+# -----------------------------------------------------------------
+# ITEM_ID:
+#   material: The Bukkit Material type for this item.
+#   display-name: The in-game name. <rarity> is a special placeholder.
+#   rarity: COMMON, UNCOMMON, RARE, EPIC, LEGENDARY, MYTHIC, SPECIAL
+#   unbreakable: false # Optional: defaults to true if not specified. Only set to false for items you want to have durability.
+#   lore:
+#     - "Optional static lore lines that appear before the stats."
+#
+#   flags: # Optional list of boolean properties
+#     - ENCHANTABLE
+#     - REFORGABLE
+#     - UNSTACKABLE
+#
+#   item-type: # Optional category for the item rarity footer
+#     - SWORD, AXE, BOW, WAND
+#     - HELMET, CHESTPLATE, LEGGINGS, BOOTS
+#     - PICKAXE, DRILL, HOE, FISHING_ROD
+#
+#   stats: # Optional map of base stats for the item
+#     HEALTH: 100
+#     STRENGTH: 50
+#     # ... any stat from your Stat enum
+#
+#   requirements: # Optional list of conditions to use/equip the item
+#     - "SKILL:COMBAT:20" # Requires Combat level 20
+#     - "COLLECTION:ENDER_PEARL:7" # Requires Ender Pearl Collection VII
+#
+#   armor-set: # Optional, for armor pieces
+#     id: "FINAL_DESTINATION"
+#     name: "Vivacious Darkness"
+#     pieces: 4
+#     bonus-description:
+#       - "<gray>Costs <light_blue>2 ✎ Intelligence</light_blue> per 5s..."
+#       - "<aqua>⁍</aqua> <light_red>+30❁ Strength</light_red>"
+#     full-set-stats: # Stats applied only when the full set is worn
+#       STRENGTH: 30
+#       FEROCITY: 200 # Note: Conditional logic (vs Endermen) is handled in Java
+#
+#   ability: # Optional, for items with a right-click ability
+#     key: "DAGGER_THROW" # Links to a Java class that holds the logic
+#     name: "Throw"
+#     mana-cost: 100
+#     cooldown-seconds: 5
+#     description:
+#       - "<gray>Throw your dagger at your enemies!</gray>"
+#
+#   passive-effect: # Optional static lore describing an inherent effect
+#     - "<gray>Your critical hits deal <blue>100%</blue> more damage</gray>"
+#     - "<gray>if you are behind the enemy.</gray>"
+#
+#   crafting-recipe: # Optional, defines how to craft this item
+#     shape:
+#       - "S S"
+#       - " I "
+#       - " I "
+#     ingredients:
+#       S: "DIAMOND" # Can be a vanilla material or another custom item ID
+#       I: "STICK"
+#
+#   sell-price: 1000 # Optional price for selling to NPCs
+# -----------------------------------------------------------------

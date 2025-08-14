@@ -1,0 +1,15 @@
+SPOOKY_CANDY:
+  material: PUMPKIN_PIE
+  display-name: "Spooky Candy"
+  rarity: SPECIAL
+  flags: [ UNSTACKABLE ]
+  lore:
+    - "<gray>A rare treat from the Spooky Festival.</gray>"
+    - "<yellow>Right-click to gain a random buff!</yellow>"
+  ability:
+    key: "RANDOM_BUFF"
+    name: "Trick or Treat"
+    mana-cost: 0
+    cooldown-seconds: 60
+    description:
+      - "<gray>What will you get?</gray>"

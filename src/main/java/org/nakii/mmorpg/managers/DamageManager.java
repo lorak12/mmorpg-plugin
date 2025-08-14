@@ -1,17 +1,24 @@
 package org.nakii.mmorpg.managers;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.player.PlayerStats;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 
 public class DamageManager {
 
     private final MMORPGCore plugin;
+
+    private final Gson gson = new Gson();
+    private final Type statMapType = new TypeToken<Map<String, Double>>(){}.getType();
 
     public DamageManager(MMORPGCore plugin) {
         this.plugin = plugin;
@@ -25,14 +32,16 @@ public class DamageManager {
     public double calculatePlayerDamage(Player attacker, LivingEntity victim, double baseDamage, boolean isCritical) {
         PlayerStats attackerStats = plugin.getStatsManager().getStats(attacker);
         ItemStack weapon = attacker.getInventory().getItemInMainHand();
-        double weaponDmg; // Placeholder for ItemManager
+        double weaponDmg = 0; // Default to 0 for unarmed
 
-        if (weapon != null && !weapon.getType().isAir()) {
-            // In the future, this comes from ItemManager.
-            weaponDmg = 50; // Placeholder for a real weapon
-        } else {
-            // This is an unarmed attack.
-            weaponDmg = 0;
+        // --- THE FIX: Read DAMAGE stat directly from weapon NBT ---
+        if (weapon != null && weapon.hasItemMeta()) {
+            var data = weapon.getItemMeta().getPersistentDataContainer();
+            if (data.has(ItemManager.BASE_STATS_KEY, PersistentDataType.STRING)) {
+                String statsJson = data.get(ItemManager.BASE_STATS_KEY, PersistentDataType.STRING);
+                Map<String, Double> itemStats = gson.fromJson(statsJson, statMapType);
+                weaponDmg = itemStats.getOrDefault("DAMAGE", 0.0);
+            }
         }
 
         // --- Step 1: Initial Damage ---

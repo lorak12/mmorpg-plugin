@@ -1,0 +1,23 @@
+MITHRIL_PICKAXE:
+  material: DIAMOND_PICKAXE
+  display-name: "Mithril Pickaxe"
+  rarity: EPIC
+  item-type: PICKAXE
+  flags: [ ENCHANTABLE, REFORGABLE ]
+  stats:
+    DAMAGE: 40
+    MINING_SPEED: 300
+    MINING_FORTUNE: 7
+    BREAKING_POWER: 5
+  sell-price: 10000
+
+BRITTLE_STONE_PICKAXE:
+  material: STONE_PICKAXE
+  display-name: "Brittle Stone Pickaxe"
+  rarity: COMMON
+  item-type: PICKAXE
+  unbreakable: false # This item WILL have vanilla durability.
+  stats:
+    DAMAGE: 5
+    MINING_SPEED: 10
+  sell-price: 1

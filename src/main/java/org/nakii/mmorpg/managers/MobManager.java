@@ -144,7 +144,7 @@ public class MobManager {
     private ItemStack getItem(String identifier) {
         if (identifier == null || identifier.isEmpty()) return null;
         if (identifier.startsWith("custom:")) {
-            return plugin.getItemManager().createItem(identifier.substring(7), 1);
+            return plugin.getItemManager().createItemStack(identifier.substring(7));
         } else {
             return new ItemStack(Material.valueOf(identifier.toUpperCase()));
         }

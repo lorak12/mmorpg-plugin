@@ -1,5 +1,8 @@
 package org.nakii.mmorpg;
 
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -27,8 +30,8 @@ public final class MMORPGCore extends JavaPlugin {
     private MobManager mobManager;
     private ZoneManager zoneManager;
     private AbilityManager abilityManager;
-    private LootManager lootManager;
-    private RecipeManager recipeManager;
+//    private LootManager lootManager;
+//    private RecipeManager recipeManager;
     private EnvironmentManager environmentManager;
     private HUDManager hudManager;
     private ZoneMobSpawnerManager zoneMobSpawner;
@@ -40,17 +43,30 @@ public final class MMORPGCore extends JavaPlugin {
     private DoTManager doTManager;
     private TimedBuffManager timedBuffManager;
     private PlayerStateManager playerStateManager;
+    private ItemLoreGenerator itemLoreGenerator;
 
     private boolean libsDisguisesEnabled = false;
+
+    private MiniMessage miniMessage;
 
     @Override
     public void onEnable() {
         instance = this;
         getLogger().info("Initializing MMORPGCore...");
 
+        // This builder configures a post-processor, which is a function that runs
+        // on every component after it has been parsed by MiniMessage.
+        // We use it to take the component's existing style and explicitly set
+        // the ITALIC decoration to FALSE, preserving all other formatting.
+        this.miniMessage = MiniMessage.builder()
+                .postProcessor(component -> component.style(
+                        component.style().decoration(TextDecoration.ITALIC, TextDecoration.State.FALSE))
+                )
+                .build();
+
         setupAPIHooks();
         saveDefaultConfig();
-        createItemsFolder();
+        setupDefaultItemFiles();
 
         try {
             // --- STEP 1: INITIALIZE ALL MANAGERS FIRST ---
@@ -67,10 +83,11 @@ public final class MMORPGCore extends JavaPlugin {
 
             // Item & Content Systems
             itemManager = new ItemManager(this);
+            itemLoreGenerator = new ItemLoreGenerator(this);
             mobManager = new MobManager(this);
-            recipeManager = new RecipeManager(this);
+//            recipeManager = new RecipeManager(this);
             abilityManager = new AbilityManager(this);
-            lootManager = new LootManager(this);
+//            lootManager = new LootManager(this);
 
             // Enchantment Systems
             enchantmentManager = new EnchantmentManager(this);
@@ -154,7 +171,7 @@ public final class MMORPGCore extends JavaPlugin {
         pm.registerEvents(new FishingListener(this), this);
         pm.registerEvents(new ForagingListener(this), this);
         pm.registerEvents(new GUIListener(this), this);
-        pm.registerEvents(new RecipeListener(this), this);
+//        pm.registerEvents(new RecipeListener(this), this);
         pm.registerEvents(new EnchantingTableListener(this), this);
         pm.registerEvents(new AnvilListener(this), this);
         // Cleaned up duplicate registration
@@ -162,6 +179,7 @@ public final class MMORPGCore extends JavaPlugin {
         pm.registerEvents(new ProjectileListener(this), this);
         pm.registerEvents(new PlayerConnectionListener(this), this);
         pm.registerEvents(new GenericDamageListener(this), this);
+        pm.registerEvents(new RequirementListener(this), this);
     }
 
     // --- All other methods and getters remain the same as your original file ---
@@ -177,11 +195,33 @@ public final class MMORPGCore extends JavaPlugin {
             getLogger().warning("LibsDisguises not found. Mob disguises disabled.");
         }
     }
-    private void createItemsFolder() {
+    private void setupDefaultItemFiles() {
         File itemsFolder = new File(getDataFolder(), "items");
-        if (!itemsFolder.exists() && itemsFolder.mkdirs()) {
-            saveResource("items/example_sword.yml", false);
+        if (!itemsFolder.exists()) {
+            getLogger().info("First launch detected: Creating default item files...");
+            // The folder doesn't exist, so we create it and save our defaults.
+            // We use saveResource with a path relative to the JAR's root.
+
+            // The second argument 'false' means it will NOT overwrite the file if it somehow already exists.
+            saveResource("items/armor/final_destination.yml", false);
+            saveResource("items/armor/starter_gear.yml", false);
+
+            saveResource("items/materials/mob_drops.yml", false);
+            saveResource("items/materials/refined.yml", false);
+
+            saveResource("items/special/event_items.yml", false);
+
+            saveResource("items/tools/pickaxes.yml", false);
+
+            saveResource("items/weapons/swords.yml", false);
+            saveResource("items/weapons/bows.yml", false);
+            saveResource("items/weapons/daggers.yml", false);
+
+            saveResource("items/items.yml",false);
+
+            getLogger().info("Default item files created successfully.");
         }
+
         saveResource("mobs.yml", false);
         saveResource("zones.yml", false);
     }
@@ -213,18 +253,23 @@ public final class MMORPGCore extends JavaPlugin {
     public static MMORPGCore getInstance() { return instance; }
     public boolean isLibsDisguisesEnabled() { return libsDisguisesEnabled; }
 
+    public MiniMessage getMiniMessage() {
+        return this.miniMessage;
+    }
+
     public ItemManager getItemManager() { return itemManager; }
+    public ItemLoreGenerator getItemLoreGenerator() { return itemLoreGenerator; }
     public StatsManager getStatsManager() { return statsManager; }
     public HealthManager getHealthManager() { return healthManager; }
     public DamageManager getDamageManager() { return damageManager; }
     public DatabaseManager getDatabaseManager() { return databaseManager; }
     public SkillManager getSkillManager() { return skillManager; }
     public GUIManager getGuiManager() { return guiManager; }
-    public RecipeManager getRecipeManager() { return recipeManager; }
+//    public RecipeManager getRecipeManager() { return recipeManager; }
     public MobManager getMobManager() { return mobManager; }
     public ZoneManager getZoneManager() { return zoneManager; }
     public AbilityManager getAbilityManager() { return abilityManager; }
-    public LootManager getLootManager() { return lootManager;  }
+//    public LootManager getLootManager() { return lootManager;  }
     public EnvironmentManager getEnvironmentManager() { return environmentManager; }
     public HUDManager getHUDManager() { return hudManager; }
     public EnchantmentManager getEnchantmentManager() { return enchantmentManager; }
