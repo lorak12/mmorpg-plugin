@@ -29,8 +29,7 @@ public final class MMORPGCore extends JavaPlugin {
     private GUIManager guiManager;
     private MobManager mobManager;
     private ZoneManager zoneManager;
-    private AbilityManager abilityManager;
-//    private LootManager lootManager;
+    private LootManager lootManager;
 //    private RecipeManager recipeManager;
     private EnvironmentManager environmentManager;
     private HUDManager hudManager;
@@ -44,6 +43,7 @@ public final class MMORPGCore extends JavaPlugin {
     private TimedBuffManager timedBuffManager;
     private PlayerStateManager playerStateManager;
     private ItemLoreGenerator itemLoreGenerator;
+    private SlayerManager slayerManager;
 
     private boolean libsDisguisesEnabled = false;
 
@@ -86,8 +86,8 @@ public final class MMORPGCore extends JavaPlugin {
             itemLoreGenerator = new ItemLoreGenerator(this);
             mobManager = new MobManager(this);
 //            recipeManager = new RecipeManager(this);
-            abilityManager = new AbilityManager(this);
-//            lootManager = new LootManager(this);
+            lootManager = new LootManager(this);
+            slayerManager = new SlayerManager(this);
 
             // Enchantment Systems
             enchantmentManager = new EnchantmentManager(this);
@@ -180,6 +180,7 @@ public final class MMORPGCore extends JavaPlugin {
         pm.registerEvents(new PlayerConnectionListener(this), this);
         pm.registerEvents(new GenericDamageListener(this), this);
         pm.registerEvents(new RequirementListener(this), this);
+        pm.registerEvents(new SlayerProgressListener(this), this);
     }
 
     // --- All other methods and getters remain the same as your original file ---
@@ -222,7 +223,21 @@ public final class MMORPGCore extends JavaPlugin {
             getLogger().info("Default item files created successfully.");
         }
 
-        saveResource("mobs.yml", false);
+        // Check for the 'mobs' folder
+        File mobsFolder = new File(getDataFolder(), "mobs");
+        if (!mobsFolder.exists()) {
+            getLogger().info("Creating default mob configuration files...");
+
+            saveResource("mobs/undead/crypt_ghoul.yml", false);
+            // Add any other default mob files you want to generate
+
+            getLogger().info("Default mob files created successfully.");
+        }
+
+        // Save single config files
+        saveResource("skills.yml", false);
+        saveResource("slayers.yml", false);
+//        saveResource("defaults.yml", false);
         saveResource("zones.yml", false);
     }
 
@@ -235,6 +250,7 @@ public final class MMORPGCore extends JavaPlugin {
         getCommand("spawnmob").setExecutor(new SpawnMobCommand(this));
         getCommand("customenchant").setExecutor(new EnchantCommand(this));
         getCommand("openhex").setExecutor(new HexCommand(this));
+        getCommand("slayer").setExecutor(new SlayerCommand(this));
     }
     private void startAutoSaveTask() {
         long interval = 20L * 60 * 5; // Every 5 minutes
@@ -268,8 +284,7 @@ public final class MMORPGCore extends JavaPlugin {
 //    public RecipeManager getRecipeManager() { return recipeManager; }
     public MobManager getMobManager() { return mobManager; }
     public ZoneManager getZoneManager() { return zoneManager; }
-    public AbilityManager getAbilityManager() { return abilityManager; }
-//    public LootManager getLootManager() { return lootManager;  }
+    public LootManager getLootManager() { return lootManager;  }
     public EnvironmentManager getEnvironmentManager() { return environmentManager; }
     public HUDManager getHUDManager() { return hudManager; }
     public EnchantmentManager getEnchantmentManager() { return enchantmentManager; }
@@ -279,4 +294,5 @@ public final class MMORPGCore extends JavaPlugin {
     public DoTManager getDoTManager() { return doTManager; }
     public TimedBuffManager getTimedBuffManager() { return timedBuffManager; }
     public PlayerStateManager getPlayerStateManager() { return playerStateManager; }
+    public SlayerManager getSlayerManager() { return slayerManager; }
 }

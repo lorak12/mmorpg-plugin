@@ -7,8 +7,10 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.events.PlayerGainCombatXpEvent;
 import org.nakii.mmorpg.skills.PlayerSkillData;
 import org.nakii.mmorpg.skills.Skill;
 import org.nakii.mmorpg.utils.ChatUtils;
@@ -139,10 +141,21 @@ public class SkillManager {
         }
     }
 
-    public void handleMobKill(Player player, EntityType entityType) {
+    public void handleMobKill(Player player, LivingEntity victim) {
+        // We now get the EntityType from the victim, not as a parameter.
+        EntityType entityType = victim.getType();
         Map<String, Double> combatSources = skillXpSources.get(Skill.COMBAT);
+
         if (combatSources != null && combatSources.containsKey(entityType.name())) {
-            addXp(player, Skill.COMBAT, combatSources.get(entityType.name()));
+            double xpAmount = combatSources.get(entityType.name());
+
+            // --- THIS IS THE NEW LOGIC ---
+            // Create and call our new custom event.
+            PlayerGainCombatXpEvent event = new PlayerGainCombatXpEvent(player, victim, xpAmount);
+            plugin.getServer().getPluginManager().callEvent(event);
+
+            // Give the player the XP. In the future, other plugins could cancel the event.
+            addXp(player, Skill.COMBAT, event.getXpAmount());
         }
     }
 

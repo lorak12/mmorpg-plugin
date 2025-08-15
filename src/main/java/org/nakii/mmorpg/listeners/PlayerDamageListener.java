@@ -13,8 +13,11 @@ import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.enchantment.effects.EnchantmentEffect;
 import org.nakii.mmorpg.managers.*;
+import org.nakii.mmorpg.mob.CustomMobTemplate;
 import org.nakii.mmorpg.player.PlayerStats;
+import org.nakii.mmorpg.player.Stat;
 
+import java.util.List;
 import java.util.Map;
 
 public class PlayerDamageListener implements Listener {
@@ -35,25 +38,28 @@ public class PlayerDamageListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
+
         if (!(event.getEntity() instanceof LivingEntity victim)) return;
 
         double finalDamage = event.getDamage();
         boolean isCustomCrit = false;
 
-        // Neutralize vanilla critical damage so we can apply our own
+        // Neutralize vanilla critical damage
         if (event.isCritical()) {
             finalDamage /= 1.5;
         }
 
-        // --- Phase 1: Attacker Logic ---
+        // --- Phase 1: Determine Attacker's Base Damage ---
+
+        // 1a: If the attacker is a PLAYER
         if (event.getDamager() instanceof Player attacker) {
             PlayerStats attackerStats = statsManager.getStats(attacker);
             isCustomCrit = (Math.random() * 100 < attackerStats.getCritChance());
 
-            // 1a: Calculate base outgoing damage using the DamageManager
+            // Calculate full outgoing damage, including stats and offensive enchants
             finalDamage = damageManager.calculatePlayerDamage(attacker, victim, finalDamage, isCustomCrit);
 
-            // 1b: Apply damage-modifying enchantments from the weapon
+            // Apply damage-modifying enchantments
             ItemStack weapon = attacker.getInventory().getItemInMainHand();
             if (weapon != null && !weapon.getType().isAir()) {
                 Map<String, Integer> enchantments = enchantmentManager.getEnchantments(weapon);
@@ -67,14 +73,30 @@ public class PlayerDamageListener implements Listener {
                 }
             }
         }
+        // 1b: --- THIS IS THE NEW LOGIC BLOCK ---
+        // If the attacker is a MOB
+        else if (event.getDamager() instanceof LivingEntity mobAttacker) {
+            // Check if it's one of our custom mobs
+            if (plugin.getMobManager().isCustomMob(mobAttacker)) {
+                CustomMobTemplate template = plugin.getMobManager().getTemplate(plugin.getMobManager().getMobId(mobAttacker));
+                if (template != null) {
+                    // Set the event's base damage to our custom mob's damage stat.
+                    // In the future, you could add a formula here for mob Strength, etc.
+                    finalDamage = template.getStat(Stat.DAMAGE);
+                }
+            }
+        }
 
-        // --- Phase 2: Victim Logic ---
+        // --- Phase 2: Victim Logic (Apply Defenses) ---
         finalDamage = damageManager.applyDefense(victim, finalDamage);
 
-        // --- Finalization ---
-        event.getEntity().setMetadata("last_hit_crit", new FixedMetadataValue(plugin, isCustomCrit));
+        // We attach a temporary piece of metadata to the entity that was hit.
+        // This metadata will be readable by our lower-priority listener.
+        // The key is a unique string, and the value is the boolean result.
+        event.getEntity().setMetadata("mmorpg_last_hit_crit", new FixedMetadataValue(plugin, isCustomCrit));
 
-        event.setDamage(Math.floor(finalDamage));;
+        // --- Finalization ---
+        event.setDamage(Math.floor(finalDamage));
 
         // --- Phase 3: Post-Hit Triggers ---
         // (This happens after the final damage value has been set)
@@ -116,8 +138,26 @@ public class PlayerDamageListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDeath(EntityDeathEvent event) {
         Player killer = event.getEntity().getKiller();
-        if (killer == null) return;
+        if (killer == null) return; // Must be killed by a player
 
+        LivingEntity victim = event.getEntity();
+        String mobId = plugin.getMobManager().getMobId(victim);
+
+        // --- 1. Handle Custom Loot ---
+        if (mobId != null) {
+            event.getDrops().clear();
+            event.setDroppedExp(0);
+            List<ItemStack> customLoot = plugin.getLootManager().rollLootTable(killer, mobId);
+            event.getDrops().addAll(customLoot);
+        }
+
+        // --- 2. THE FIX: Trigger Combat XP Gain ---
+        // This call is the missing link. It will cause the SkillManager to
+        // calculate combat XP and fire the PlayerGainCombatXpEvent,
+        // which our SlayerProgressListener is listening for.
+        plugin.getSkillManager().handleMobKill(killer, victim);
+
+        // --- 3. Handle onKill Enchantment Effects ---
         ItemStack weapon = killer.getInventory().getItemInMainHand();
         if (weapon == null || weapon.getType().isAir()) return;
 

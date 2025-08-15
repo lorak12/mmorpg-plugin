@@ -5,7 +5,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.metadata.MetadataValue;
 import org.nakii.mmorpg.MMORPGCore;
+
+import java.util.List;
 
 public class GenericDamageListener implements Listener {
 
@@ -22,24 +25,32 @@ public class GenericDamageListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onGenericDamage(EntityDamageEvent event) {
         if (event.getEntity() instanceof LivingEntity victim) {
-            // --- NEW: Read the crit status from metadata ---
+
+            // --- THIS IS THE FIX FOR READING CRITICAL HIT STATUS ---
             boolean wasCrit = false;
-            if (victim.hasMetadata("last_hit_crit")) {
-                // The metadata value is a list, get the first one.
-                wasCrit = victim.getMetadata("last_hit_crit").get(0).asBoolean();
-                // Important: Remove the metadata so it's fresh for the next hit.
-                victim.removeMetadata("last_hit_crit", plugin);
+            // Check if the metadata tag we set in the other listener exists.
+            if (victim.hasMetadata("mmorpg_last_hit_crit")) {
+                // Metadata is stored in a list, so we get the first value.
+                List<MetadataValue> values = victim.getMetadata("mmorpg_last_hit_crit");
+                if (!values.isEmpty()) {
+                    // We get the value and convert it to a boolean.
+                    wasCrit = values.get(0).asBoolean();
+                }
+                // It's crucial to remove the metadata tag immediately after reading it
+                // so that the next non-critical hit (like fall damage) doesn't use the old value.
+                victim.removeMetadata("mmorpg_last_hit_crit", plugin);
             }
 
-            // Only show an indicator if there was actual damage
+            // Only show an indicator if there was actual damage.
             if (event.getFinalDamage() > 0) {
+                // Now, we pass the 'wasCrit' boolean we just determined.
                 plugin.getHUDManager().showDamageIndicator(victim.getLocation(), event.getFinalDamage(), wasCrit);
             }
 
-            // Update the health display for our custom mobs
-            if (plugin.getMobManager().getMobLevel(victim) > 0) {
+            // The logic for updating the custom mob health display remains correct.
+            if (plugin.getMobManager().isCustomMob(victim)) {
                 plugin.getServer().getScheduler().runTask(plugin, () -> {
-                    if (!victim.isDead()) { // Check if the mob didn't die from this hit
+                    if (!victim.isDead()) {
                         plugin.getMobManager().updateHealthDisplay(victim);
                     }
                 });

@@ -1,0 +1,20 @@
+CRYPT_GHOUL:
+  type: ZOMBIE
+  display-name: "<red>Crypt Ghoul</red>"
+  level: 5
+  category: "ZOMBIE" # For Slayer Quests
+  stats:
+    HEALTH: 150
+    DAMAGE: 25 # This will be used by the DamageManager later
+  equipment:
+    hand: "RUSTY_SWORD" # Assumes a custom item with this ID exists
+    helmet: "LEATHER_HELMET_BROWN" # Assumes a colored leather item
+  loot-table:
+    - item: "ROTTEN_FLESH"
+      quantity: "1-3"
+      chance: 1.0
+      magic-find: false
+    - item: "GHOUL_HEART"
+      quantity: "1"
+      chance: 0.02
+      magic-find: true

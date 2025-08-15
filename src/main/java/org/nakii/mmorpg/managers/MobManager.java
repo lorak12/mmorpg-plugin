@@ -1,201 +1,157 @@
 package org.nakii.mmorpg.managers;
 
-import me.libraryaddict.disguise.DisguiseAPI;
-import me.libraryaddict.disguise.disguisetypes.DisguiseType;
-import me.libraryaddict.disguise.disguisetypes.MobDisguise;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
-import org.nakii.mmorpg.entity.CustomMob;
+import org.nakii.mmorpg.mob.CustomMobTemplate;
+import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.utils.ChatUtils;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 public class MobManager {
 
     private final MMORPGCore plugin;
-    private final Map<String, CustomMob> mobRegistry = new HashMap<>();
-    private final Map<UUID, Integer> mobLevels = new HashMap<>();
+    private final Map<String, CustomMobTemplate> mobRegistry = new HashMap<>();
+
+    public static final NamespacedKey MOB_ID_KEY = new NamespacedKey(MMORPGCore.getInstance(), "mob_id");
+    public static final NamespacedKey MOB_CATEGORY_KEY = new NamespacedKey(MMORPGCore.getInstance(), "mob_category");
 
     public MobManager(MMORPGCore plugin) {
         this.plugin = plugin;
         loadMobs();
     }
 
-    public void registerCustomMob(LivingEntity entity, int level) {
-        mobLevels.put(entity.getUniqueId(), level);
-        updateHealthDisplay(entity);
-    }
-
-    public int getMobLevel(LivingEntity entity) {
-        return mobLevels.getOrDefault(entity.getUniqueId(), 1);
-    }
-
     public void loadMobs() {
         mobRegistry.clear();
-        File mobsFile = new File(plugin.getDataFolder(), "mobs.yml");
-        if (!mobsFile.exists()) {
-            plugin.saveResource("mobs.yml", false);
-        }
-        FileConfiguration mobConfig = YamlConfiguration.loadConfiguration(mobsFile);
-        for (String key : mobConfig.getKeys(false)) {
-            ConfigurationSection section = mobConfig.getConfigurationSection(key);
-            if (section != null) {
-                mobRegistry.put(key.toLowerCase(), new CustomMob(key, section));
+        File mobsFolder = new File(plugin.getDataFolder(), "mobs");
+        if (!mobsFolder.exists()) mobsFolder.mkdirs();
+        loadMobsFromDirectory(mobsFolder);
+        plugin.getLogger().info("Loaded " + mobRegistry.size() + " custom mob templates.");
+    }
+
+    private void loadMobsFromDirectory(File directory) {
+        for (File file : directory.listFiles()) {
+            if (file.isDirectory()) {
+                loadMobsFromDirectory(file); // Recursively load
+            } else if (file.getName().endsWith(".yml")) {
+                var config = YamlConfiguration.loadConfiguration(file);
+                for (String key : config.getKeys(false)) {
+                    ConfigurationSection mobSection = config.getConfigurationSection(key);
+                    if (mobSection != null) {
+                        mobRegistry.put(key.toUpperCase(), new CustomMobTemplate(key.toUpperCase(), mobSection));
+                    }
+                }
             }
         }
-        plugin.getLogger().info("Loaded " + mobRegistry.size() + " custom mob definitions.");
+    }
+
+    public CustomMobTemplate getTemplate(String mobId) {
+        // Add a guard clause at the beginning. If the provided mobId is null,
+        // we can't possibly find a template for it, so we return null immediately.
+        if (mobId == null) {
+            return null;
+        }
+        return mobRegistry.get(mobId.toUpperCase());
     }
 
     public LivingEntity spawnMob(String mobId, Location location) {
-        CustomMob customMob = getCustomMob(mobId);
-        if (customMob == null) {
+        CustomMobTemplate template = getTemplate(mobId);
+        if (template == null) {
             plugin.getLogger().warning("Attempted to spawn unknown mob with ID: " + mobId);
             return null;
         }
 
-        EntityType baseType = EntityType.valueOf(customMob.getBaseType().toUpperCase());
-        LivingEntity entity = (LivingEntity) location.getWorld().spawnEntity(location, baseType);
+        LivingEntity entity = (LivingEntity) location.getWorld().spawnEntity(location, template.getEntityType());
 
-        // Apply Disguise
-        if (plugin.isLibsDisguisesEnabled()) {
-            applyDisguise(entity, customMob);
+        // Store custom data in NBT
+        var data = entity.getPersistentDataContainer();
+        data.set(MOB_ID_KEY, PersistentDataType.STRING, template.getId());
+        data.set(MOB_CATEGORY_KEY, PersistentDataType.STRING, template.getMobCategory());
+
+        // Apply stats
+        double maxHealth = template.getStat(Stat.HEALTH);
+        if (maxHealth > 0) {
+            entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(maxHealth);
+            entity.setHealth(maxHealth);
         }
 
-        // Set persistent data
-        entity.getPersistentDataContainer().set(new NamespacedKey(plugin, "mob_id"), PersistentDataType.STRING, customMob.getId());
-
-        // --- THIS IS THE FIX ---
-        // Use the new method to set the mob's custom health from its config.
-        double health = customMob.getStatsConfig().getDouble("health", 20.0);
-        plugin.getHealthManager().setEntityHealth(entity, health);
-        // --- END OF FIX ---
-
         // Apply equipment
-        applyEquipment(entity, customMob);
+        template.getEquipment().ifPresent(equipmentMap -> {
+            EntityEquipment equipment = entity.getEquipment();
+            if (equipmentMap.containsKey("hand"))
+                equipment.setItemInMainHand(plugin.getItemManager().createItemStack(equipmentMap.get("hand")));
+            if (equipmentMap.containsKey("offhand"))
+                equipment.setItemInOffHand(plugin.getItemManager().createItemStack(equipmentMap.get("offhand")));
+            if (equipmentMap.containsKey("helmet"))
+                equipment.setHelmet(plugin.getItemManager().createItemStack(equipmentMap.get("helmet")));
+            if (equipmentMap.containsKey("chestplate"))
+                equipment.setHelmet(plugin.getItemManager().createItemStack(equipmentMap.get("chestplate")));
+            if (equipmentMap.containsKey("leggings"))
+                equipment.setHelmet(plugin.getItemManager().createItemStack(equipmentMap.get("leggings")));
+            if (equipmentMap.containsKey("boots"))
+                equipment.setHelmet(plugin.getItemManager().createItemStack(equipmentMap.get("boots")));
 
-        // Set name and other properties
-        entity.setCanPickupItems(false);
-        entity.setRemoveWhenFarAway(false);
+        });
 
-        // Use the centralized name updater
-        this.updateHealthDisplay(entity);
-
+        // Set the display name
+        updateHealthDisplay(entity);
         return entity;
     }
 
-    private void applyDisguise(LivingEntity entity, CustomMob customMob) {
-        String disguiseName = customMob.getDisguiseType().toUpperCase();
-        DisguiseType disguiseType;
-        try {
-            disguiseType = DisguiseType.valueOf(disguiseName);
-        } catch (IllegalArgumentException e) {
-            plugin.getLogger().warning("Invalid disguise type '" + disguiseName + "' for mob '" + customMob.getId() + "'. Skipping disguise.");
-            return;
+    public String getMobId(LivingEntity entity) {
+        if (entity == null || !entity.getPersistentDataContainer().has(MOB_ID_KEY, PersistentDataType.STRING)) {
+            return null;
         }
-
-        // FINAL FIX: Check if the disguise is a player and handle it gracefully.
-        if (disguiseType.isPlayer()) {
-            plugin.getLogger().warning("Disguise type 'PLAYER' is not supported. Mob '" + customMob.getId() + "' will not be disguised.");
-            return; // Exit the method, applying no disguise.
-        }
-
-        // This part now only runs for non-player disguises.
-        if (disguiseType.isMob()) {
-            MobDisguise disguise = new MobDisguise(disguiseType);
-            DisguiseAPI.disguiseToAll(entity, disguise);
-        } else {
-            plugin.getLogger().warning("Disguise type '" + disguiseName + "' is not a mob disguise. Skipping.");
-        }
+        return entity.getPersistentDataContainer().get(MOB_ID_KEY, PersistentDataType.STRING);
     }
 
-    private void applyEquipment(LivingEntity entity, CustomMob customMob) {
-        ConfigurationSection equipment = customMob.getEquipmentConfig();
-        if (equipment == null || entity.getEquipment() == null) return;
-
-        entity.getEquipment().setItemInMainHand(getItem(equipment.getString("main_hand")));
-        entity.getEquipment().setItemInOffHand(getItem(equipment.getString("off_hand")));
-        entity.getEquipment().setHelmet(getItem(equipment.getString("helmet")));
-        entity.getEquipment().setChestplate(getItem(equipment.getString("chestplate")));
-        entity.getEquipment().setLeggings(getItem(equipment.getString("leggings")));
-        entity.getEquipment().setBoots(getItem(equipment.getString("boots")));
-
-        // Prevent items from dropping on death (we'll use our own loot table)
-        entity.getEquipment().setHelmetDropChance(0f);
-        entity.getEquipment().setChestplateDropChance(0f);
-        entity.getEquipment().setLeggingsDropChance(0f);
-        entity.getEquipment().setBootsDropChance(0f);
-        entity.getEquipment().setItemInMainHandDropChance(0f);
-        entity.getEquipment().setItemInOffHandDropChance(0f);
-    }
-
-    private ItemStack getItem(String identifier) {
-        if (identifier == null || identifier.isEmpty()) return null;
-        if (identifier.startsWith("custom:")) {
-            return plugin.getItemManager().createItemStack(identifier.substring(7));
-        } else {
-            return new ItemStack(Material.valueOf(identifier.toUpperCase()));
+    public String getMobCategory(LivingEntity entity) {
+        if (entity == null || !entity.getPersistentDataContainer().has(MOB_CATEGORY_KEY, PersistentDataType.STRING)) {
+            return null;
         }
+        return entity.getPersistentDataContainer().get(MOB_CATEGORY_KEY, PersistentDataType.STRING);
     }
-    /**
-     * BUG FIX: Added public getter for the mob registry.
-     * This is required for the tab-completer to suggest mob names.
-     * @return A map of all loaded custom mobs.
-     */
-    public Map<String, CustomMob> getMobRegistry() {
+
+    public Map<String, CustomMobTemplate> getMobRegistry(){
         return mobRegistry;
     }
 
-    public CustomMob getCustomMob(String mobId) {
-        return mobRegistry.get(mobId.toLowerCase());
+    /**
+     * Checks if a given entity is a custom mob managed by this system.
+     * @param entity The entity to check.
+     * @return True if it's a custom mob, false otherwise.
+     */
+    public boolean isCustomMob(LivingEntity entity) {
+        return getMobId(entity) != null;
     }
-
-    public String getMobId(Entity entity) {
-        return entity.getPersistentDataContainer().get(new NamespacedKey(plugin, "mob_id"), PersistentDataType.STRING);
-    }
-
-    public double getMobStrength(LivingEntity mob) {
-        CustomMob customMob = getCustomMob(getMobId(mob));
-        if (customMob != null && customMob.getStatsConfig() != null) {
-            return customMob.getStatsConfig().getDouble("strength", 5.0);
-        }
-        return 5.0; // Default damage for non-custom mobs
-    }
-    public boolean isCustomMob(Entity entity) {
-        return entity.getPersistentDataContainer().has(new NamespacedKey(plugin, "mob_id"), PersistentDataType.STRING);
-    }
-
-    ///  The new refactior part begins here ----------------------------------------------------------------------------------
 
     /**
-     * Updates the custom name of a mob to reflect its current health.
-     * @param entity The mob whose display should be updated.
+     * Gets the level of a custom mob.
+     * @param entity The custom mob.
+     * @return The mob's level, or 0 if it's not a valid custom mob.
      */
+    public int getMobLevel(LivingEntity entity) {
+        if (!isCustomMob(entity)) return 0;
+        CustomMobTemplate template = getTemplate(getMobId(entity));
+        return (template != null) ? template.getLevel() : 0;
+    }
+
+
     public void updateHealthDisplay(LivingEntity entity) {
-        if (entity == null || entity.isDead()) {
-            mobLevels.remove(entity.getUniqueId());
-            return;
-        }
+        CustomMobTemplate template = getTemplate(getMobId(entity));
+        if (template == null) return;
 
-        int level = getMobLevel(entity);
-        String mobName = entity.getType().name().substring(0, 1) + entity.getType().name().substring(1).toLowerCase();
-        double health = entity.getHealth();
-        double maxHealth = entity.getMaxHealth();
-
-        String formattedName = String.format("<gray>[</gray><white>Lv%d</white><gray>]</gray> <red>%s</red> <green>%.0f</green><white>/</white><green>%.0f</green><red>❤</red>",
-                level, mobName, health, maxHealth);
+        String formattedName = String.format("<gray>[</gray><white>Lv%d</white><gray>]</gray> %s <green>%.0f</green><white>/</white><green>%.0f</green><red>❤</red>",
+                template.getLevel(), template.getDisplayName(), entity.getHealth(), entity.getMaxHealth());
 
         entity.customName(ChatUtils.format(formattedName));
         entity.setCustomNameVisible(true);

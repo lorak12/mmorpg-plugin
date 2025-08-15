@@ -38,6 +38,9 @@ commands:
     description: Opens The Hex GUI for enchantment removal.
     usage: /<command>
     permission: mmorpg.command.openhex
+  slayer:
+    description: Opens the Slayer quest menu.
+    permission: mmorpg.command.slayer
 
 permissions:
   mmorpg.admin:
@@ -64,4 +67,7 @@ permissions:
     default: true
   mmorpg.command.openhex:
     description: Allow the user to use the /openhex command.
+    default: true
+  mmorpg.command.slayer:
+    description: Allow the user to use the /slayer command.
     default: true

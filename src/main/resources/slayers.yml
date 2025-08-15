@@ -1,0 +1,32 @@
+# ===================================================
+#                SLAYER CONFIGURATION
+# ===================================================
+
+ZOMBIE_SLAYER:
+  display-name: "<red>Zombie Slayer</red>"
+  target-category: "ZOMBIE" # Matches the 'category' in your mob YAML files
+  slayer-npc: "Maddox"
+  tiers:
+    1:
+      xp-to-spawn: 100
+      start-cost: 500
+      boss-id: "REVENANT_HORROR_1" # The Custom Mob ID of the boss
+    2:
+      xp-to-spawn: 500
+      start-cost: 2000
+      boss-id: "REVENANT_HORROR_2"
+    3:
+      xp-to-spawn: 2500
+      start-cost: 10000
+      boss-id: "REVENANT_HORROR_3"
+
+SPIDER_SLAYER:
+  display-name: "<dark_gray>Spider Slayer</dark_gray>"
+  target-category: "SPIDER"
+  slayer-npc: "Maddox"
+  tiers:
+    1:
+      xp-to-spawn: 120
+      start-cost: 600
+      boss-id: "TARANTULA_BROODFATHER_1"
+    # ... other tiers
