@@ -4,6 +4,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
@@ -12,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.guis.AbstractGui;
 import org.nakii.mmorpg.guis.AnvilGui;
+import org.nakii.mmorpg.guis.CraftingGui;
 import org.nakii.mmorpg.guis.EnchantingGui;
 
 public class GUIListener implements Listener {
@@ -22,62 +24,91 @@ public class GUIListener implements Listener {
         this.plugin = plugin;
     }
 
+    /**
+     * The main click handler for all custom GUIs.
+     * It contains a specialized, robust handler for shift-clicks to prevent item loss.
+     */
     @EventHandler
     public void onGuiClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player)) return;
+        if (!(event.getWhoClicked() instanceof Player player)) return;
 
-        // This is the inventory that was actually clicked
-        Inventory clickedInventory = event.getClickedInventory();
+        Inventory topInventory = player.getOpenInventory().getTopInventory();
+        if (!(topInventory.getHolder() instanceof AbstractGui gui)) return;
 
-        // This is the top inventory of the window
-        Inventory topInventory = event.getInventory();
-        InventoryHolder holder = topInventory.getHolder();
+        // --- Robust Shift-Click Handling ---
+        // This block manually controls the outcome of shift-clicking an item from the
+        // player's inventory into one of our GUIs, preventing all vanilla bugs.
+        if (event.getClick().isShiftClick()) {
+            Inventory clickedInventory = event.getClickedInventory();
+            if (clickedInventory != null && clickedInventory.equals(player.getInventory())) {
 
-        // We only care about this event if the holder is our GUI.
-        if (holder instanceof AbstractGui) {
-            AbstractGui gui = (AbstractGui) holder;
+                // 1. Cancel the default server action to take full control.
+                event.setCancelled(true);
 
-            // If the player clicked in THEIR OWN inventory, we allow it,
-            // but schedule an update in case they shift-clicked an item.
-            if (clickedInventory != topInventory) {
-                // This is a click in the player's inventory.
-                if (event.isShiftClick()) {
-                    // Schedule a delayed update to allow the item to move.
-                    plugin.getServer().getScheduler().runTask(plugin, gui::populateItems);
-                }
-                // Do not cancel the event, let the player interact with their items.
+                ItemStack clickedItem = event.getCurrentItem();
+                if (clickedItem == null || clickedItem.getType().isAir()) return;
+
+                // 2. Delegate the item transfer logic to the specific GUI instance.
+                ItemStack remaining = gui.handleShiftClick(clickedItem);
+
+                // 3. Update the player's inventory with the remainder.
+                // If the item was fully moved, 'remaining' will be null.
+                event.setCurrentItem(remaining);
+
+                // 4. Update the GUI's visual state.
+                plugin.getServer().getScheduler().runTask(plugin, gui::populateItems);
                 return;
             }
-
-            // If we reach here, the click was in the TOP inventory.
-            // Now, we pass the event to the GUI's specific handler.
-            gui.handleClick(event);
         }
+
+        // If it's not a shift-click from the player's inventory, let the GUI's
+        // own handleClick method manage the event as usual.
+        gui.handleClick(event);
     }
 
+    /**
+     * Handles returning items to the player when they close a GUI unexpectedly.
+     */
     @EventHandler
     public void onGuiClose(InventoryCloseEvent event) {
         InventoryHolder holder = event.getInventory().getHolder();
         if (holder instanceof AbstractGui) {
             Player player = (Player) event.getPlayer();
 
-            // A 1-tick delay is crucial. It lets us check what the player is doing *after* the close event.
             plugin.getServer().getScheduler().runTask(plugin, () -> {
-                // ...
+                // This check is crucial: if the player is now viewing ANOTHER of our custom GUIs,
+                // it means it was a state change, not a real close. In that case, do nothing.
+                if (player.getOpenInventory().getTopInventory().getHolder() instanceof AbstractGui) {
+                    return;
+                }
+
+                // If the check fails, the player has truly closed the GUI (e.g., with ESC).
+                // Now we can safely return their items.
                 if (holder instanceof EnchantingGui) {
                     returnItem(player, event.getInventory().getItem(19));
                 } else if (holder instanceof AnvilGui) {
-                    returnItem(player, event.getInventory().getItem(29)); // INPUT_LEFT_SLOT
-                    returnItem(player, event.getInventory().getItem(33)); // INPUT_RIGHT_SLOT
+                    returnItem(player, event.getInventory().getItem(29));
+                    returnItem(player, event.getInventory().getItem(33));
+                } else if (holder instanceof CraftingGui) {
+                    int[] inputSlots = {10, 11, 12, 19, 20, 21, 28, 29, 30};
+                    for (int slot : inputSlots) {
+                        returnItem(player, event.getInventory().getItem(slot));
+                    }
                 }
             });
 
             AbstractGui.OPEN_GUIS.remove(player.getUniqueId());
         }
     }
+
+    /**
+     * A helper method to safely give an item to a player, dropping it on the ground
+     * if their inventory is full.
+     * @param player The player to give the item to.
+     * @param item The item to give.
+     */
     private void returnItem(Player player, ItemStack item) {
         if (item != null && item.getType() != Material.AIR) {
-            // Give the item to the player, or drop it if their inventory is full.
             if (!player.getInventory().addItem(item).isEmpty()) {
                 player.getWorld().dropItemNaturally(player.getLocation(), item);
             }

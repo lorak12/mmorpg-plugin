@@ -58,6 +58,16 @@ public abstract class AbstractGui implements InventoryHolder {
         }
     }
 
+    /**
+     * Handles the logic for a shift-click from the player's inventory into this GUI.
+     * @param clickedItem The item that was clicked.
+     * @return The remainder of the item stack if it couldn't be fully moved.
+     */
+    public ItemStack handleShiftClick(ItemStack clickedItem) {
+        // Default behavior: do nothing, return the itemstack unchanged.
+        return clickedItem;
+    }
+
     protected void previousPage() {
         if (page > 0) {
             page--;

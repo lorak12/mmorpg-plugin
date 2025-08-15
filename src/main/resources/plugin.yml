@@ -41,6 +41,9 @@ commands:
   slayer:
     description: Opens the Slayer quest menu.
     permission: mmorpg.command.slayer
+  craft:
+    description: Opens the custom crafting menu.
+    aliases: [ crafting, workbench, craftingtable ]
 
 permissions:
   mmorpg.admin:

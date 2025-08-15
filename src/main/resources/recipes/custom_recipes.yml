@@ -1,0 +1,22 @@
+ENCHANTED_BONE_RECIPE:
+  result: "ENCHANTED_BONE" # Item ID of the output
+  amount: 1
+  type: SHAPELESS # Can be SHAPED or SHAPELESS
+  carpentry-xp: 50
+  requirements:
+    - "SKILL:ENCHANTING:5"
+  ingredients:
+    # For shapeless, this is a list of required items
+    - "BONE:160" # Requires 160 of the custom item "BONE"
+
+ENCHANTED_DIAMOND_RECIPE:
+  result: "ENCHANTED_DIAMOND"
+  amount: 1
+  type: SHAPED
+  carpentry-xp: 100
+  shape:
+    - " D "
+    - "DDD"
+    - " D "
+  ingredients:
+    D: "DIAMOND:32" # Requires 32 Diamonds in each 'D' slot

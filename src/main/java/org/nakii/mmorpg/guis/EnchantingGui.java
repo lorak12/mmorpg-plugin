@@ -249,6 +249,15 @@ public class EnchantingGui extends AbstractGui {
         }
     }
 
+    @Override
+    public ItemStack handleShiftClick(ItemStack clickedItem) {
+        if (inventory.getItem(ITEM_SLOT) == null) {
+            inventory.setItem(ITEM_SLOT, clickedItem.clone());
+            return null; // Item was moved
+        }
+        return clickedItem; // Slot was full, item was not moved
+    }
+
 
     private void handleEnchantSelectionClick(int slot) {
         if (slot == 49) { player.closeInventory(); return; }

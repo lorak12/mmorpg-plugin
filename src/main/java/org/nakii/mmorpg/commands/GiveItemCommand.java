@@ -72,6 +72,7 @@ public class GiveItemCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(ChatUtils.format("<red>Item ID '" + itemId + "' not found!</red>"));
             return true;
         }
+        item.setAmount(amount);
 
         // 2. Generate and apply the visual lore
         plugin.getItemLoreGenerator().updateLore(item, ((Player) sender).getPlayer());
@@ -79,7 +80,7 @@ public class GiveItemCommand implements CommandExecutor, TabCompleter {
         // 3. Give the fully formed item to the player
         target.getInventory().addItem(item);
 
-        sender.sendMessage(ChatUtils.format("<green>Gave " + target.getName() + " a " + itemId + ".</green>"));
+        sender.sendMessage(ChatUtils.format("<green>Gave " + target.getName() + " " + amount + "x " + itemId + ".</green>"));
         return true;
     }
 

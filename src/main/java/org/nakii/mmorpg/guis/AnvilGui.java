@@ -95,6 +95,19 @@ public class AnvilGui extends AbstractGui {
         }
     }
 
+    @Override
+    public ItemStack handleShiftClick(ItemStack clickedItem) {
+        if (inventory.getItem(INPUT_LEFT_SLOT) == null) {
+            inventory.setItem(INPUT_LEFT_SLOT, clickedItem.clone());
+            return null;
+        }
+        if (inventory.getItem(INPUT_RIGHT_SLOT) == null) {
+            inventory.setItem(INPUT_RIGHT_SLOT, clickedItem.clone());
+            return null;
+        }
+        return clickedItem;
+    }
+
     private void handleCombine() {
         if (currentResult == null) {
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);

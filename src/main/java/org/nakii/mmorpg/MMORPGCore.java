@@ -30,7 +30,7 @@ public final class MMORPGCore extends JavaPlugin {
     private MobManager mobManager;
     private ZoneManager zoneManager;
     private LootManager lootManager;
-//    private RecipeManager recipeManager;
+    private RecipeManager recipeManager;
     private EnvironmentManager environmentManager;
     private HUDManager hudManager;
     private ZoneMobSpawnerManager zoneMobSpawner;
@@ -85,7 +85,7 @@ public final class MMORPGCore extends JavaPlugin {
             itemManager = new ItemManager(this);
             itemLoreGenerator = new ItemLoreGenerator(this);
             mobManager = new MobManager(this);
-//            recipeManager = new RecipeManager(this);
+            recipeManager = new RecipeManager(this);
             lootManager = new LootManager(this);
             slayerManager = new SlayerManager(this);
 
@@ -171,16 +171,15 @@ public final class MMORPGCore extends JavaPlugin {
         pm.registerEvents(new FishingListener(this), this);
         pm.registerEvents(new ForagingListener(this), this);
         pm.registerEvents(new GUIListener(this), this);
-//        pm.registerEvents(new RecipeListener(this), this);
         pm.registerEvents(new EnchantingTableListener(this), this);
         pm.registerEvents(new AnvilListener(this), this);
-        // Cleaned up duplicate registration
         pm.registerEvents(new PlayerDamageListener(this), this);
         pm.registerEvents(new ProjectileListener(this), this);
         pm.registerEvents(new PlayerConnectionListener(this), this);
         pm.registerEvents(new GenericDamageListener(this), this);
         pm.registerEvents(new RequirementListener(this), this);
         pm.registerEvents(new SlayerProgressListener(this), this);
+        pm.registerEvents(new CraftingTableListener(this), this);
     }
 
     // --- All other methods and getters remain the same as your original file ---
@@ -234,6 +233,16 @@ public final class MMORPGCore extends JavaPlugin {
             getLogger().info("Default mob files created successfully.");
         }
 
+        File recipeFolder = new File(getDataFolder(), "recipes");
+        if (!mobsFolder.exists()) {
+            getLogger().info("Creating default recipes configuration files...");
+
+            saveResource("recipes/custom_recipes.yml", false);
+            // Add any other default mob files you want to generate
+
+            getLogger().info("Default recipes files created successfully.");
+        }
+
         // Save single config files
         saveResource("skills.yml", false);
         saveResource("slayers.yml", false);
@@ -281,7 +290,7 @@ public final class MMORPGCore extends JavaPlugin {
     public DatabaseManager getDatabaseManager() { return databaseManager; }
     public SkillManager getSkillManager() { return skillManager; }
     public GUIManager getGuiManager() { return guiManager; }
-//    public RecipeManager getRecipeManager() { return recipeManager; }
+    public RecipeManager getRecipeManager() { return recipeManager; }
     public MobManager getMobManager() { return mobManager; }
     public ZoneManager getZoneManager() { return zoneManager; }
     public LootManager getLootManager() { return lootManager;  }
