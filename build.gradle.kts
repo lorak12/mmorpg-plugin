@@ -12,14 +12,17 @@ description = "MMORPG Core Plugin"
 
 repositories {
     mavenCentral()
-    maven("https://repo.papermc.io/repository/maven-public/")
+    maven {
+        name = "papermc"
+        url = uri("https://repo.papermc.io/repository/maven-public/")
+    }
     maven("https://jitpack.io")
     maven("https://repo.md-5.net/content/groups/public/")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.7-R0.1-SNAPSHOT")
     compileOnly(group = "me.libraryaddict.disguises", name = "libsdisguises", version = "11.0.0")
 
     implementation("net.objecthunter:exp4j:0.4.8")

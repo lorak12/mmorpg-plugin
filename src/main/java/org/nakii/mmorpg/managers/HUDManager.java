@@ -44,7 +44,7 @@ public class HUDManager {
         // --- THIS IS THE FIX ---
         // Get health directly from the Player object's attributes.
         double currentHealth = player.getHealth();
-        double maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
+        double maxHealth = player.getAttribute(Attribute.MAX_HEALTH).getValue();
 
         // Get custom stats from our StatsManager.
         PlayerStats stats = plugin.getStatsManager().getStats(player);

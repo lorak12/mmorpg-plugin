@@ -44,6 +44,10 @@ public final class MMORPGCore extends JavaPlugin {
     private PlayerStateManager playerStateManager;
     private ItemLoreGenerator itemLoreGenerator;
     private SlayerManager slayerManager;
+    private EconomyManager economyManager;
+    private WorldTimeManager worldTimeManager;
+    private ScoreboardManager scoreboardManager;
+    private BankManager bankManager;
 
     private boolean libsDisguisesEnabled = false;
 
@@ -75,6 +79,9 @@ public final class MMORPGCore extends JavaPlugin {
             databaseManager = new DatabaseManager(this);
             databaseManager.connect();
 
+            worldTimeManager = new WorldTimeManager(this);
+            worldTimeManager.loadTime();
+
             // Core Systems
             statsManager = new StatsManager(this);
             skillManager = new SkillManager(this);
@@ -105,6 +112,9 @@ public final class MMORPGCore extends JavaPlugin {
             zoneMobSpawner = new ZoneMobSpawnerManager(this);
             guiManager = new GUIManager(this);
             hudManager = new HUDManager(this);
+            economyManager = new EconomyManager(this);
+            bankManager = new BankManager(this);
+            scoreboardManager = new ScoreboardManager(this);
 
             // Standalone manager for health regen task
             healthManager = new HealthManager(this);
@@ -121,6 +131,7 @@ public final class MMORPGCore extends JavaPlugin {
             getLogger().info("Commands registered.");
 
             // --- STEP 4: START TASKS ---
+            worldTimeManager.startTask();
             healthManager.startHealthRegenTask();
             environmentManager.startTask();
             zoneMobSpawner.startSpawnTask();
@@ -140,6 +151,12 @@ public final class MMORPGCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
+
+        // Save the time when the server shuts down
+        if (worldTimeManager != null) {
+            worldTimeManager.saveTime();
+        }
+
         if (skillManager != null && databaseManager != null) {
             getLogger().info("Saving data for all online players before shutdown...");
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -180,6 +197,8 @@ public final class MMORPGCore extends JavaPlugin {
         pm.registerEvents(new RequirementListener(this), this);
         pm.registerEvents(new SlayerProgressListener(this), this);
         pm.registerEvents(new CraftingTableListener(this), this);
+        pm.registerEvents(new PlayerDeathListener(this), this);
+        pm.registerEvents(new ScoreboardListener(this), this);
     }
 
     // --- All other methods and getters remain the same as your original file ---
@@ -260,6 +279,9 @@ public final class MMORPGCore extends JavaPlugin {
         getCommand("customenchant").setExecutor(new EnchantCommand(this));
         getCommand("openhex").setExecutor(new HexCommand(this));
         getCommand("slayer").setExecutor(new SlayerCommand(this));
+        getCommand("craft").setExecutor(new CraftCommand(this));
+        getCommand("eco").setExecutor(new EcoCommand(this));
+        getCommand("bank").setExecutor(new BankCommand(this));
     }
     private void startAutoSaveTask() {
         long interval = 20L * 60 * 5; // Every 5 minutes
@@ -304,4 +326,8 @@ public final class MMORPGCore extends JavaPlugin {
     public TimedBuffManager getTimedBuffManager() { return timedBuffManager; }
     public PlayerStateManager getPlayerStateManager() { return playerStateManager; }
     public SlayerManager getSlayerManager() { return slayerManager; }
+    public EconomyManager getEconomyManager() { return economyManager; }
+    public WorldTimeManager getWorldTimeManager() { return worldTimeManager; }
+    public ScoreboardManager getScoreboardManager() { return scoreboardManager; }
+    public BankManager getBankManager() { return bankManager; }
 }

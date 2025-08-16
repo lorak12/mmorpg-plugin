@@ -21,6 +21,7 @@ public class PlayerConnectionListener implements Listener { // Or whatever you n
         // --- THE FIX: Method was renamed from registerPlayer to loadPlayer ---
         plugin.getStatsManager().loadPlayer(player);
         plugin.getPlayerStateManager().loadPlayer(player);
+        plugin.getEconomyManager().loadPlayer(event.getPlayer());
     }
 
     @EventHandler
@@ -28,5 +29,6 @@ public class PlayerConnectionListener implements Listener { // Or whatever you n
         Player player = event.getPlayer();
         plugin.getStatsManager().unloadPlayer(player);
         plugin.getPlayerStateManager().unloadPlayer(player);
+        plugin.getEconomyManager().unloadPlayer(event.getPlayer());
     }
 }

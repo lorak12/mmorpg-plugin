@@ -44,6 +44,10 @@ commands:
   craft:
     description: Opens the custom crafting menu.
     aliases: [ crafting, workbench, craftingtable ]
+  eco:
+    description: Manages player economy.
+  bank:
+    description: Opens your bank account.
 
 permissions:
   mmorpg.admin:

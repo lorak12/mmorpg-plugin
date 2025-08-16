@@ -236,12 +236,12 @@ public class StatsManager {
      */
     private void applyStatsToPlayer(Player player, PlayerStats stats) {
         // Set Max Health
-        player.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(stats.getHealth());
+        player.getAttribute(Attribute.MAX_HEALTH).setBaseValue(stats.getHealth());
 
         // Set Movement Speed
         // Vanilla base speed is 0.1. Our 100 Speed = 0.1. 1 Speed = 0.001.
         double baseSpeed = 0.1 * (stats.getSpeed() / 100.0);
-        player.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(baseSpeed);
+        player.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(baseSpeed);
 
         // Note: Defense, Strength, etc., are custom. They are not applied to Bukkit attributes.
         // Their effects are calculated manually in our PlayerDamageListener.

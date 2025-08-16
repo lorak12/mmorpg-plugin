@@ -5,6 +5,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.events.PlayerGainCombatXpEvent;
+import org.nakii.mmorpg.events.SlayerProgressUpdateEvent;
 import org.nakii.mmorpg.managers.SlayerManager;
 import org.nakii.mmorpg.slayer.ActiveSlayerQuest;
 import org.nakii.mmorpg.utils.ChatUtils;
@@ -50,7 +51,10 @@ public class SlayerProgressListener implements Listener {
                 quest.getCurrentXp(), quest.getXpToSpawn());
         player.sendActionBar(ChatUtils.format(progressMessage));
 
-        // 7. Check if the quest is now complete.
+        // 7. Announce the progress update
+        plugin.getServer().getPluginManager().callEvent(new SlayerProgressUpdateEvent(player, quest));
+
+        // 8. Check if the quest is now complete.
         if (quest.isComplete()) {
             slayerManager.spawnSlayerBoss(player, quest);
         }

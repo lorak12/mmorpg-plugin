@@ -11,7 +11,7 @@ public class LifeStealEffect implements EnchantmentEffect {
         if (!(event.getDamager() instanceof Player player)) return;
 
         double healPercent = enchantment.getValue(level) * 0.005;
-        double maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
+        double maxHealth = player.getAttribute(Attribute.MAX_HEALTH).getValue();
         double healAmount = maxHealth * healPercent;
 
         player.setHealth(Math.min(maxHealth, player.getHealth() + healAmount));

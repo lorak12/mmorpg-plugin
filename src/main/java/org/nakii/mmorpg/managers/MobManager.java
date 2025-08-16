@@ -80,7 +80,7 @@ public class MobManager {
         // Apply stats
         double maxHealth = template.getStat(Stat.HEALTH);
         if (maxHealth > 0) {
-            entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(maxHealth);
+            entity.getAttribute(Attribute.MAX_HEALTH).setBaseValue(maxHealth);
             entity.setHealth(maxHealth);
         }
 

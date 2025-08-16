@@ -1,0 +1,110 @@
+# ===================================================
+#                BANK ACCOUNT CONFIGURATION
+# ===================================================
+
+# Once a player's combined purse and bank balance reaches this amount,
+# the upgrade menu is permanently unlocked for them.
+upgrade-unlock-requirement: 10000000
+
+# Defines the different account tiers. The key (e.g., STARTER) is the internal ID.
+# The order of the tiers in this file determines the upgrade path.
+tiers:
+  STARTER:
+    name: "Starter Account"
+    max-balance: 50000000
+    upgrade-cost-coins: 0
+    upgrade-cost-items: {} # No item cost
+    requirements: [] # No requirements
+    interest-tranches:
+      - { up-to: 10000000, rate: 2.0 }  # 2% on the first 10M
+      - { up-to: 15000000, rate: 1.0 }  # 1% on the next 5M
+    max-interest: 250000
+
+  GOLD:
+    name: "Gold Account"
+    max-balance: 100000000
+    upgrade-cost-coins: 5000000
+    upgrade-cost-items:
+      "ENCHANTED_GOLD_BLOCK": 1 # Placeholder ID, ensure this item exists
+    requirements:
+      - "COLLECTION:GOLD_INGOT:100000"
+    interest-tranches:
+      - { up-to: 10000000, rate: 2.0 }
+      - { up-to: 20000000, rate: 1.0 }
+    max-interest: 300000
+
+  DELUXE:
+    name: "Deluxe Account"
+    max-balance: 250000000
+    upgrade-cost-coins: 10000000
+    upgrade-cost-items: {}
+    requirements:
+      - "COLLECTION:GOLD_INGOT:250000"
+      # - "MUSEUM_MILESTONE:3" # Example for a future requirement type
+    interest-tranches:
+      - { up-to: 10000000, rate: 2.0 }
+      - { up-to: 20000000, rate: 1.0 }
+      - { up-to: 30000000, rate: 0.5 }
+    max-interest: 350000
+
+  SUPER_DELUXE:
+    name: "Super Deluxe Account"
+    max-balance: 500000000
+    upgrade-cost-coins: 25000000
+    upgrade-cost-items: {}
+    requirements:
+      - "COLLECTION:GOLD_INGOT:500000"
+    interest-tranches:
+      - { up-to: 10000000, rate: 2.0 }
+      - { up-to: 20000000, rate: 1.0 }
+      - { up-to: 30000000, rate: 0.5 }
+      - { up-to: 50000000, rate: 0.2 }
+    max-interest: 390000
+
+  PREMIER:
+    name: "Premier Account"
+    max-balance: 1000000000
+    upgrade-cost-coins: 50000000
+    upgrade-cost-items: {}
+    requirements:
+      - "COLLECTION:GOLD_INGOT:1000000"
+    interest-tranches:
+      - { up-to: 10000000, rate: 2.0 }
+      - { up-to: 20000000, rate: 1.0 }
+      - { up-to: 30000000, rate: 0.5 }
+      - { up-to: 50000000, rate: 0.2 }
+      - { up-to: 160000000, rate: 0.1 }
+    max-interest: 500000
+
+  LUXURIOUS:
+    name: "Luxurious Account"
+    max-balance: 6000000000
+    upgrade-cost-coins: 100000000
+    upgrade-cost-items: {}
+    requirements:
+      - "COLLECTION:GOLD_INGOT:2000000"
+    interest-tranches:
+      - { up-to: 10000000, rate: 2.0 }
+      - { up-to: 20000000, rate: 1.0 }
+      - { up-to: 30000000, rate: 0.5 }
+      - { up-to: 50000000, rate: 0.2 }
+      - { up-to: 160000000, rate: 0.1 }
+      - { up-to: 5100000000, rate: 0.01 }
+    max-interest: 1000000
+
+  PALATIAL:
+    name: "Palatial Account"
+    max-balance: 60000000000
+    upgrade-cost-coins: 200000000
+    upgrade-cost-items: {}
+    requirements:
+      - "COLLECTION:GOLD_INGOT:3000000"
+    interest-tranches:
+      - { up-to: 10000000, rate: 2.0 }
+      - { up-to: 20000000, rate: 1.0 }
+      - { up-to: 30000000, rate: 0.5 }
+      - { up-to: 50000000, rate: 0.2 }
+      - { up-to: 160000000, rate: 0.1 }
+      - { up-to: 5100000000, rate: 0.01 }
+      - { up-to: 55000000000, rate: 0.001 }
+    max-interest: 1500000

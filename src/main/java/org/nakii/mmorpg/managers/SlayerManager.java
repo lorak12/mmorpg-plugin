@@ -4,14 +4,16 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.scoreboard.ScoreboardProvider;
 import org.nakii.mmorpg.slayer.ActiveSlayerQuest;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class SlayerManager {
+public class SlayerManager implements ScoreboardProvider {
 
     private final MMORPGCore plugin;
     private FileConfiguration slayerConfig;
@@ -20,6 +22,23 @@ public class SlayerManager {
     public SlayerManager(MMORPGCore plugin) {
         this.plugin = plugin;
         loadSlayerConfig();
+    }
+
+    @Override // <-- Implement the interface method
+    public List<String> getScoreboardLines(Player player) {
+        ActiveSlayerQuest quest = getActiveQuest(player);
+        if (quest == null) return List.of(); // Should not happen if this is the provider
+
+        String bossName = getSlayerConfig().getString(quest.getSlayerType() + ".display-name");
+
+        // We can add logic here for the "Slay the boss" state
+        // For now, it shows progress.
+        return List.of(
+                "<white>Slayer Quest</white>",
+                bossName,
+                String.format("<white>(<yellow>%,.0f</yellow>/<red>%,d</red>) <gray>Combat XP</gray>",
+                        quest.getCurrentXp(), quest.getXpToSpawn())
+        );
     }
 
     private void loadSlayerConfig() {
@@ -49,11 +68,13 @@ public class SlayerManager {
 
         ActiveSlayerQuest quest = new ActiveSlayerQuest(slayerType, tier, xpToSpawn);
         activeQuests.put(player.getUniqueId(), quest);
+        plugin.getScoreboardManager().setActiveProvider(player, this);
         player.sendMessage("Slayer quest started!"); // Placeholder message
     }
 
     public void endQuest(Player player) {
         activeQuests.remove(player.getUniqueId());
+        plugin.getScoreboardManager().clearActiveProvider(player);
     }
 
     public String getTargetCategoryForQuest(ActiveSlayerQuest quest) {

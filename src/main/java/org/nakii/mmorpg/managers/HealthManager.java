@@ -34,7 +34,7 @@ public class HealthManager {
 
                     // Get the player's maximum health directly from their entity attributes.
                     // This is the most reliable source, as it's set by our StatsManager.
-                    double maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
+                    double maxHealth = player.getAttribute(Attribute.MAX_HEALTH).getValue();
                     double currentHealth = player.getHealth();
 
                     // Only regenerate health if the player is not at full health.
