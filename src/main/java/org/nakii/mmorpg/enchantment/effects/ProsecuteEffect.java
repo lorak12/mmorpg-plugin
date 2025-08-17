@@ -2,7 +2,7 @@ package org.nakii.mmorpg.enchantment.effects;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
-import org.nakii.mmorpg.entity.MobStats;
+import org.nakii.mmorpg.mob.MobStats;
 
 public class ProsecuteEffect implements EnchantmentEffect {
     @Override

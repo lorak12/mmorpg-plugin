@@ -1,0 +1,80 @@
+id: "mines"
+display-name: "<gray>The Mines"
+icon: "⛏"
+bounds:
+  min-y: 40
+  max-y: 128
+  points:
+    - "100,200"
+    - "150,250"
+    - "200,200"
+    - "150,150"
+flags:
+  entry-requirements:
+    - "SKILL:MINING:5"
+sub-zones:
+  deep_caverns:
+    display-name: "<dark_gray>Deep Caverns"
+    icon: "⏣"
+    bounds:
+      min-y: 40
+      max-y: 60
+      points:
+        - "110,210"
+        - "120,240"
+        - "140,240"
+        - "150,210"
+    flags:
+      climate:
+        type: "COLD"
+        required-resistance: 20
+
+      # ADD THIS NEW SECTION
+      block-breaking:
+        unlisted-blocks-unbreakable: true
+        definitions:
+          DIAMOND_ORE_NODE:
+            material: DIAMOND_ORE
+            breaks-to: "BEDROCK_NODE"
+          BEDROCK_NODE:
+            material: BEDROCK
+            reverts-to: "DIAMOND_ORE_NODE:20s" # Reverts to diamond ore after 20 seconds
+
+          STONE_NODE:
+            material: STONE
+            breaks-to: "COBBLESTONE_NODE"
+          COBBLESTONE_NODE:
+            material: COBBLESTONE
+            breaks-to: "FINAL_BEDROCK_NODE"
+            reverts-to: "STONE_NODE:8s"
+          FINAL_BEDROCK_NODE:
+            material: BEDROCK
+            reverts-to: "STONE_NODE:10s"
+  obsidian_sanctuary:
+    display-name: "<dark_purple>Obsidian Sanctuary"
+    icon: "☠"
+    bounds:
+      min-y: 40
+      max-y: 128
+      points:
+        - "100,200"
+        - "150,250"
+        - "200,200"
+        - "150,150"
+    flags:
+      climate:
+        type: "NEUTRAL"
+      # ADD THIS NEW SECTION
+      mob-spawning:
+        # The maximum number of mobs from this list allowed in the zone at one time.
+        spawn-cap: 15
+        # Mobs that can spawn here. The number is a "weight" - higher means more common.
+        mobs:
+          ZOMBIE_LVL5: 10 # Common mob
+          SKELETON_LVL7: 5  # Less common
+          DIAMOND_ZOMBIE: 1 # Rare mob
+        # Optional: A list of specific coordinates where mobs can spawn.
+        # If this list is empty or not present, mobs will spawn randomly within the zone.
+        spawner-points:
+          - "125,64,218"
+          - "130,66,220"

@@ -2,7 +2,6 @@ package org.nakii.mmorpg;
 
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -11,6 +10,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.commands.*;
 import org.nakii.mmorpg.listeners.*;
 import org.nakii.mmorpg.managers.*;
+import org.nakii.mmorpg.tasks.*;
+import org.nakii.mmorpg.zone.PlayerZoneTracker;
 
 import java.io.File;
 import java.sql.SQLException;
@@ -31,10 +32,9 @@ public final class MMORPGCore extends JavaPlugin {
     private ZoneManager zoneManager;
     private LootManager lootManager;
     private RecipeManager recipeManager;
-    private EnvironmentManager environmentManager;
+//    private EnvironmentManager environmentManager;
+    private PlayerZoneTracker playerZoneTracker;
     private HUDManager hudManager;
-    private ZoneMobSpawnerManager zoneMobSpawner;
-    private ZoneWandListener zoneWandListener;
     private EnchantmentManager enchantmentManager;
     private EnchantmentEffectManager enchantmentEffectManager;
     private CombatTracker combatTracker;
@@ -48,6 +48,9 @@ public final class MMORPGCore extends JavaPlugin {
     private WorldTimeManager worldTimeManager;
     private ScoreboardManager scoreboardManager;
     private BankManager bankManager;
+    private RegenerationManager regenerationManager;
+
+    private ClimateTask climateTask;
 
     private boolean libsDisguisesEnabled = false;
 
@@ -73,6 +76,9 @@ public final class MMORPGCore extends JavaPlugin {
         setupDefaultItemFiles();
 
         try {
+
+
+
             // --- STEP 1: INITIALIZE ALL MANAGERS FIRST ---
             // This is the critical fix. All manager instances must be created before
             // any listeners that might use them are registered.
@@ -105,11 +111,11 @@ public final class MMORPGCore extends JavaPlugin {
             debuffManager = new DebuffManager();
             doTManager = new DoTManager(this);
             timedBuffManager = new TimedBuffManager();
-            environmentManager = new EnvironmentManager(this);
 
             // World & UI Systems
             zoneManager = new ZoneManager(this);
-            zoneMobSpawner = new ZoneMobSpawnerManager(this);
+            playerZoneTracker = new PlayerZoneTracker(this);
+            regenerationManager = new RegenerationManager(this);
             guiManager = new GUIManager(this);
             hudManager = new HUDManager(this);
             economyManager = new EconomyManager(this);
@@ -120,6 +126,11 @@ public final class MMORPGCore extends JavaPlugin {
             healthManager = new HealthManager(this);
 
             getLogger().info("All managers initialized successfully.");
+
+            climateTask = new ClimateTask(this.playerZoneTracker, this.playerStateManager, this.statsManager);
+            climateTask.runTaskTimer(this, 100L, 40L);
+
+            new ZoneMobSpawnerTask(this).runTaskTimer(this, 200L, 100L);
 
             // --- STEP 2: REGISTER LISTENERS ---
             // Now that all managers are guaranteed to be non-null, we can safely register listeners.
@@ -133,9 +144,12 @@ public final class MMORPGCore extends JavaPlugin {
             // --- STEP 4: START TASKS ---
             worldTimeManager.startTask();
             healthManager.startHealthRegenTask();
-            environmentManager.startTask();
-            zoneMobSpawner.startSpawnTask();
+            playerZoneTracker.runTaskTimerAsynchronously(this, 0L, 20L);
+            zoneManager.loadZones();
             hudManager.startHUDTask();
+
+
+
             startAutoSaveTask();
             getLogger().info("Tasks started.");
 
@@ -176,9 +190,6 @@ public final class MMORPGCore extends JavaPlugin {
     private void registerListeners() {
         var pm = getServer().getPluginManager();
 
-        this.zoneWandListener = new ZoneWandListener(this);
-        pm.registerEvents(this.zoneWandListener, this);
-
         pm.registerEvents(new InventoryListener(this), this);
         pm.registerEvents(new EntitySpawningListener(this), this);
         pm.registerEvents(new MiningListener(this), this);
@@ -199,6 +210,9 @@ public final class MMORPGCore extends JavaPlugin {
         pm.registerEvents(new CraftingTableListener(this), this);
         pm.registerEvents(new PlayerDeathListener(this), this);
         pm.registerEvents(new ScoreboardListener(this), this);
+        pm.registerEvents(new ZoneListener(this), this);
+        pm.registerEvents(new BlockBreakListener(this.zoneManager, this.regenerationManager), this);
+        pm.registerEvents(new ZoneWandListener(), this);
     }
 
     // --- All other methods and getters remain the same as your original file ---
@@ -218,10 +232,7 @@ public final class MMORPGCore extends JavaPlugin {
         File itemsFolder = new File(getDataFolder(), "items");
         if (!itemsFolder.exists()) {
             getLogger().info("First launch detected: Creating default item files...");
-            // The folder doesn't exist, so we create it and save our defaults.
-            // We use saveResource with a path relative to the JAR's root.
 
-            // The second argument 'false' means it will NOT overwrite the file if it somehow already exists.
             saveResource("items/armor/final_destination.yml", false);
             saveResource("items/armor/starter_gear.yml", false);
 
@@ -247,31 +258,37 @@ public final class MMORPGCore extends JavaPlugin {
             getLogger().info("Creating default mob configuration files...");
 
             saveResource("mobs/undead/crypt_ghoul.yml", false);
-            // Add any other default mob files you want to generate
 
             getLogger().info("Default mob files created successfully.");
         }
 
         File recipeFolder = new File(getDataFolder(), "recipes");
-        if (!mobsFolder.exists()) {
+        if (!recipeFolder.exists()) {
             getLogger().info("Creating default recipes configuration files...");
 
             saveResource("recipes/custom_recipes.yml", false);
-            // Add any other default mob files you want to generate
 
             getLogger().info("Default recipes files created successfully.");
+        }
+
+        File zonesFolder = new File(getDataFolder(), "zones");
+        if (!zonesFolder.exists()) {
+            getLogger().info("Creating default zones configuration files...");
+
+            saveResource("zones/mines.yml", false);
+
+            getLogger().info("Default recipes zones created successfully.");
         }
 
         // Save single config files
         saveResource("skills.yml", false);
         saveResource("slayers.yml", false);
 //        saveResource("defaults.yml", false);
-        saveResource("zones.yml", false);
     }
 
     private void registerCommands() {
         // The command constructor now needs the listener instance
-        getCommand("mmorpg").setExecutor(new MmorpgCommand(this, this.zoneWandListener));
+        getCommand("mmorpg").setExecutor(new MmorpgCommand(this));
         getCommand("stats").setExecutor(new StatsCommand(this));
         getCommand("skills").setExecutor(new SkillsCommand(this));
         getCommand("giveitem").setExecutor(new GiveItemCommand(this));
@@ -282,6 +299,8 @@ public final class MMORPGCore extends JavaPlugin {
         getCommand("craft").setExecutor(new CraftCommand(this));
         getCommand("eco").setExecutor(new EcoCommand(this));
         getCommand("bank").setExecutor(new BankCommand(this));
+        getCommand("debugclimate").setExecutor(new ClimateDebugCommand(climateTask));
+        getCommand("zone").setExecutor(new ZoneCommand(this));
     }
     private void startAutoSaveTask() {
         long interval = 20L * 60 * 5; // Every 5 minutes
@@ -316,7 +335,6 @@ public final class MMORPGCore extends JavaPlugin {
     public MobManager getMobManager() { return mobManager; }
     public ZoneManager getZoneManager() { return zoneManager; }
     public LootManager getLootManager() { return lootManager;  }
-    public EnvironmentManager getEnvironmentManager() { return environmentManager; }
     public HUDManager getHUDManager() { return hudManager; }
     public EnchantmentManager getEnchantmentManager() { return enchantmentManager; }
     public EnchantmentEffectManager getEnchantmentEffectManager() { return enchantmentEffectManager; }
@@ -330,4 +348,14 @@ public final class MMORPGCore extends JavaPlugin {
     public WorldTimeManager getWorldTimeManager() { return worldTimeManager; }
     public ScoreboardManager getScoreboardManager() { return scoreboardManager; }
     public BankManager getBankManager() { return bankManager; }
+    public PlayerZoneTracker getPlayerZoneTracker() {
+        return playerZoneTracker;
+    }
+    public RegenerationManager getRegenerationManager() {
+        return regenerationManager;
+    }
+
+    public ClimateTask getClimateTask() {
+        return climateTask;
+    }
 }

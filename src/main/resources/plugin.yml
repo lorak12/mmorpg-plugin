@@ -48,6 +48,12 @@ commands:
     description: Manages player economy.
   bank:
     description: Opens your bank account.
+  debugclimate: # ADD THIS SECTION
+    description: Toggles the climate debug action bar for the player.
+    usage: /debugclimate
+  zone:
+    description: Main command for managing zones.
+    usage: /zone <subcommand>
 
 permissions:
   mmorpg.admin:

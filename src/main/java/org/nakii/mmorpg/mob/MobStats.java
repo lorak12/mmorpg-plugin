@@ -1,4 +1,4 @@
-package org.nakii.mmorpg.entity;
+package org.nakii.mmorpg.mob;
 
 import org.bukkit.entity.LivingEntity;
 

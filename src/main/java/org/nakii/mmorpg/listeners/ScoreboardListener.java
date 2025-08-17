@@ -8,6 +8,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.events.PlayerBalanceChangeEvent;
+import org.nakii.mmorpg.events.PlayerZoneChangeEvent;
 import org.nakii.mmorpg.events.PluginTimeUpdateEvent;
 import org.nakii.mmorpg.events.SlayerProgressUpdateEvent;
 import org.nakii.mmorpg.managers.ScoreboardManager;
@@ -48,7 +49,10 @@ public class ScoreboardListener implements Listener {
         scoreboardManager.updateScoreboard(event.getPlayer());
     }
 
-    // In the future, you would add listeners for SlayerProgressUpdateEvent,
-    // PlayerZoneChangeEvent, PlayerBalanceChangeEvent, etc. to trigger
-    // more frequent and targeted updates.
+    @EventHandler
+    public void onZoneChange(PlayerZoneChangeEvent event) {
+        // When the player's zone changes, tell the scoreboard manager to update the location line.
+        scoreboardManager.updateScoreboard(event.getPlayer());
+    }
+
 }

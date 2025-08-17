@@ -1,11 +1,16 @@
 package org.nakii.mmorpg.managers;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.scoreboard.PlayerScoreboard;
 import org.nakii.mmorpg.scoreboard.ScoreboardProvider;
 import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.zone.SubZone;
+import org.nakii.mmorpg.zone.Zone;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -22,6 +27,8 @@ public class ScoreboardManager {
     public ScoreboardManager(MMORPGCore plugin) {
         this.plugin = plugin;
     }
+
+    private final MiniMessage miniMessage = MMORPGCore.getInstance().getMiniMessage();
 
     public void setScoreboard(Player player) {
         PlayerScoreboard board = new PlayerScoreboard(player, ChatUtils.format("<gradient:#FFFFFF:#FFFF00><b>MMORPG</b></gradient>"));
@@ -93,9 +100,29 @@ public class ScoreboardManager {
         lines.add(timeLine);
 
         // Location (from ZoneManager)
-//        String zone = plugin.getZoneManager().getZoneName(player.getLocation());
-        String zone = "<aqua>Village</aqua>";
-        lines.add(zone);
+        Zone zone = plugin.getZoneManager().getZoneForLocation(player.getLocation());
+        Component currentZone;
+        Component locationComponent;
+
+        if (zone == null) {
+            // Player is in an un-zoned area
+            locationComponent = miniMessage.deserialize("<green>Wilderness");
+        } else if (zone instanceof SubZone subZone) {
+            // Player is in a sub-zone, show Parent / Child
+            Zone parent = subZone.getParent();
+            // Ensure parent display name is not null
+            Component parentDisplay = (parent != null && parent.getDisplayName() != null)
+                    ? parent.getDisplayName()
+                    : Component.text("Unknown", NamedTextColor.DARK_GRAY);
+
+            locationComponent = parentDisplay
+                    .append(Component.text(" / ", NamedTextColor.DARK_GRAY))
+                    .append(subZone.getDisplayName());
+        } else {
+            // Player is in a main zone
+            locationComponent = zone.getDisplayName();
+        }
+        lines.add(miniMessage.serialize(locationComponent));
         lines.add("  "); // Empty line
 
         // Economy (from EconomyManager)

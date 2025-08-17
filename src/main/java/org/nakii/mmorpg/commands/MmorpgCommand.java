@@ -16,7 +16,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.nakii.mmorpg.MMORPGCore;
-import org.nakii.mmorpg.listeners.ZoneWandListener;
 import org.nakii.mmorpg.utils.ChatUtils;
 
 import java.io.File;
@@ -29,15 +28,13 @@ import java.util.List;
 public class MmorpgCommand implements CommandExecutor, TabCompleter {
 
     private final MMORPGCore plugin;
-    private final ZoneWandListener zoneWandListener;
 
     /**
      * The command now accepts the ZoneWandListener instance directly.
      * This is a clean and reliable way to get access to it.
      */
-    public MmorpgCommand(MMORPGCore plugin, ZoneWandListener zoneWandListener) {
+    public MmorpgCommand(MMORPGCore plugin) {
         this.plugin = plugin;
-        this.zoneWandListener = zoneWandListener;
     }
 
     @Override
@@ -135,49 +132,7 @@ public class MmorpgCommand implements CommandExecutor, TabCompleter {
     }
 
     private void createZone(Player player, String id, boolean isSubZone, String parentId) {
-        if (zoneWandListener == null) {
-            player.sendMessage(ChatUtils.format("<red>Error: Could not find ZoneWandListener instance."));
-            return;
-        }
 
-        Location pos1 = zoneWandListener.getPosition1(player);
-        Location pos2 = zoneWandListener.getPosition2(player);
-
-        if (pos1 == null || pos2 == null) {
-            player.sendMessage(ChatUtils.format("<red>You must select two positions with the Zone Wand first!"));
-            return;
-        }
-        if (!pos1.getWorld().equals(pos2.getWorld())) {
-            player.sendMessage(ChatUtils.format("<red>Positions must be in the same world!"));
-            return;
-        }
-
-        File zonesFile = new File(plugin.getDataFolder(), "zones.yml");
-        FileConfiguration config = YamlConfiguration.loadConfiguration(zonesFile);
-
-        String path;
-        if (isSubZone) {
-            if (!config.contains("zones." + parentId)) {
-                player.sendMessage(ChatUtils.format("<red>Parent zone '" + parentId + "' does not exist!"));
-                return;
-            }
-            path = "zones." + parentId + ".sub-zones." + id;
-        } else {
-            path = "zones." + id;
-        }
-
-        config.set(path + ".world", pos1.getWorld().getName());
-        config.set(path + ".pos1", pos1.toVector());
-        config.set(path + ".pos2", pos2.toVector());
-
-        try {
-            config.save(zonesFile);
-            plugin.getZoneManager().loadZones(); // Reload zones to make it active immediately
-            player.sendMessage(ChatUtils.format("<green>Successfully created zone '" + id + "'!</green>"));
-        } catch (IOException e) {
-            player.sendMessage(ChatUtils.format("<red>An error occurred while saving the zone. See console.</red>"));
-            e.printStackTrace();
-        }
     }
 
     @Nullable

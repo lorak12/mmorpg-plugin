@@ -1,24 +1,25 @@
 package org.nakii.mmorpg.managers;
 
 import org.bukkit.entity.Player;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 import org.nakii.mmorpg.player.PlayerState;
 
-public class PlayerStateManager {
-    private final Map<UUID, PlayerState> playerStates = new HashMap<>();
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
-    public void loadPlayer(Player player) {
+public class PlayerStateManager {
+
+    private final ConcurrentHashMap<UUID, PlayerState> playerStates = new ConcurrentHashMap<>();
+
+    public void addPlayer(Player player) {
         playerStates.put(player.getUniqueId(), new PlayerState());
     }
 
-    public void unloadPlayer(Player player) {
+    public void removePlayer(Player player) {
         playerStates.remove(player.getUniqueId());
     }
 
     public PlayerState getState(Player player) {
-        return playerStates.getOrDefault(player.getUniqueId(), new PlayerState());
+        // This is a safeguard against race conditions or reloads.
+        return playerStates.computeIfAbsent(player.getUniqueId(), uuid -> new PlayerState());
     }
 }

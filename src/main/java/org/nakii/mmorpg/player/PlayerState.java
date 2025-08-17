@@ -1,45 +1,35 @@
 package org.nakii.mmorpg.player;
 
+/**
+ * Holds transient data for a player that is not directly derived from stats or gear.
+ * This includes environmental effects like current cold and heat levels.
+ */
 public class PlayerState {
-    private double cold = 0.0;
-    private double heat = 0.0;
 
-    public double getCold() { return cold; }
-    public double getHeat() { return heat; }
+    private double coldLevel = 0;
+    private double heatLevel = 0;
 
-    // --- NEW METHODS ---
-
-    /**
-     * Increases the player's heat, capped at a maximum value.
-     * @param amount The amount of heat to add.
-     * @param maxHeat The maximum heat allowed in the current zone.
-     */
-    public void increaseHeat(double amount, double maxHeat) {
-        this.heat = Math.min(maxHeat, this.heat + amount);
+    public double getColdLevel() {
+        return coldLevel;
     }
 
-    /**
-     * Increases the player's cold, capped at a maximum value.
-     * @param amount The amount of cold to add.
-     * @param maxCold The maximum cold allowed in the current zone.
-     */
-    public void increaseCold(double amount, double maxCold) {
-        this.cold = Math.min(maxCold, this.cold + amount);
+    public void setColdLevel(double coldLevel) {
+        this.coldLevel = Math.max(0, coldLevel); // Ensure level doesn't go below 0
     }
 
-    /**
-     * Reduces the player's heat, floored at 0.
-     * @param amount The amount of heat to reduce.
-     */
-    public void reduceHeat(double amount) {
-        this.heat = Math.max(0, this.heat - amount);
+    public void addCold(double amount) {
+        setColdLevel(this.coldLevel + amount);
     }
 
-    /**
-     * Reduces the player's cold, floored at 0.
-     * @param amount The amount of cold to reduce.
-     */
-    public void reduceCold(double amount) {
-        this.cold = Math.max(0, this.cold - amount);
+    public double getHeatLevel() {
+        return heatLevel;
+    }
+
+    public void setHeatLevel(double heatLevel) {
+        this.heatLevel = Math.max(0, heatLevel); // Ensure level doesn't go below 0
+    }
+
+    public void addHeat(double amount) {
+        setHeatLevel(this.heatLevel + amount);
     }
 }

@@ -8,6 +8,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.Nullable;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.mob.CustomMobTemplate;
 import org.nakii.mmorpg.player.Stat;
@@ -143,6 +144,16 @@ public class MobManager {
         if (!isCustomMob(entity)) return 0;
         CustomMobTemplate template = getTemplate(getMobId(entity));
         return (template != null) ? template.getLevel() : 0;
+    }
+
+    /**
+     * Retrieves a CustomMob data object from the cache by its unique ID.
+     * @param id The ID of the mob to retrieve.
+     * @return The CustomMob object, or null if no mob with that ID exists.
+     */
+    @Nullable
+    public CustomMobTemplate getMobById(String id) {
+        return mobRegistry.get(id);
     }
 
 
