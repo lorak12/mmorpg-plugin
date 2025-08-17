@@ -1,0 +1,106 @@
+# =================================================== #
+#             Slayer Boss Base Templates              #
+#    These are the base blueprints for slayer bosses. #
+# Stats are overridden by the slayers.yml config.     #
+# =================================================== #
+
+# ------------------- Zombie Slayer -------------------
+REVENANT_HORROR_1:
+  type: ZOMBIE
+  display-name: "<red>Revenant Horror</red>"
+  level: 10
+  category: "ZOMBIE_BOSS"
+  stats: { HEALTH: 500, DAMAGE: 15 }
+  equipment: { main_hand: "IRON_SWORD", helmet: "IRON_HELMET" }
+REVENANT_HORROR_2:
+  type: ZOMBIE
+  display-name: "<red>Revenant Horror</red>"
+  level: 70
+  category: "ZOMBIE_BOSS"
+  stats: { HEALTH: 20000, DAMAGE: 25 }
+  equipment: { main_hand: "IRON_SWORD", helmet: "DIAMOND_HELMET", chestplate: "IRON_CHESTPLATE" }
+REVENANT_HORROR_3:
+  type: ZOMBIE
+  display-name: "<red>Revenant Horror</red>"
+  level: 310
+  category: "ZOMBIE_BOSS"
+  stats: { HEALTH: 400000, DAMAGE: 120 }
+  equipment: { main_hand: "DIAMOND_SWORD", helmet: "DIAMOND_HELMET", chestplate: "DIAMOND_CHESTPLATE", leggings: "DIAMOND_LEGGINGS", boots: "DIAMOND_BOOTS" }
+REVENANT_HORROR_4:
+  type: ZOMBIE
+  display-name: "<red>Revenant Horror</red>"
+  level: 610
+  category: "ZOMBIE_BOSS"
+  stats: { HEALTH: 1500000, DAMAGE: 400 }
+  equipment: { main_hand: "NETHERITE_SWORD", helmet: "NETHERITE_HELMET", chestplate: "NETHERITE_CHESTPLATE", leggings: "NETHERITE_LEGGINGS", boots: "NETHERITE_BOOTS" }
+REVENANT_HORROR_5:
+  type: ZOMBIE
+  display-name: "<red>Atoned Horror</red>" # A different name for the final tier
+  level: 1580
+  category: "ZOMBIE_BOSS"
+  stats: { HEALTH: 10000000, DAMAGE: 2400 }
+  equipment: { main_hand: "NETHERITE_SWORD", helmet: "NETHERITE_HELMET", chestplate: "NETHERITE_CHESTPLATE", leggings: "NETHERITE_LEGGINGS", boots: "NETHERITE_BOOTS" }
+
+# ------------------- Spider Slayer -------------------
+TARANTULA_BROODFATHER_1:
+  type: SPIDER
+  display-name: "<dark_gray>Tarantula Broodfather</dark_gray>"
+  level: 15
+  category: "SPIDER_BOSS"
+  stats: { HEALTH: 750, DAMAGE: 20 }
+TARANTULA_BROODFATHER_2:
+  type: SPIDER
+  display-name: "<dark_gray>Tarantula Broodfather</dark_gray>"
+  level: 80
+  category: "SPIDER_BOSS"
+  stats: { HEALTH: 25000, DAMAGE: 30 }
+TARANTULA_BROODFATHER_3:
+  type: SPIDER
+  display-name: "<dark_gray>Tarantula Broodfather</dark_gray>"
+  level: 340
+  category: "SPIDER_BOSS"
+  stats: { HEALTH: 500000, DAMAGE: 150 }
+TARANTULA_BROODFATHER_4:
+  type: SPIDER
+  display-name: "<dark_gray>Tarantula Broodfather</dark_gray>"
+  level: 650
+  category: "SPIDER_BOSS"
+  stats: { HEALTH: 2000000, DAMAGE: 500 }
+TARANTULA_BROODFATHER_5:
+  type: SPIDER
+  display-name: "<dark_gray>Arachne's Wrath</dark_gray>"
+  level: 1620
+  category: "SPIDER_BOSS"
+  stats: { HEALTH: 12000000, DAMAGE: 3000 }
+
+# -------------------- Wolf Slayer --------------------
+SVEN_PACKMASTER_1:
+  type: WOLF
+  display-name: "<white>Sven Packmaster</white>"
+  level: 20
+  category: "WOLF_BOSS"
+  stats: { HEALTH: 1200, DAMAGE: 25 }
+SVEN_PACKMASTER_2:
+  type: WOLF
+  display-name: "<white>Sven Packmaster</white>"
+  level: 100
+  category: "WOLF_BOSS"
+  stats: { HEALTH: 40000, DAMAGE: 45 }
+SVEN_PACKMASTER_3:
+  type: WOLF
+  display-name: "<white>Sven Packmaster</white>"
+  level: 380
+  category: "WOLF_BOSS"
+  stats: { HEALTH: 600000, DAMAGE: 200 }
+SVEN_PACKMASTER_4:
+  type: WOLF
+  display-name: "<white>Sven Packmaster</white>"
+  level: 700
+  category: "WOLF_BOSS"
+  stats: { HEALTH: 2500000, DAMAGE: 700 }
+SVEN_PACKMASTER_5:
+  type: WOLF
+  display-name: "<white>Alpha Sven</white>"
+  level: 1800
+  category: "WOLF_BOSS"
+  stats: { HEALTH: 15000000, DAMAGE: 4000 }

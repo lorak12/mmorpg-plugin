@@ -2,6 +2,7 @@ package org.nakii.mmorpg.managers;
 
 import org.bukkit.entity.Player;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.guis.AbstractGui;
 import org.nakii.mmorpg.guis.EnchantingGui;
 import org.nakii.mmorpg.guis.SkillsGui;
 // You will add more imports here, like StatsGui, AnvilGui, etc.

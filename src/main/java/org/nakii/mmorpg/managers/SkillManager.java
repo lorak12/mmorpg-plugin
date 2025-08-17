@@ -11,6 +11,9 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.events.PlayerGainCombatXpEvent;
+import org.nakii.mmorpg.mob.CustomMobTemplate;
+import org.nakii.mmorpg.player.PlayerStats;
+import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.skills.PlayerSkillData;
 import org.nakii.mmorpg.skills.Skill;
 import org.nakii.mmorpg.utils.ChatUtils;
@@ -142,21 +145,47 @@ public class SkillManager {
     }
 
     public void handleMobKill(Player player, LivingEntity victim) {
-        // We now get the EntityType from the victim, not as a parameter.
-        EntityType entityType = victim.getType();
-        Map<String, Double> combatSources = skillXpSources.get(Skill.COMBAT);
+        double baseXP = 0.0;
 
-        if (combatSources != null && combatSources.containsKey(entityType.name())) {
-            double xpAmount = combatSources.get(entityType.name());
+        // --- 1. Identify the Mob and Calculate Base XP ---
+        String mobId = plugin.getMobManager().getMobId(victim);
 
-            // --- THIS IS THE NEW LOGIC ---
-            // Create and call our new custom event.
-            PlayerGainCombatXpEvent event = new PlayerGainCombatXpEvent(player, victim, xpAmount);
-            plugin.getServer().getPluginManager().callEvent(event);
-
-            // Give the player the XP. In the future, other plugins could cancel the event.
-            addXp(player, Skill.COMBAT, event.getXpAmount());
+        if (mobId != null) {
+            // It's a custom mob. Use our dynamic formula.
+            CustomMobTemplate template = plugin.getMobManager().getTemplate(mobId);
+            if (template != null) {
+                double health = template.getStat(Stat.HEALTH);
+                int level = template.getLevel();
+                // This is the formula for dynamic XP based on mob stats.
+                baseXP = (health / 20.0) + (level * 2.5);
+            }
+        } else {
+            // It's a vanilla mob. Use the old system as a fallback.
+            EntityType entityType = victim.getType();
+            Map<String, Double> combatSources = skillXpSources.get(Skill.COMBAT);
+            if (combatSources != null && combatSources.containsKey(entityType.name())) {
+                baseXP = combatSources.get(entityType.name());
+            }
         }
+
+        // If no XP source was found, exit.
+        if (baseXP <= 0) {
+            return;
+        }
+
+        // --- 2. Apply Player's Combat Wisdom ---
+        PlayerStats playerStats = plugin.getStatsManager().getStats(player);
+        double combatWisdom = playerStats.getStat(Stat.COMBAT_WISDOM);
+        // The formula for applying the percentage bonus from wisdom.
+        double finalXP = baseXP * (1 + (combatWisdom / 100.0));
+
+        // --- 3. Broadcast the Event with the Final XP Amount ---
+        PlayerGainCombatXpEvent event = new PlayerGainCombatXpEvent(player, victim, finalXP);
+        plugin.getServer().getPluginManager().callEvent(event);
+
+        // --- 4. Grant the XP ---
+        // We use the amount from the event, as another system could potentially modify it.
+        addXp(player, Skill.COMBAT, event.getXpAmount());
     }
 
     public void loadSkillConfig() {

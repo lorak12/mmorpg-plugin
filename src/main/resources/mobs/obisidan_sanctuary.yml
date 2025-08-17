@@ -1,0 +1,97 @@
+# --------------------------------------------------- #
+#             Obsidian Sanctuary Mobs                 #
+#  Creatures found in the dark depths of the mines.   #
+# --------------------------------------------------- #
+
+# The common, bread-and-butter mob of the area.
+ZOMBIE_LVL5:
+  type: ZOMBIE
+  display-name: "<gray>Obsidian Guard</gray>"
+  level: 5
+  # Mob category for potential Slayer quests later on.
+  category: "ZOMBIE"
+  stats:
+    HEALTH: 150
+    DAMAGE: 25
+    DEFENSE: 20 # Added defense to make it tankier
+  equipment:
+    # Vanilla items are represented by their material name.
+    hand: "IRON_SWORD"
+    helmet: "OBSIDIAN" # This will only work if you've defined "OBSIDIAN" as a custom helmet
+    chestplate: "IRON_CHESTPLATE"
+    leggings: "IRON_LEGGINGS"
+    boots: "IRON_BOOTS"
+  loot-table:
+    - item: "ROTTEN_FLESH"
+      quantity: "1-2"
+      chance: 1.0 # 100% chance
+      magic-find: false # Common materials are not affected
+    - item: "OBSIDIAN_SHARD" # A custom crafting material
+      quantity: "1"
+      chance: 0.15 # 15% base chance
+      magic-find: true
+    - item: "OBSIDIAN"
+      quantity: "1"
+      chance: 0.02
+      magic-find: true
+
+# The ranged threat of the sanctuary.
+SKELETON_LVL7:
+  type: SKELETON
+  display-name: "<gray>Deep-Dweller Archer</gray>"
+  level: 7
+  category: "SKELETON"
+  stats:
+    HEALTH: 120 # Less health than the zombie, but more dangerous
+    DAMAGE: 40
+    DEFENSE: 10 # More of a glass cannon
+  equipment:
+    hand: "BOW"
+    helmet: "CHAINMAIL_HELMET"
+  loot-table:
+    - item: "BONE"
+      quantity: "1-2"
+      chance: 1.0
+      magic-find: false
+    - item: "ARROW"
+      quantity: "0-2"
+      chance: 0.8
+      magic-find: false
+    - item: "ENCHANTED_STRING" # A different custom drop
+      quantity: "1"
+      chance: 0.05
+      magic-find: true
+
+# The rare, "mini-boss" of the area. A tough, rewarding enemy.
+DIAMOND_ZOMBIE:
+  type: ZOMBIE
+  display-name: "<aqua>Diamond-Heart Zombie</aqua>"
+  level: 12
+  category: "ZOMBIE"
+  stats:
+    HEALTH: 500
+    DAMAGE: 75
+    DEFENSE: 100
+  equipment:
+    hand: "DIAMOND_SWORD"
+    helmet: "DIAMOND_HELMET"
+    chestplate: "DIAMOND_CHESTPLATE"
+    leggings: "DIAMOND_LEGGINGS"
+    boots: "DIAMOND_BOOTS"
+  loot-table:
+    - item: "DIAMOND"
+      quantity: "1-3"
+      chance: 1.0
+      magic-find: false # High-value guaranteed drops usually aren't affected
+    - item: "OBSIDIAN_SHARD"
+      quantity: "3-5"
+      chance: 1.0
+      magic-find: false
+    - item: "ENCHANTED_DIAMOND"
+      quantity: "1"
+      chance: 0.10
+      magic-find: true # The "jackpot" drop is affected
+    - item: "UNDEAD_SWORD" # The rare sword we defined
+      quantity: "1"
+      chance: 0.005 # Using a very rare drop chance like your example
+      magic-find: true

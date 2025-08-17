@@ -42,7 +42,7 @@ public class SpawnMobCommand implements CommandExecutor, TabCompleter {
         Player player = (Player) sender;
         String mobId = args[0];
 
-        if (plugin.getMobManager().spawnMob(mobId, player.getLocation()) == null) {
+        if (plugin.getMobManager().spawnMob(mobId, player.getLocation(), null) == null) {
             player.sendMessage(ChatUtils.format("<red>Mob with ID '" + mobId + "' does not exist.</red>"));
         } else {
             player.sendMessage(ChatUtils.format("<green>Spawned " + mobId + " at your location.</green>"));

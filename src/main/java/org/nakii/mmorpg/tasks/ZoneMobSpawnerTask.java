@@ -81,7 +81,7 @@ public class ZoneMobSpawnerTask extends BukkitRunnable {
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        mobManager.spawnMob(mobToSpawn.getId(), spawnLocation);
+                        mobManager.spawnMob(mobToSpawn.getId(), spawnLocation, null);
                     }
                 }.runTask(MMORPGCore.getInstance());
             }

@@ -29,7 +29,7 @@ public class SlayerProgressListener implements Listener {
             return;
         }
 
-        ActiveSlayerQuest quest = slayerManager.getActiveQuest(player);
+        ActiveSlayerQuest quest = slayerManager.getActiveSlayerQuest(player);
 
         // 2. Get the category of the mob that was killed (e.g., "ZOMBIE").
         String mobCategory = plugin.getMobManager().getMobCategory(event.getVictim());

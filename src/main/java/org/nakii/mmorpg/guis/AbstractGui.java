@@ -124,5 +124,4 @@ public abstract class AbstractGui implements InventoryHolder {
     protected ItemStack createItem(Material material, String name) {
         return createItem(material, name, Collections.emptyList());
     }
-    // --- END OF FIX ---
 }

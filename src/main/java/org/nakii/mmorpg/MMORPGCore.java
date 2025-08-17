@@ -49,6 +49,8 @@ public final class MMORPGCore extends JavaPlugin {
     private ScoreboardManager scoreboardManager;
     private BankManager bankManager;
     private RegenerationManager regenerationManager;
+    private SlayerDataManager slayerDataManager;
+    private BossAbilityManager bossAbilityManager;
 
     private ClimateTask climateTask;
 
@@ -100,7 +102,9 @@ public final class MMORPGCore extends JavaPlugin {
             mobManager = new MobManager(this);
             recipeManager = new RecipeManager(this);
             lootManager = new LootManager(this);
+            slayerDataManager = new SlayerDataManager();
             slayerManager = new SlayerManager(this);
+            bossAbilityManager = new BossAbilityManager(this);
 
             // Enchantment Systems
             enchantmentManager = new EnchantmentManager(this);
@@ -131,6 +135,8 @@ public final class MMORPGCore extends JavaPlugin {
             climateTask.runTaskTimer(this, 100L, 40L);
 
             new ZoneMobSpawnerTask(this).runTaskTimer(this, 200L, 100L);
+
+            new BossAIController(this).runTaskTimer(this, 200L, 20L); // Start after 10s, run every 1s
 
             // --- STEP 2: REGISTER LISTENERS ---
             // Now that all managers are guaranteed to be non-null, we can safely register listeners.
@@ -258,6 +264,8 @@ public final class MMORPGCore extends JavaPlugin {
             getLogger().info("Creating default mob configuration files...");
 
             saveResource("mobs/undead/crypt_ghoul.yml", false);
+            saveResource("mobs/slayer_bosses.yml", false);
+            saveResource("mobs/obisidan_sanctuary.yml", false);
 
             getLogger().info("Default mob files created successfully.");
         }
@@ -357,5 +365,11 @@ public final class MMORPGCore extends JavaPlugin {
 
     public ClimateTask getClimateTask() {
         return climateTask;
+    }
+    public SlayerDataManager getSlayerDataManager() {
+        return slayerDataManager;
+    }
+    public BossAbilityManager getBossAbilityManager() {
+        return bossAbilityManager;
     }
 }

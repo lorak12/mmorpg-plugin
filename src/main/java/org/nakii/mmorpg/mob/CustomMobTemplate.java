@@ -20,6 +20,7 @@ public class CustomMobTemplate {
     private final Map<Stat, Double> stats;
     private final Map<String, String> equipment;
     private final List<LootDrop> lootTable;
+    private final int slayerXp;
 
     public CustomMobTemplate(String id, ConfigurationSection config) {
         this.id = id;
@@ -27,6 +28,7 @@ public class CustomMobTemplate {
         this.displayName = config.getString("display-name", "Unnamed Mob");
         this.level = config.getInt("level", 1);
         this.mobCategory = config.getString("category", "UNCATEGORIZED").toUpperCase();
+        this.slayerXp = config.getInt("slayer-xp", 0);
 
         // Parse Stats
         this.stats = new EnumMap<>(Stat.class);
@@ -76,4 +78,7 @@ public class CustomMobTemplate {
     public double getStat(Stat stat) { return stats.getOrDefault(stat, 0.0); }
     public Optional<Map<String, String>> getEquipment() { return Optional.ofNullable(equipment.isEmpty() ? null : equipment); }
     public List<LootDrop> getLootTable() { return lootTable; }
+    public int getSlayerXp() {
+        return this.slayerXp;
+    }
 }

@@ -101,7 +101,6 @@ public class ScoreboardManager {
 
         // Location (from ZoneManager)
         Zone zone = plugin.getZoneManager().getZoneForLocation(player.getLocation());
-        Component currentZone;
         Component locationComponent;
 
         if (zone == null) {
@@ -136,19 +135,8 @@ public class ScoreboardManager {
             lines.addAll(provider.getScoreboardLines(player));
         }
 
+
         board.setLines(lines);
     }
 
-    private List<String> getSlayerQuestLines(Player player) {
-        var quest = plugin.getSlayerManager().getActiveQuest(player);
-        var config = plugin.getSlayerManager().getSlayerConfig();
-        String bossName = config.getString(quest.getSlayerType() + ".display-name");
-
-        return List.of(
-                "<white>Slayer Quest</white>",
-                bossName,
-                String.format("<white>(<yellow>%,.0f</yellow>/<red>%,d</red>) <gray>Combat XP</gray>",
-                        quest.getCurrentXp(), quest.getXpToSpawn())
-        );
-    }
 }

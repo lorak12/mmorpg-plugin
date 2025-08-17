@@ -1,32 +1,204 @@
-# ===================================================
-#                SLAYER CONFIGURATION
-# ===================================================
+# =================================================== #
+#                SLAYER CONFIGURATION                 #
+#  Defines Slayer types, progression, and boss tiers. #
+# =================================================== #
 
 ZOMBIE_SLAYER:
-  display-name: "<red>Zombie Slayer</red>"
-  target-category: "ZOMBIE" # Matches the 'category' in your mob YAML files
-  slayer-npc: "Maddox"
+  display-name: "<red>Revenant Horror"
+  icon: "ZOMBIE_HEAD"
+  target-category: "ZOMBIE"
+  leveling-xp:
+    1: 5
+    2: 20
+    3: 100
+    4: 500
+    5: 1500
+    6: 5000
+    7: 20000
+    8: 50000
+    9: 100000
+  rewards:
+    1: ["RECIPE_UNLOCK:REVENANT_FALCHION", "STAT_BOOST:HEALTH:2"]
+    2: ["RECIPE_UNLOCK:UNDEAD_CATALYST", "STAT_BOOST:DEFENSE:1"]
+    3: ["RECIPE_UNLOCK:REVENANT_CHESTPLATE"]
+    4: ["RECIPE_UNLOCK:REVENANT_VISCERA", "STAT_BOOST:STRENGTH:1"]
+    5: ["RECIPE_UNLOCK:REVENANT_BOOTS"]
+    6: ["RECIPE_UNLOCK:SCYTHE_BLADE"]
+    7: ["STAT_BOOST:CRIT_DAMAGE:5"]
+    8: ["RECIPE_UNLOCK:WARDEN_HELMET_RECIPE"]
+    9: ["GLOBAL_COMBAT_XP_BOOST:5%"]
   tiers:
     1:
-      xp-to-spawn: 100
-      start-cost: 500
-      boss-id: "REVENANT_HORROR_1" # The Custom Mob ID of the boss
-    2:
-      xp-to-spawn: 500
+      level: 10
       start-cost: 2000
-      boss-id: "REVENANT_HORROR_2"
+      xp-to-spawn: 150
+      requirements: []
+      slayer-xp-reward: 5
+      boss:
+        id: "REVENANT_HORROR_1"
+        health: 500
+        damage: 15
+        abilities: ["LIFE_DRAIN"]
+        loot:
+          guaranteed: ["REVENANT_FLESH:1-2", "ROTTEN_FLESH:16-32"]
+          rare-pool: [{"BEHEADED_HORROR": 0.5}, {"SNAKE_RUNE": 1.0}]
+    2:
+      level: 70
+      start-cost: 7500
+      xp-to-spawn: 1440
+      requirements: ["SKILL:COMBAT:5", "SLAYER:ZOMBIE_SLAYER:1"]
+      slayer-xp-reward: 25
+      boss:
+        id: "REVENANT_HORROR_2"
+        health: 20000
+        damage: 25
+        abilities: ["PESTILENCE"]
+        loot:
+          guaranteed: ["REVENANT_FLESH:3-5", "FOUL_FLESH:1-2"]
+          rare-pool: [{"SCYTHE_BLADE": 0.1}, {"BEHEADED_HORROR": 0.7}, {"REVENANT_CATALYST": 0.2}]
     3:
-      xp-to-spawn: 2500
-      start-cost: 10000
-      boss-id: "REVENANT_HORROR_3"
+      level: 310
+      start-cost: 20000
+      xp-to-spawn: 2400
+      requirements: ["SKILL:COMBAT:10", "SLAYER:ZOMBIE_SLAYER:3"]
+      slayer-xp-reward: 100
+      boss:
+        id: "REVENANT_HORROR_3"
+        health: 400000
+        damage: 120
+        abilities: ["LIFE_DRAIN", "ENRAGE"]
+        loot:
+          guaranteed: ["REVENANT_FLESH:8-12", "FOUL_FLESH:3-5"]
+          rare-pool: [{"SCYTHE_BLADE": 0.3}, {"REVENANT_CATALYST": 0.4}, {"UNDEAD_SWORD_UPGRADE_KIT": 0.05}]
+    4:
+      level: 610
+      start-cost: 50000
+      xp-to-spawn: 4800
+      requirements: ["SKILL:COMBAT:15", "SLAYER:ZOMBIE_SLAYER:5"]
+      slayer-xp-reward: 500
+      boss:
+        id: "REVENANT_HORROR_4"
+        health: 1500000
+        damage: 400
+        abilities: ["PESTILENCE", "ENRAGE"]
+        loot:
+          guaranteed: ["REVENANT_FLESH:16-24", "FOUL_FLESH:8-12"]
+          rare-pool: [{"SCYTHE_BLADE": 0.5}, {"REVENANT_CATALYST": 0.5}, {"WARDEN_HEART": 0.01}]
+    5:
+      level: 1580
+      start-cost: 100000
+      xp-to-spawn: 6000
+      requirements: ["SKILL:COMBAT:25", "SLAYER:ZOMBIE_SLAYER:7"]
+      slayer-xp-reward: 1500
+      boss:
+        id: "REVENANT_HORROR_5"
+        health: 10000000
+        damage: 2400
+        abilities: ["REDEMPTION", "EXPLOSIVE_ASSAULT", "THERMONUCLEAR"]
+        loot:
+          guaranteed: ["REVENANT_FLESH:32-48", "FOUL_FLESH:16-24"]
+          rare-pool: [{"SMITE_7_BOOK": 0.02}, {"WARDEN_HEART": 0.02}]
 
 SPIDER_SLAYER:
-  display-name: "<dark_gray>Spider Slayer</dark_gray>"
+  display-name: "<dark_gray>Tarantula Broodfather"
+  icon: "SPIDER_EYE"
   target-category: "SPIDER"
-  slayer-npc: "Maddox"
+  leveling-xp: {1: 5, 2: 20, 3: 100, 4: 500, 5: 1500, 6: 5000, 7: 20000, 8: 50000, 9: 100000}
+  rewards:
+    1: ["RECIPE_UNLOCK:TARANTULA_TALISMAN"]
+    2: ["STAT_BOOST:SPEED:1"]
+    3: ["RECIPE_UNLOCK:TARANTULA_BOOTS"]
+    4: ["RECIPE_UNLOCK:SPIDER_CATALYST", "STAT_BOOST:STRENGTH:1"]
+    5: ["RECIPE_UNLOCK:TARANTULA_HELMET"]
+    6: ["RECIPE_UNLOCK:TARANTULA_SILK"]
+    7: ["STAT_BOOST:CRIT_CHANCE:1"]
   tiers:
     1:
-      xp-to-spawn: 120
-      start-cost: 600
-      boss-id: "TARANTULA_BROODFATHER_1"
-    # ... other tiers
+      level: 15
+      start-cost: 2500
+      xp-to-spawn: 200
+      requirements: []
+      slayer-xp-reward: 5
+      boss: { id: "TARANTULA_BROODFATHER_1", health: 750, damage: 20, abilities: ["POISON_WEB"], loot: { guaranteed: ["TARANTULA_WEB:1-3"], rare-pool: [{"TOXIC_ARROW_POISON": 1.0}, {"SPIDER_CATALYST": 0.2}] } }
+    2:
+      level: 80
+      start-cost: 8000
+      xp-to-spawn: 1600
+      requirements: ["SKILL:COMBAT:6", "SLAYER:SPIDER_SLAYER:1"]
+      slayer-xp-reward: 25
+      boss: { id: "TARANTULA_BROODFATHER_2", health: 25000, damage: 30, abilities: ["POISON_WEB", "NEST_REINFORCEMENTS"], loot: { guaranteed: ["TARANTULA_WEB:4-6"], rare-pool: [{"TOXIC_ARROW_POISON": 0.8}, {"SPIDER_CATALYST": 0.4}, {"FLY_SWATTER": 0.05}] } }
+    3:
+      level: 340
+      start-cost: 22000
+      xp-to-spawn: 2800
+      requirements: ["SKILL:COMBAT:12", "SLAYER:SPIDER_SLAYER:3"]
+      slayer-xp-reward: 100
+      boss: { id: "TARANTULA_BROODFATHER_3", health: 500000, damage: 150, abilities: ["VENOMOUS_BITE", "NEST_REINFORCEMENTS"], loot: { guaranteed: ["TARANTULA_WEB:8-12"], rare-pool: [{"TARANTULA_TALISMAN_UPGRADE": 0.1}, {"FLY_SWATTER": 0.1}] } }
+    4:
+      level: 650
+      start-cost: 50000
+      xp-to-spawn: 5200
+      requirements: ["SKILL:COMBAT:18", "SLAYER:SPIDER_SLAYER:5"]
+      slayer-xp-reward: 500
+      boss: { id: "TARANTULA_BROODFATHER_4", health: 2000000, damage: 500, abilities: ["VENOMOUS_BITE", "ACIDIC_FURY"], loot: { guaranteed: ["TARANTULA_WEB:16-24", "TARANTULA_SILK:1-2"], rare-pool: [{"FLY_SWATTER": 0.2}, {"TARANTULA_HEART": 0.01}] } }
+    5:
+      level: 1620
+      start-cost: 100000
+      xp-to-spawn: 6500
+      requirements: ["SKILL:COMBAT:28", "SLAYER:SPIDER_SLAYER:7"]
+      slayer-xp-reward: 1500
+      boss: { id: "TARANTULA_BROODFATHER_5", health: 12000000, damage: 3000, abilities: ["WEB_PRISON", "ACIDIC_FURY"], loot: { guaranteed: ["TARANTULA_WEB:32-48", "TARANTULA_SILK:3-5"], rare-pool: [{"TARANTULA_HEART": 0.02}, {"DIGESTED_MOSQUITO": 0.01}] } }
+
+WOLF_SLAYER:
+  display-name: "<white>Sven Packmaster"
+  icon: "BONE"
+  target-category: "WOLF"
+  leveling-xp: {1: 10, 2: 30, 3: 150, 4: 750, 5: 2000, 6: 7500, 7: 25000, 8: 60000, 9: 125000}
+  rewards:
+    1: ["RECIPE_UNLOCK:WOLF_TOOTH_NECKLACE"]
+    2: ["STAT_BOOST:SPEED:1", "STAT_BOOST:HEALTH:1"]
+    3: ["RECIPE_UNLOCK:FUR_CLOAK"]
+    4: ["RECIPE_UNLOCK:GOLDEN_TOOTH", "STAT_BOOST:TRUE_DEFENSE:1"]
+    5: ["RECIPE_UNLOCK:SIRIUS_TALISMAN"]
+    6: ["RECIPE_UNLOCK:PACK_HELMET"]
+    7: ["STAT_BOOST:FEROCITY:1"]
+  tiers:
+    1:
+      level: 20
+      start-cost: 3000
+      xp-to-spawn: 250
+      requirements: ["SKILL:FORAGING:5"]
+      slayer-xp-reward: 10
+      boss: { id: "SVEN_PACKMASTER_1", health: 1200, damage: 25, abilities: ["SUMMON_PUPS"], loot: { guaranteed: ["WOLF_PELT:1-3"], rare-pool: [{"WOLF_TOOTH": 1.0}, {"GOLDEN_TOOTH": 0.1}] } }
+    2:
+      level: 100
+      start-cost: 10000
+      xp-to-spawn: 2000
+      requirements: ["SKILL:COMBAT:8", "SLAYER:WOLF_SLAYER:1"]
+      slayer-xp-reward: 30
+      boss: { id: "SVEN_PACKMASTER_2", health: 40000, damage: 45, abilities: ["SUMMON_PUPS", "FERAL_LUNGE"], loot: { guaranteed: ["WOLF_PELT:5-8"], rare-pool: [{"GOLDEN_TOOTH": 0.3}, {"RED_CLAW_EGG": 0.02}] } }
+    3:
+      level: 380
+      start-cost: 25000
+      xp-to-spawn: 3200
+      requirements: ["SKILL:COMBAT:14", "SLAYER:WOLF_SLAYER:3"]
+      slayer-xp-reward: 120
+      boss: { id: "SVEN_PACKMASTER_3", health: 600000, damage: 200, abilities: ["FERAL_LUNGE", "HOWL_OF_THE_PACK"], loot: { guaranteed: ["WOLF_PELT:10-15"], rare-pool: [{"GOLDEN_TOOTH": 0.5}, {"GRIZZLY_BAIT": 0.1}] } }
+    4:
+      level: 700
+      start-cost: 50000
+      xp-to-spawn: 5500
+      requirements: ["SKILL:COMBAT:20", "SLAYER:WOLF_SLAYER:5"]
+      slayer-xp-reward: 500
+      boss: { id: "SVEN_PACKMASTER_4", health: 2500000, damage: 700, abilities: ["HOWL_OF_THE_PACK", "ALPHA_ROAR"], loot: { guaranteed: ["WOLF_PELT:18-28"], rare-pool: [{"GRIZZLY_BAIT": 0.2}, {"OVERFLUX_CAPACITOR": 0.01}] } }
+    5:
+      level: 1800
+      start-cost: 100000
+      xp-to-spawn: 7000
+      requirements: ["SKILL:COMBAT:30", "SLAYER:WOLF_SLAYER:7"]
+      slayer-xp-reward: 1500
+      boss: { id: "SVEN_PACKMASTER_5", health: 15000000, damage: 4000, abilities: ["ALPHA_ROAR", "BLOODTHIRST"], loot: { guaranteed: ["WOLF_PELT:36-54"], rare-pool: [{"OVERFLUX_CAPACITOR": 0.02}, {"ANTIQUE_REMEDIES": 0.01}] } }
+
+# Use one-line map format for brevity where appropriate
+# The rare-pool is a weighted "pick one" list.
+# A weight of 1.0 is twice as likely as 0.5.

@@ -1,5 +1,8 @@
 package org.nakii.mmorpg.listeners;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Sound;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,6 +19,8 @@ import org.nakii.mmorpg.managers.*;
 import org.nakii.mmorpg.mob.CustomMobTemplate;
 import org.nakii.mmorpg.player.PlayerStats;
 import org.nakii.mmorpg.player.Stat;
+import org.nakii.mmorpg.slayer.ActiveSlayerQuest;
+import org.nakii.mmorpg.slayer.PlayerSlayerData;
 
 import java.util.List;
 import java.util.Map;
@@ -138,26 +143,59 @@ public class PlayerDamageListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDeath(EntityDeathEvent event) {
         Player killer = event.getEntity().getKiller();
-        if (killer == null) return; // Must be killed by a player
+        if (killer == null) return;
 
         LivingEntity victim = event.getEntity();
+        SlayerManager slayerManager = plugin.getSlayerManager();
         String mobId = plugin.getMobManager().getMobId(victim);
 
-        // --- 1. Handle Custom Loot ---
+        // --- 1. Check if the killed mob is the player's active quest boss ---
+        ActiveSlayerQuest quest = slayerManager.getActiveSlayerQuest(killer);
+        if (quest != null && quest.getState() == ActiveSlayerQuest.QuestState.BOSS_FIGHT) {
+            if (victim.equals(quest.getActiveBoss())) {
+                // The player has killed their boss!
+                quest.setState(ActiveSlayerQuest.QuestState.AWAITING_CLAIM);
+                quest.setActiveBoss(null);
+                plugin.getScoreboardManager().updateScoreboard(killer); // Update to "CLAIM REWARDS"
+                killer.sendMessage(MMORPGCore.getInstance().getMiniMessage().deserialize("<green><b>SLAYER BOSS SLAIN!</b></green> <gray>Visit Maddox to claim your rewards.</gray>"));
+                killer.playSound(killer.getLocation(), Sound.ENTITY_ENDER_DRAGON_DEATH, 1.0f, 1.2f);
+
+                // Record that the player has now defeated this tier.
+                PlayerSlayerData slayerData = plugin.getSlayerDataManager().getData(killer);
+                if (slayerData != null) {
+                    slayerData.setHighestTierDefeated(quest.getSlayerType(), quest.getTier());
+                }
+
+                // Grant Slayer Leveling XP right here
+                ConfigurationSection bossConfig = slayerManager.getBossConfigById(mobId);
+                if (bossConfig != null) {
+                    int xpReward = bossConfig.getInt("slayer-xp-reward", 0);
+                    slayerManager.addSlayerExperience(killer, quest.getSlayerType(), xpReward);
+                }
+            }
+        }
+
+        // --- 2. Handle Loot for all Custom Mobs (Bosses and regular) ---
         if (mobId != null) {
             event.getDrops().clear();
             event.setDroppedExp(0);
-            List<ItemStack> customLoot = plugin.getLootManager().rollLootTable(killer, mobId);
+
+            List<ItemStack> customLoot;
+            ConfigurationSection bossConfig = slayerManager.getBossConfigById(mobId);
+
+            if (bossConfig != null) {
+                customLoot = plugin.getLootManager().rollSlayerLoot(killer, bossConfig);
+            } else {
+                customLoot = plugin.getLootManager().rollLootTable(killer, mobId);
+            }
+            // Add loot directly to the event drops
             event.getDrops().addAll(customLoot);
         }
 
-        // --- 2. THE FIX: Trigger Combat XP Gain ---
-        // This call is the missing link. It will cause the SkillManager to
-        // calculate combat XP and fire the PlayerGainCombatXpEvent,
-        // which our SlayerProgressListener is listening for.
+        // --- 3. Handle Combat XP (Your existing logic that is guaranteed to work) ---
         plugin.getSkillManager().handleMobKill(killer, victim);
 
-        // --- 3. Handle onKill Enchantment Effects ---
+        // --- 4. Handle onKill Enchantment Effects (Your existing logic) ---
         ItemStack weapon = killer.getInventory().getItemInMainHand();
         if (weapon == null || weapon.getType().isAir()) return;
 

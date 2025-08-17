@@ -2,17 +2,21 @@ package org.nakii.mmorpg.managers;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import org.bukkit.entity.Player;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.economy.PlayerEconomy;
 import org.nakii.mmorpg.economy.Transaction;
 import org.nakii.mmorpg.skills.PlayerSkillData;
 import org.nakii.mmorpg.skills.Skill;
+import org.nakii.mmorpg.slayer.ActiveSlayerQuest;
+import org.nakii.mmorpg.slayer.PlayerSlayerData;
 
 import java.io.File;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class DatabaseManager {
@@ -41,6 +45,8 @@ public class DatabaseManager {
         createPlayerSkillsTable();
         createPlayerEconomyTable();
         createWorldDataTable();
+        createPlayerSlayersTable();
+        createActiveQuestsTable();
     }
 
     /**
@@ -189,6 +195,123 @@ public class DatabaseManager {
                 // --- THE FIX: Call the new player constructor with the UUID ---
                 return new PlayerEconomy(uuid); // This is a new player
             }
+        }
+    }
+    // ---- Slayer data -----
+
+    private void createPlayerSlayersTable() throws SQLException {
+        String sql = """
+        CREATE TABLE IF NOT EXISTS player_slayers (
+            uuid TEXT NOT NULL,
+            slayer_type TEXT NOT NULL,
+            level INTEGER NOT NULL DEFAULT 0,
+            experience INTEGER NOT NULL DEFAULT 0,
+            highest_tier_defeated INTEGER NOT NULL DEFAULT 0, -- ADD THIS LINE
+            PRIMARY KEY (uuid, slayer_type)
+        );
+        """;
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    public PlayerSlayerData loadPlayerSlayerData(Player player) throws SQLException {
+        PlayerSlayerData data = new PlayerSlayerData();
+        String sql = "SELECT slayer_type, level, experience, highest_tier_defeated FROM player_slayers WHERE uuid = ?;"; // ADD COLUMN
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, player.getUniqueId().toString());
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                String slayerType = rs.getString("slayer_type");
+                data.setLevel(slayerType, rs.getInt("level"));
+                data.setXp(slayerType, rs.getInt("experience"));
+                data.setHighestTierDefeated(slayerType, rs.getInt("highest_tier_defeated")); // ADD THIS LINE
+            }
+        }
+        return data;
+    }
+
+    public void savePlayerSlayerData(Player player, PlayerSlayerData data) throws SQLException {
+        String sql = "INSERT OR REPLACE INTO player_slayers (uuid, slayer_type, level, experience, highest_tier_defeated) VALUES (?, ?, ?, ?, ?);"; // ADD COLUMN
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            for (String slayerType : plugin.getSlayerManager().getSlayerConfig().getKeys(false)) {
+                pstmt.setString(1, player.getUniqueId().toString());
+                pstmt.setString(2, slayerType.toUpperCase());
+                pstmt.setInt(3, data.getLevel(slayerType));
+                pstmt.setInt(4, data.getXp(slayerType));
+                pstmt.setInt(5, data.getHighestTierDefeated(slayerType)); // ADD THIS LINE
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+        }
+    }
+
+    private void createActiveQuestsTable() throws SQLException {
+        String sql = """
+        CREATE TABLE IF NOT EXISTS active_quests (
+            uuid TEXT PRIMARY KEY,
+            quest_type TEXT NOT NULL,
+            tier INTEGER NOT NULL,
+            xp_to_spawn INTEGER NOT NULL,
+            current_xp REAL NOT NULL
+        );
+        """;
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    /**
+     * Saves a player's active slayer quest to the database.
+     * @param uuid The player's UUID.
+     * @param quest The ActiveSlayerQuest to save.
+     */
+    public void saveActiveSlayerQuest(UUID uuid, ActiveSlayerQuest quest) throws SQLException {
+        String sql = "INSERT OR REPLACE INTO active_quests (uuid, quest_type, tier, xp_to_spawn, current_xp) VALUES (?, ?, ?, ?, ?);";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, uuid.toString());
+            pstmt.setString(2, quest.getSlayerType());
+            pstmt.setInt(3, quest.getTier());
+            pstmt.setInt(4, quest.getXpToSpawn());
+            pstmt.setDouble(5, quest.getCurrentXp());
+            pstmt.executeUpdate();
+        }
+    }
+
+    /**
+     * Loads a player's active slayer quest from the database.
+     * @param uuid The player's UUID.
+     * @return An Optional containing the ActiveSlayerQuest if one exists, otherwise an empty Optional.
+     */
+    public Optional<ActiveSlayerQuest> loadActiveSlayerQuest(UUID uuid) throws SQLException {
+        String sql = "SELECT quest_type, tier, xp_to_spawn, current_xp FROM active_quests WHERE uuid = ?;";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, uuid.toString());
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                String type = rs.getString("quest_type");
+                int tier = rs.getInt("tier");
+                int xpToSpawn = rs.getInt("xp_to_spawn");
+                double currentXp = rs.getDouble("current_xp");
+
+                ActiveSlayerQuest quest = new ActiveSlayerQuest(type, tier, xpToSpawn);
+                quest.setCurrentXp(currentXp); // We need a setter for this
+
+                return Optional.of(quest);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Deletes a player's active slayer quest from the database.
+     * @param uuid The player's UUID.
+     */
+    public void deleteActiveSlayerQuest(UUID uuid) throws SQLException {
+        String sql = "DELETE FROM active_quests WHERE uuid = ?;";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, uuid.toString());
+            pstmt.executeUpdate();
         }
     }
 }
