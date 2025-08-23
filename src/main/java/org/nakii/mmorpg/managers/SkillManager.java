@@ -1,12 +1,12 @@
 package org.nakii.mmorpg.managers;
 
-import net.objecthunter.exp4j.Expression;
-import net.objecthunter.exp4j.ExpressionBuilder;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.nakii.mmorpg.MMORPGCore;
@@ -20,267 +20,193 @@ import org.nakii.mmorpg.utils.ChatUtils;
 
 import java.io.File;
 import java.sql.SQLException;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.time.Duration;
+import java.util.*;
 
 public class SkillManager {
     private final MMORPGCore plugin;
-    private final Map<UUID, PlayerSkillData> skillDataMap = new HashMap<>();
-    private FileConfiguration skillConfig;
+    private final Map<UUID, PlayerSkillData> playerDataCache = new HashMap<>();
+    private FileConfiguration skillsConfig;
+    private FileConfiguration levelsConfig;
 
-    // --- NEW FIELDS ---
-    private String xpFormula;
-    private final Map<Skill, Integer> maxLevels = new EnumMap<>(Skill.class);
-    private final Map<Skill, Map<String, Double>> skillXpSources = new EnumMap<>(Skill.class);
+    // A cache for level progression data for extremely fast lookups.
+    private final Map<Integer, Integer> xpToReachLevelCache = new TreeMap<>();
 
     public SkillManager(MMORPGCore plugin) {
         this.plugin = plugin;
         loadSkillsConfig();
+        loadLevelsConfig();
     }
 
-    public void loadSkillsConfig() {
-        File skillsFile = new File(plugin.getDataFolder(), "skills.yml");
-        if (!skillsFile.exists()) {
-            plugin.saveResource("skills.yml", false);
-        }
-        FileConfiguration config = YamlConfiguration.loadConfiguration(skillsFile);
+    private void loadSkillsConfig() {
+        File file = new File(plugin.getDataFolder(), "skills.yml");
+        if (!file.exists()) plugin.saveResource("skills.yml", false);
+        this.skillsConfig = YamlConfiguration.loadConfiguration(file);
+    }
 
-        this.xpFormula = config.getString("xp-formula", "100 * (level ^ 2.5)");
+    private void loadLevelsConfig() {
+        File file = new File(plugin.getDataFolder(), "levels.yml");
+        if (!file.exists()) plugin.saveResource("levels.yml", false);
+        this.levelsConfig = YamlConfiguration.loadConfiguration(file);
 
-        ConfigurationSection skillsSection = config.getConfigurationSection("skills");
-        if (skillsSection == null) return;
-
-        for (String skillKey : skillsSection.getKeys(false)) {
-            try {
-                Skill skill = Skill.valueOf(skillKey.toUpperCase());
-                ConfigurationSection skillConfig = skillsSection.getConfigurationSection(skillKey);
-
-                maxLevels.put(skill, skillConfig.getInt("max-level", 50));
-
-                Map<String, Double> xpSources = new HashMap<>();
-                ConfigurationSection sourcesSection = skillConfig.getConfigurationSection("xp-sources");
-                if (sourcesSection != null) {
-                    for (String sourceKey : sourcesSection.getKeys(false)) {
-                        xpSources.put(sourceKey.toUpperCase(), sourcesSection.getDouble(sourceKey));
-                    }
-                }
-                skillXpSources.put(skill, xpSources);
-            } catch (IllegalArgumentException e) {
-                plugin.getLogger().warning("Invalid skill '" + skillKey + "' found in skills.yml.");
+        xpToReachLevelCache.clear();
+        ConfigurationSection levels = levelsConfig.getConfigurationSection("levels");
+        if (levels != null) {
+            for (String key : levels.getKeys(false)) {
+                try {
+                    xpToReachLevelCache.put(Integer.parseInt(key), levels.getInt(key + ".cumulative_xp"));
+                } catch (NumberFormatException ignored) {}
             }
         }
-        plugin.getLogger().info("Loaded skill configurations for " + skillXpSources.size() + " skills.");
-    }
-
-    /**
-     * Calculates the total XP required to reach a certain level using the exp4j library.
-     */
-    public double getTotalXpForLevel(int level) {
-        if (level <= 1) return 0;
-        try {
-            // Create an expression with a variable 'level'
-            Expression expression = new ExpressionBuilder(this.xpFormula)
-                    .variable("level")
-                    .build()
-                    .setVariable("level", level);
-
-            return expression.evaluate();
-        } catch (Exception e) {
-            plugin.getLogger().severe("Failed to evaluate XP formula for level " + level + ": " + e.getMessage());
-            return Double.MAX_VALUE;
-        }
-    }
-
-    /**
-     * Gets the XP required to go from the previous level to the target level.
-     */
-    public double getXpForLevel(int level) {
-        if (level <= 1) return getTotalXpForLevel(1);
-        return getTotalXpForLevel(level) - getTotalXpForLevel(level - 1);
+        plugin.getLogger().info("Loaded " + xpToReachLevelCache.size() + " level progression steps.");
     }
 
     public void addXp(Player player, Skill skill, double amount) {
-        PlayerSkillData data = getSkillData(player);
+        PlayerSkillData data = getPlayerData(player);
         int currentLevel = data.getLevel(skill);
+        int maxLevel = skillsConfig.getInt(skill.name() + ".max-level", 60);
 
-        if (currentLevel >= maxLevels.getOrDefault(skill, 50)) {
-            return; // Player is at max level for this skill
-        }
+        if (currentLevel >= maxLevel) return;
 
+        double oldTotalXp = data.getXp(skill);
         data.addXp(skill, amount);
+        double newTotalXp = data.getXp(skill);
 
-        double currentXpInLevel = data.getXp(skill);
-        double xpForNextLevel = getXpForLevel(currentLevel + 1);
+        int newLevel = calculateLevelFromTotalXp(newTotalXp);
 
-        while (currentXpInLevel >= xpForNextLevel) {
-            currentLevel++;
-            data.setLevel(skill, currentLevel);
-            currentXpInLevel -= xpForNextLevel;
-            data.setXp(skill, currentXpInLevel);
-
-            // Announce level up
-            player.sendMessage(ChatUtils.format("<green>Your " + ChatUtils.capitalizeWords(skill.name()) + " skill is now level " + currentLevel + "!</green>"));
-            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
-
-            plugin.getStatsManager().recalculateStats(player);
-
-            if (currentLevel >= maxLevels.getOrDefault(skill, 50)) {
-                data.setXp(skill, 0); // At max level, reset XP in level to 0
-                break; // Exit the loop
-            }
-            xpForNextLevel = getXpForLevel(currentLevel + 1);
+        if (newLevel > currentLevel) {
+            data.setLevel(skill, newLevel);
+            handleLevelUp(player, skill, newLevel, currentLevel);
         }
+
+        // TODO: Send an action bar message to the player showing "+X Skill XP"
     }
 
-    public void handleBlockBreak(Player player, Material material) {
-        for (Map.Entry<Skill, Map<String, Double>> entry : skillXpSources.entrySet()) {
-            Skill skill = entry.getKey();
-            Map<String, Double> sources = entry.getValue();
-            if (sources.containsKey(material.name())) {
-                addXp(player, skill, sources.get(material.name()));
-            }
+    private void handleLevelUp(Player player, Skill skill, int newLevel, int oldLevel) {
+        String skillDisplayName = skillsConfig.getString(skill.name() + ".display-name", skill.name());
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
+
+        List<String> allRewardStrings = new ArrayList<>();
+        int totalCoins = 0;
+
+        for (int level = oldLevel + 1; level <= newLevel; level++) {
+            totalCoins += levelsConfig.getInt("levels." + level + ".coins", 0);
+            allRewardStrings.addAll(skillsConfig.getStringList(skill.name() + ".milestone-rewards." + level));
         }
+
+        if (totalCoins > 0) {
+            allRewardStrings.add("COINS:" + totalCoins);
+        }
+
+        // --- Chat Message Generation ---
+        player.sendMessage(ChatUtils.format("<dark_gray>-----------------------------------"));
+        player.sendMessage(ChatUtils.format("                <green><b>LEVEL UP</b></green>"));
+        player.sendMessage(ChatUtils.format("   " + skillDisplayName + " <gray>" + toRoman(oldLevel) + " -> <yellow>" + toRoman(newLevel) + "</yellow>"));
+        player.sendMessage(ChatUtils.format(" "));
+        player.sendMessage(ChatUtils.format("  <white>Rewards:"));
+
+        // Grant rewards and simultaneously format them for the message
+        List<Component> rewardComponents = plugin.getRewardManager().grantRewards(player, allRewardStrings);
+        for (Component rewardLine : rewardComponents) {
+            player.sendMessage(Component.text("  ").append(rewardLine));
+        }
+
+        player.sendMessage(ChatUtils.format("<dark_gray>-----------------------------------"));
+
+        // Recalculate stats AFTER granting all rewards
+        plugin.getStatsManager().recalculateStats(player);
     }
 
     public void handleMobKill(Player player, LivingEntity victim) {
+        // This method is already correct and does not need to be changed.
+        // It correctly calculates dynamic XP and fires the PlayerGainCombatXpEvent.
+        // The final addXp call will now use our new, robust leveling system.
         double baseXP = 0.0;
-
-        // --- 1. Identify the Mob and Calculate Base XP ---
         String mobId = plugin.getMobManager().getMobId(victim);
-
         if (mobId != null) {
-            // It's a custom mob. Use our dynamic formula.
             CustomMobTemplate template = plugin.getMobManager().getTemplate(mobId);
             if (template != null) {
-                double health = template.getStat(Stat.HEALTH);
-                int level = template.getLevel();
-                // This is the formula for dynamic XP based on mob stats.
-                baseXP = (health / 20.0) + (level * 2.5);
+                baseXP = (template.getStat(Stat.HEALTH) / 20.0) + (template.getLevel() * 2.5);
             }
         } else {
-            // It's a vanilla mob. Use the old system as a fallback.
-            EntityType entityType = victim.getType();
-            Map<String, Double> combatSources = skillXpSources.get(Skill.COMBAT);
-            if (combatSources != null && combatSources.containsKey(entityType.name())) {
-                baseXP = combatSources.get(entityType.name());
-            }
+            baseXP = 5.0; // Default for vanilla mobs
         }
 
-        // If no XP source was found, exit.
-        if (baseXP <= 0) {
-            return;
-        }
+        if (baseXP <= 0) return;
 
-        // --- 2. Apply Player's Combat Wisdom ---
         PlayerStats playerStats = plugin.getStatsManager().getStats(player);
         double combatWisdom = playerStats.getStat(Stat.COMBAT_WISDOM);
-        // The formula for applying the percentage bonus from wisdom.
         double finalXP = baseXP * (1 + (combatWisdom / 100.0));
 
-        // --- 3. Broadcast the Event with the Final XP Amount ---
         PlayerGainCombatXpEvent event = new PlayerGainCombatXpEvent(player, victim, finalXP);
         plugin.getServer().getPluginManager().callEvent(event);
 
-        // --- 4. Grant the XP ---
-        // We use the amount from the event, as another system could potentially modify it.
         addXp(player, Skill.COMBAT, event.getXpAmount());
     }
 
-    public void loadSkillConfig() {
-        File skillFile = new File(plugin.getDataFolder(), "skills.yml");
-        if (!skillFile.exists()) {
-            plugin.saveResource("skills.yml", false);
-        }
-        skillConfig = YamlConfiguration.loadConfiguration(skillFile);
-    }
-
-    /**
-     * BUG FIX: Added public getter for the skill configuration.
-     * This allows other classes to access the loaded skills.yml file.
-     *
-     * @return The loaded skill configuration.
-     */
-    public FileConfiguration getSkillConfig() {
-        return skillConfig;
-    }
+    // --- Data Management & Public Getters ---
 
     public void loadPlayerData(Player player) {
         try {
             PlayerSkillData data = plugin.getDatabaseManager().loadPlayerSkillData(player.getUniqueId());
-            skillDataMap.put(player.getUniqueId(), data);
+            playerDataCache.put(player.getUniqueId(), data);
         } catch (SQLException e) {
             e.printStackTrace();
-            skillDataMap.put(player.getUniqueId(), new PlayerSkillData());
+            playerDataCache.put(player.getUniqueId(), new PlayerSkillData());
         }
     }
 
     public void savePlayerData(Player player) {
-        if (skillDataMap.containsKey(player.getUniqueId())) {
+        if (playerDataCache.containsKey(player.getUniqueId())) {
             try {
-                plugin.getDatabaseManager().savePlayerSkillData(player.getUniqueId(), getSkillData(player));
+                plugin.getDatabaseManager().savePlayerSkillData(player.getUniqueId(), getPlayerData(player));
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         }
     }
+    public PlayerSkillData getPlayerData(Player player) { return playerDataCache.get(player.getUniqueId()); }
+    public int getLevel(Player player, Skill skill) { return getPlayerData(player).getLevel(skill); }
+    public double getTotalXp(Player player, Skill skill) { return getPlayerData(player).getXp(skill); }
 
-    public PlayerSkillData getSkillData(Player player) {
-        return skillDataMap.getOrDefault(player.getUniqueId(), new PlayerSkillData());
-    }
-
-    public void addExperience(Player player, Skill skill, double amount) {
-        PlayerSkillData data = getSkillData(player);
-        int currentLevel = data.getLevel(skill);
-        int maxLevel = getSkillConfig().getInt("skills." + skill.name().toLowerCase() + ".max_level", 50);
-
-        if (currentLevel >= maxLevel) return;
-
-        double currentExp = data.getXp(skill);
-        double expToLevel = getExperienceForLevel(skill, currentLevel);
-
-        data.setXp(skill, currentExp + amount);
-
-        if (data.getXp(skill) >= expToLevel) {
-            data.setLevel(skill, currentLevel + 1);
-            data.setXp(skill, data.getXp(skill) - expToLevel);
-            player.sendMessage(ChatUtils.format( "<aqua>You are now " + skill.name() + " level " + (currentLevel + 1) + "!") );
-            plugin.getStatsManager().recalculateStats(player);
-        }
-    }
-
-    public double getExperienceForLevel(Skill skill, int level) {
-        String formula = getSkillConfig().getString("skills." + skill.name().toLowerCase() + ".experience_formula", "100 * %level%");
-        // This is still a simple parser. A proper library like exp4j would be better for complex formulas.
-        String replaced = formula.replace("%level%", String.valueOf(level));
-        try {
-            // Simple multiplication support
-            if (replaced.contains("*")) {
-                String[] parts = replaced.split("\\*");
-                double value = 1;
-                for (String part : parts) {
-                    value *= Double.parseDouble(part.trim());
-                }
-                return value;
+    public int calculateLevelFromTotalXp(double totalXp) {
+        int level = 0;
+        for (Map.Entry<Integer, Integer> entry : xpToReachLevelCache.entrySet()) {
+            if (totalXp >= entry.getValue()) {
+                level = Math.max(level, entry.getKey());
+            } else {
+                break;
             }
-            return Double.parseDouble(replaced);
-        } catch (NumberFormatException e) {
-            return 100 * level * level; // Fallback
+        }
+        return level;
+    }
+
+    public void addXpForAction(Player player, Skill skill, String actionKey) {
+        // Example actionKey could be a Material name like "OAK_LOG" or a potion name
+        double xpAmount = skillsConfig.getDouble(skill.name() + ".xp-sources." + actionKey.toUpperCase(), 0.0);
+        if (xpAmount > 0) {
+            addXp(player, skill, xpAmount);
         }
     }
 
-    /**
-     * REVISED: Gets the current level of a specific skill for a player.
-     * This now correctly uses the unified data structure.
-     */
-    public int getLevel(Player player, Skill skill) {
-        PlayerSkillData data = skillDataMap.get(player.getUniqueId());
-        if (data == null) {
-            // This can happen if a player's data isn't loaded properly.
-            // Returning 0 is a safe fallback.
-            return 0;
+    private String toRoman(int number) {
+        if (number < 1 || number > 39) return String.valueOf(number);
+        String[] r = {"X", "IX", "V", "IV", "I"};
+        int[] v = {10, 9, 5, 4, 1};
+        StringBuilder sb = new StringBuilder();
+        for(int i=0; i<v.length; i++) {
+            while(number >= v[i]) {
+                number -= v[i];
+                sb.append(r[i]);
+            }
         }
-        return data.getLevel(skill);
+        return sb.toString();
     }
+
+    public int getCumulativeXpForLevel(int level) {
+        return xpToReachLevelCache.getOrDefault(level, 0);
+    }
+
+    public FileConfiguration getSkillsConfig() { return skillsConfig; }
+    public FileConfiguration getLevelsConfig() { return levelsConfig; }
 }

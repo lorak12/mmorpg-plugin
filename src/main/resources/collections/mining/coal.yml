@@ -1,0 +1,10 @@
+id: "COAL"
+display-name: "<dark_gray>Coal"
+material: "COAL"
+category: "MINING"
+tiers:
+  1: { required: 50, rewards: ["RECIPE_UNLOCK:COAL_MINION_1"], skill-xp: 2 }
+  2: { required: 100, rewards: ["RECIPE_UNLOCK:ENCHANTED_COAL"], skill-xp: 2 }
+  3: { required: 250, rewards: ["TRADE_UNLOCK:BLACKSMITH_COAL"], skill-xp: 3 }
+  4: { required: 500, rewards: ["RECIPE_UNLOCK:MINER_OUTFIT_BOOTS"], skill-xp: 3 }
+  5: { required: 1000, rewards: ["SKILL_XP:MINING:1500"], skill-xp: 5 }

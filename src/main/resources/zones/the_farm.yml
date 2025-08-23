@@ -1,0 +1,29 @@
+id: "the_farm"
+display-name: "<yellow>The Farm"
+icon: "WHEAT"
+bounds:
+  min-y: 40
+  max-y: 128
+  points:
+    - "400,300"
+    - "450,350"
+    - "400,400"
+    - "350,350"
+flags:
+  block-breaking:
+    unlisted-blocks-unbreakable: true
+    definitions:
+      WHEAT_NODE:
+        material: WHEAT
+        # This requires the block to be fully grown (age: 7)
+        # You would need to add block data checking to your BlockBreakListener
+        block-data: "age=7"
+        custom-drop-id: "WHEAT" # Drops a vanilla wheat item
+        collection-id: "WHEAT"  # Contributes to the WHEAT collection
+        # Instantly breaks and reverts to a new wheat crop
+        breaks-to: "WHEAT_SEED_NODE"
+      WHEAT_SEED_NODE:
+        material: WHEAT
+        block-data: "age=0"
+        # Re-grows after 30 seconds
+        reverts-to: "WHEAT_NODE:30s"

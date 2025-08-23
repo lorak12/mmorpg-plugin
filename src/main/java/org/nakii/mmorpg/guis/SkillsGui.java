@@ -1,121 +1,234 @@
 package org.nakii.mmorpg.guis;
 
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.skills.PlayerSkillData;
 import org.nakii.mmorpg.skills.Skill;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class SkillsGui extends AbstractGui {
 
+    private enum View { OVERVIEW, DETAIL }
+    private View currentView = View.OVERVIEW;
+    private Skill selectedSkill = null;
+
+    // --- USING YOUR EXACT SNAKE PATH ---
+    private static final int[] SNAKE_PATH = {
+            9, 10, 19, 28, 37, 38, 39, 30, 21, 12, 13, 14, 23, 32, 41, 42, 43, 34, 25, 16, 17
+    };
+    // Note: This path has 20 slots. Page 1 = Lvl 1-20, Page 2 = 21-40, Page 3 = 41-60.
+
     public SkillsGui(MMORPGCore plugin, Player player) {
         super(plugin, player);
     }
 
-    @Override
-    public String getTitle() { return "<dark_gray><b>Your Skills</b></dark_gray>"; }
+    public SkillsGui(MMORPGCore plugin, Player player, Skill selectedSkill) {
+        super(plugin, player);
+        this.selectedSkill = selectedSkill;
+        this.currentView = View.DETAIL;
+    }
 
     @Override
-    public int getSize() { return 54; } // A 54-slot inventory (6 rows)
+    public @NotNull String getTitle() {
+        if (currentView == View.DETAIL && selectedSkill != null) {
+            String skillName = plugin.getSkillManager().getSkillsConfig().getString(selectedSkill.name() + ".display-name", "Skill");
+            return skillName;
+        }
+        return "Your Skills";
+    }
+
+    @Override
+    public int getSize() {
+        return currentView == View.OVERVIEW ? 36 : 54;
+    }
 
     @Override
     public void populateItems() {
-        drawBaseLayout(); // This will draw the border and standard controls
+        // --- FIX #1: MANUAL LAYOUT CONTROL ---
+        // We no longer call drawBaseLayout() to prevent it from overwriting our edge slots.
+        ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
+        for (int i = 0; i < getSize(); i++) {
+            inventory.setItem(i, filler);
+        }
 
-        PlayerSkillData skillData = plugin.getSkillManager().getSkillData(player);
-        if (skillData == null) return;
+        if (currentView == View.OVERVIEW) {
+            drawOverview();
+        } else {
+            drawDetailView();
+        }
 
-        // Define the slots where the skill icons will be placed
-        int[] skillSlots = {10, 11, 12, 13, 19, 20, 21, 22};
-        Skill[] skills = Skill.values();
+        // Draw navigation buttons AFTER the main content to ensure they are on top.
+        int closeSlot = getSize() - 5;
+        int prevPageSlot = getSize() - 6;
+        int nextPageSlot = getSize() - 4;
 
-        for (int i = 0; i < skillSlots.length; i++) {
-            if (i >= skills.length) break; // Stop if we have more slots than skills
+        if (currentView == View.DETAIL) {
+            if (page > 0) inventory.setItem(prevPageSlot, createItem(Material.ARROW, "<green>Previous Page</green>"));
+            if (page < totalPages - 1) inventory.setItem(nextPageSlot, createItem(Material.ARROW, "<green>Next Page</green>"));
+            inventory.setItem(closeSlot, createItem(Material.ARROW, "<green>Go Back</green>"));
+        } else {
+            inventory.setItem(closeSlot, createItem(Material.BARRIER, "<red><b>Close</b></red>"));
+        }
+    }
 
-            Skill skill = skills[i];
-            int level = skillData.getLevel(skill);
-            double currentXp = skillData.getXp(skill);
-            double xpForNextLevel = plugin.getSkillManager().getXpForLevel(level + 1);
+    private void drawDetailView() {
+        int playerLevel = plugin.getSkillManager().getLevel(player, selectedSkill);
+        ConfigurationSection skillConfig = plugin.getSkillManager().getSkillsConfig().getConfigurationSection(selectedSkill.name());
+        int maxLevel = skillConfig.getInt("max-level", 60);
 
-            List<String> lore = buildSkillLore(skill, level, currentXp, xpForNextLevel);
+        this.maxItemsPerPage = SNAKE_PATH.length;
+        this.totalPages = (int) Math.ceil((double) maxLevel / maxItemsPerPage);
 
-            // Use our corrected createItem helper method
-            inventory.setItem(skillSlots[i], createItem(getSkillMaterial(skill), "<green><b>" + capitalize(skill.name()) + "</b></green>", lore));
+        int startingLevel = (page * maxItemsPerPage) + 1;
+
+        for(int i = 0; i < maxItemsPerPage; i++) {
+
+            int slot = SNAKE_PATH[i];
+
+            if (page == 0 && i == 0) {
+                ItemStack startItem = createItem(
+                        Material.NETHER_STAR,
+                        "<yellow>Level 0 (Start)",
+                        List.of("<gray>Beginning of your journey</gray>")
+                );
+                inventory.setItem(slot, startItem);
+                continue;
+            }
+
+            int currentLevel = startingLevel + i;
+            if (currentLevel > maxLevel) break;
+
+            boolean isUnlocked = currentLevel <= playerLevel;
+            Material mat = isUnlocked ? Material.LIME_STAINED_GLASS_PANE : Material.RED_STAINED_GLASS_PANE;
+            String name = (isUnlocked ? "<green>" : "<red>") + "Level " + currentLevel;
+
+            List<String> lore = new ArrayList<>();
+            lore.add("<white>Rewards:");
+            int coins = plugin.getSkillManager().getLevelsConfig().getInt("levels." + currentLevel + ".coins", 0);
+            if (coins > 0) lore.add("<gold>+ " + String.format("%,d", coins) + " Coins</gold>");
+
+            ConfigurationSection rewardsPerLevel = skillConfig.getConfigurationSection("rewards-per-level");
+            if(rewardsPerLevel != null) {
+                for(String statKey : rewardsPerLevel.getKeys(false)) {
+                    lore.add("<gray>+ <green>" + rewardsPerLevel.getDouble(statKey) + " " + statKey.replace("_", " ") + "</green>");
+                }
+            }
+            skillConfig.getStringList("milestone-rewards." + currentLevel).forEach(r -> lore.add("<gold>" + formatRewardString(r) + "</gold>"));
+
+            ItemStack item = createItem(mat, name, lore);
+            item.setAmount(Math.min(64, currentLevel));
+            inventory.setItem(slot, item);
+        }
+    }
+
+    private void drawOverview() {
+        PlayerSkillData data = plugin.getSkillManager().getPlayerData(player);
+        ConfigurationSection skillsConfig = plugin.getSkillManager().getSkillsConfig();
+
+        int[] slots = {10, 11, 12, 13, 14, 15, 16, 19};
+        Skill[] skillOrder = {Skill.FARMING, Skill.MINING, Skill.COMBAT, Skill.FORAGING, Skill.FISHING, Skill.ENCHANTING, Skill.ALCHEMY, Skill.CARPENTRY};
+
+        for (int i = 0; i < skillOrder.length; i++) {
+            Skill skill = skillOrder[i];
+            ConfigurationSection config = skillsConfig.getConfigurationSection(skill.name());
+            if (config == null) continue;
+
+            int level = data.getLevel(skill);
+            double currentTotalXp = data.getXp(skill);
+            int maxLevel = config.getInt("max-level", 60);
+
+            String displayName = config.getString("display-name", skill.name());
+            Material icon = Material.matchMaterial(config.getString("icon", "BARRIER"));
+            List<String> lore = new ArrayList<>();
+            lore.add("<gray>Level " + level + "</gray>");
+            lore.add(" ");
+
+            if (level < maxLevel) {
+                double xpForCurrentLevel = plugin.getSkillManager().getCumulativeXpForLevel(level);
+                double xpForNextLevel = plugin.getSkillManager().getCumulativeXpForLevel(level + 1);
+                double progressInLevel = currentTotalXp - xpForCurrentLevel;
+                double neededForLevel = xpForNextLevel - xpForCurrentLevel;
+                lore.add("<white>Progress to Level " + (level + 1) + ": <yellow>" + String.format("%.1f%%", (progressInLevel / neededForLevel) * 100) + "</yellow>");
+                lore.add(generateProgressBar(progressInLevel, neededForLevel) + " <gray>" + String.format("%,.0f", progressInLevel) + "/" + String.format("%,.0f", neededForLevel));
+            } else {
+                lore.add("<gold>MAX LEVEL</gold>");
+            }
+            lore.add(" ");
+            lore.add("<white>Rewards per Level:");
+            config.getConfigurationSection("rewards-per-level").getKeys(false).forEach(statKey ->
+                    lore.add("<gray>+ <green>" + config.getDouble("rewards-per-level." + statKey) + " " + statKey.replace("_", " ") + "</green>")
+            );
+            lore.add(" ");
+            lore.add("<yellow>Click to view details!</yellow>");
+
+            inventory.setItem(slots[i], createItem(icon, displayName, lore));
         }
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
-        // We just want a view-only menu, so the default behavior in AbstractGui
-        // (cancelling the click and handling pagination/close) is perfect.
+        event.setCancelled(true);
+        if (currentView == View.OVERVIEW) {
+            handleOverviewClick(event);
+        } else {
+            handleDetailViewClick(event);
+        }
+    }
+
+    private void handleOverviewClick(InventoryClickEvent event) {
+        int[] slots = {10, 11, 12, 13, 14, 15, 16, 19};
+        Skill[] skillOrder = {Skill.FARMING, Skill.MINING, Skill.COMBAT, Skill.FORAGING, Skill.FISHING, Skill.ENCHANTING, Skill.ALCHEMY, Skill.CARPENTRY};
+
+        for (int i = 0; i < slots.length; i++) {
+            if (event.getSlot() == slots[i]) {
+                this.selectedSkill = skillOrder[i];
+                this.currentView = View.DETAIL;
+                reopen();
+                return;
+            }
+        }
         super.handleClick(event);
     }
 
-    // --- HELPER METHODS ---
-
-    private List<String> buildSkillLore(Skill skill, int level, double currentXp, double xpForNextLevel) {
-        List<String> loreLines = new ArrayList<>();
-
-        loreLines.add("<dark_gray>Level " + level + "</dark_gray>");
-        loreLines.add("");
-
-        String progress = String.format("%,.0f / %,.0f", currentXp, xpForNextLevel);
-        loreLines.add("<gray>Progress to Level " + (level + 1) + ":</gray>");
-        loreLines.add(createProgressBar(currentXp, xpForNextLevel) + " <gray>" + progress + "</gray>");
-        loreLines.add("");
-
-        loreLines.add("<white><b>Rewards:</b></white>");
-        // This can be expanded to pull from a config
-        switch (skill) {
-            case COMBAT:
-                loreLines.add("<gray>+<red>0.5% ☣ Crit Chance</red> per level.</gray>");
-                break;
-            case FARMING:
-                loreLines.add("<gray>+<red>2 ❤ Health</red> per level.</gray>");
-                break;
-            case MINING:
-                loreLines.add("<gray>+<green>1 ❈ Defense</green> per level.</gray>");
-                break;
-            case FORAGING:
-                loreLines.add("<gray>+<red>1 ❁ Strength</red> per level.</gray>");
-                break;
-            // Add other skill rewards here...
-            default:
-                loreLines.add("<gray>Various rewards!</gray>");
+    private void handleDetailViewClick(InventoryClickEvent event) {
+        if (event.getSlot() == getSize() - 5) { // Back button
+            this.selectedSkill = null;
+            this.currentView = View.OVERVIEW;
+            reopen();
+        } else {
+            super.handleClick(event);
         }
-
-        return loreLines;
     }
 
-    private String createProgressBar(double current, double max) {
-        if (max <= 0) max = 1;
-        double percent = current / max;
-        int barWidth = 20;
-
-        int filledWidth = (int) (barWidth * percent);
-        int emptyWidth = barWidth - filledWidth;
-
-        return "<green>" + "■".repeat(filledWidth) + "</gray>" + "■".repeat(emptyWidth);
+    private void reopen() {
+        player.closeInventory();
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                new SkillsGui(plugin, player, selectedSkill).open();
+            }
+        }.runTaskLater(plugin, 1L);
     }
 
-    private Material getSkillMaterial(Skill skill) {
-        return switch (skill) {
-            case COMBAT -> Material.DIAMOND_SWORD;
-            case MINING -> Material.DIAMOND_PICKAXE;
-            case FARMING -> Material.GOLDEN_HOE;
-            case FORAGING -> Material.OAK_SAPLING;
-            case FISHING -> Material.FISHING_ROD;
-            case ENCHANTING -> Material.ENCHANTING_TABLE;
-            case ALCHEMY -> Material.BREWING_STAND;
-            case CARPENTRY -> Material.CRAFTING_TABLE;
-        };
+    private String generateProgressBar(double current, double max) {
+        if (max <= 0) return "<dark_gray>-----------------</dark_gray>";
+        double percent = Math.min(1.0f, (float) current / max);
+        int greenChars = (int) (17 * percent);
+        int grayChars = 17 - greenChars;
+        return "<green>" + "-".repeat(greenChars) + "</green><dark_gray>" + "-".repeat(grayChars) + "</dark_gray>";
     }
 
-    private String capitalize(String str) {
-        if (str == null || str.isEmpty()) return str;
-        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
+    private String formatRewardString(String rewardString) {
+        String[] parts = rewardString.split(":");
+        if (parts.length < 2) return rewardString;
+        return "• " + parts[0].replace("_", " ") + ": " + parts[1].replace("_", " ");
     }
 }

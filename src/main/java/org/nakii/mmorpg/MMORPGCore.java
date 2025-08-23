@@ -1,14 +1,19 @@
 package org.nakii.mmorpg;
 
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.commands.*;
 import org.nakii.mmorpg.listeners.*;
+import org.nakii.mmorpg.listeners.packet.CustomMiningPacketListener;
 import org.nakii.mmorpg.managers.*;
 import org.nakii.mmorpg.tasks.*;
 import org.nakii.mmorpg.zone.PlayerZoneTracker;
@@ -51,6 +56,10 @@ public final class MMORPGCore extends JavaPlugin {
     private RegenerationManager regenerationManager;
     private SlayerDataManager slayerDataManager;
     private BossAbilityManager bossAbilityManager;
+    private CollectionManager collectionManager;
+    private RewardManager rewardManager;
+
+    private BlockBreakListener blockBreakListener;
 
     private ClimateTask climateTask;
 
@@ -95,6 +104,7 @@ public final class MMORPGCore extends JavaPlugin {
             skillManager = new SkillManager(this);
             damageManager = new DamageManager(this);
             playerStateManager = new PlayerStateManager();
+            rewardManager = new RewardManager(this);
 
             // Item & Content Systems
             itemManager = new ItemManager(this);
@@ -105,6 +115,8 @@ public final class MMORPGCore extends JavaPlugin {
             slayerDataManager = new SlayerDataManager();
             slayerManager = new SlayerManager(this);
             bossAbilityManager = new BossAbilityManager(this);
+            collectionManager = new CollectionManager(this);
+
 
             // Enchantment Systems
             enchantmentManager = new EnchantmentManager(this);
@@ -196,9 +208,10 @@ public final class MMORPGCore extends JavaPlugin {
     private void registerListeners() {
         var pm = getServer().getPluginManager();
 
+        pm.registerEvents(new PristineItemListener(), this);
+
         pm.registerEvents(new InventoryListener(this), this);
         pm.registerEvents(new EntitySpawningListener(this), this);
-        pm.registerEvents(new MiningListener(this), this);
         pm.registerEvents(new FarmingListener(this), this);
         pm.registerEvents(new CarpentryListener(this), this);
         pm.registerEvents(new AlchemyListener(this), this);
@@ -217,8 +230,15 @@ public final class MMORPGCore extends JavaPlugin {
         pm.registerEvents(new PlayerDeathListener(this), this);
         pm.registerEvents(new ScoreboardListener(this), this);
         pm.registerEvents(new ZoneListener(this), this);
-        pm.registerEvents(new BlockBreakListener(this.zoneManager, this.regenerationManager), this);
         pm.registerEvents(new ZoneWandListener(), this);
+
+        this.blockBreakListener = new BlockBreakListener(this);
+        pm.registerEvents(this.blockBreakListener, this);
+
+        ProtocolManager protocolManager = ProtocolLibrary.getProtocolManager();
+        CustomMiningPacketListener packetListener = new CustomMiningPacketListener(this);
+        protocolManager.addPacketListener(packetListener);
+
     }
 
     // --- All other methods and getters remain the same as your original file ---
@@ -309,6 +329,7 @@ public final class MMORPGCore extends JavaPlugin {
         getCommand("bank").setExecutor(new BankCommand(this));
         getCommand("debugclimate").setExecutor(new ClimateDebugCommand(climateTask));
         getCommand("zone").setExecutor(new ZoneCommand(this));
+        getCommand("collections").setExecutor(new CollectionCommand(this));
     }
     private void startAutoSaveTask() {
         long interval = 20L * 60 * 5; // Every 5 minutes
@@ -371,5 +392,14 @@ public final class MMORPGCore extends JavaPlugin {
     }
     public BossAbilityManager getBossAbilityManager() {
         return bossAbilityManager;
+    }
+    public CollectionManager getCollectionManager() {
+        return collectionManager;
+    }
+    public BlockBreakListener getBlockBreakListener() {
+        return this.blockBreakListener;
+    }
+    public RewardManager getRewardManager() {
+        return rewardManager;
     }
 }

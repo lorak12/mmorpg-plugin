@@ -52,9 +52,15 @@ public abstract class AbstractGui implements InventoryHolder {
         if (event.getClickedInventory() == inventory) {
             event.setCancelled(true);
             int slot = event.getSlot();
-            if (slot == 48) previousPage();
-            else if (slot == 50) nextPage();
-            else if (slot == 49) player.closeInventory();
+
+            // --- THE FIX: Use dynamic slot positions for checks ---
+            int closeSlot = getSize() - 5;
+            int prevPageSlot = getSize() - 6;
+            int nextPageSlot = getSize() - 4;
+
+            if (slot == prevPageSlot && getSize() > 27) previousPage();
+            else if (slot == nextPageSlot && getSize() > 27) nextPage();
+            else if (slot == closeSlot) player.closeInventory();
         }
     }
 
@@ -92,9 +98,22 @@ public abstract class AbstractGui implements InventoryHolder {
                 inventory.setItem(i, filler);
             }
         }
-        if (page > 0) inventory.setItem(48, createItem(Material.ARROW, "<green>Previous Page</green>"));
-        if (page < totalPages - 1) inventory.setItem(50, createItem(Material.ARROW, "<green>Next Page</green>"));
-        inventory.setItem(49, createItem(Material.BARRIER, "<red><b>Close</b></red>"));
+
+        // --- THE FIX: Calculate positions dynamically ---
+        int closeSlot = getSize() - 5;
+        int prevPageSlot = getSize() - 6;
+        int nextPageSlot = getSize() - 4;
+
+        if (getSize() > 27) { // Only show pagination for larger GUIs
+            if (page > 0) {
+                inventory.setItem(prevPageSlot, createItem(Material.ARROW, "<green>Previous Page</green>"));
+            }
+            if (page < totalPages - 1) {
+                inventory.setItem(nextPageSlot, createItem(Material.ARROW, "<green>Next Page</green>"));
+            }
+        }
+
+        inventory.setItem(closeSlot, createItem(Material.BARRIER, "<red><b>Close</b></red>"));
     }
 
     // --- THIS IS THE FIX ---

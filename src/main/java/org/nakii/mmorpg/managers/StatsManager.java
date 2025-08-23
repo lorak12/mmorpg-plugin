@@ -5,19 +5,25 @@ import com.google.gson.Gson;
 import net.objecthunter.exp4j.Expression;
 import net.objecthunter.exp4j.ExpressionBuilder;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.enchantment.effects.EnchantmentEffect;
+import org.nakii.mmorpg.player.PlayerBonusStats;
 import org.nakii.mmorpg.player.PlayerStats;
 import org.nakii.mmorpg.player.Stat;
+import org.nakii.mmorpg.skills.Skill;
 
 import java.lang.reflect.Type;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class StatsManager {
 
@@ -48,9 +54,28 @@ public class StatsManager {
     public void recalculateStats(Player player) {
         PlayerStats finalStats = new PlayerStats();
 
-        // Layer 1: Base & Permanent Stats
+        // Layer 1a: Base & Permanent Stats
         applyBaseStats(finalStats);
-        applySkillBonuses(player, finalStats);
+
+        // --- START OF NEW/MODIFIED LOGIC ---
+        // 1b. Apply Skill Bonuses
+        FileConfiguration skillsConfig = plugin.getSkillManager().getSkillsConfig();
+        for (Skill skill : Skill.values()) {
+            int level = plugin.getSkillManager().getLevel(player, skill);
+            if (level > 0) {
+                ConfigurationSection rewards = skillsConfig.getConfigurationSection(skill.name() + ".rewards-per-level");
+                if (rewards != null) {
+                    for (String statKey : rewards.getKeys(false)) {
+                        try {
+                            Stat stat = Stat.valueOf(statKey.toUpperCase());
+                            double amountPerLevel = rewards.getDouble(statKey);
+                            finalStats.addStat(stat, level * amountPerLevel);
+                        } catch (IllegalArgumentException ignored) {}
+                    }
+                }
+            }
+        }
+        // --- END OF NEW/MODIFIED LOGIC ---
 
         // Layer 2: Equipment Stats
         Map<String, Integer> wornSetPieces = new HashMap<>();
@@ -102,6 +127,12 @@ public class StatsManager {
         // --- Layer 3: Temporary Buffs ---
         for (Stat stat : Stat.values()) {
             finalStats.addStat(stat, plugin.getTimedBuffManager().getBuffsForStat(player, stat));
+        }
+
+        // 4. Apply Permanent Stat Bonuses (from Collections, Slayers, etc.)
+        PlayerBonusStats bonusStats = bonusStatsCache.get(player.getUniqueId());
+        if (bonusStats != null) {
+            bonusStats.getBonusStatsMap().forEach(finalStats::addStat);
         }
 
         // --- Finalization ---
@@ -256,5 +287,38 @@ public class StatsManager {
 
     public void unloadPlayer(Player player) {
         playerStatsMap.remove(player.getUniqueId());
+    }
+
+    private final Map<UUID, PlayerBonusStats> bonusStatsCache = new ConcurrentHashMap<>();
+
+    // --- ADD THIS NEW PUBLIC METHOD ---
+    public void addPermanentBonus(Player player, Stat stat, double amount) {
+        PlayerBonusStats bonusStats = bonusStatsCache.get(player.getUniqueId());
+        if (bonusStats != null) {
+            bonusStats.addBonus(stat, amount);
+            // Recalculate stats immediately to apply the change
+            recalculateStats(player);
+        }
+    }
+
+    // --- ADD THESE LOAD/UNLOAD METHODS ---
+    public void loadPlayerData(Player player) {
+        try {
+            bonusStatsCache.put(player.getUniqueId(), plugin.getDatabaseManager().loadPlayerBonusStats(player.getUniqueId()));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Handle error, maybe kick player
+        }
+    }
+
+    public void unloadPlayerData(Player player) {
+        PlayerBonusStats data = bonusStatsCache.remove(player.getUniqueId());
+        if (data != null) {
+            try {
+                plugin.getDatabaseManager().savePlayerBonusStats(player.getUniqueId(), data);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

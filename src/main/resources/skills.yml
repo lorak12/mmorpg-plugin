@@ -1,59 +1,104 @@
-# ---------------------------------------------------
-#                 SKILL CONFIGURATION
-# ---------------------------------------------------
+# =================================================== #
+#             SKILL-SPECIFIC CONFIGURATION            #
+# =================================================== #
 
-# --- XP FORMULA ---
-# This formula calculates the total XP needed to reach a certain level.
-# 'level' is the placeholder for the target level.
-# Default formula: A simple exponential curve. 100 * (level ^ 2.5)
-xp-formula: "100 * (level ^ 2.5)"
+FARMING:
+  display-name: "<green>Farming"
+  icon: "WHEAT"
+  max-level: 60
+  rewards-per-level: { HEALTH: 2, FARMING_FORTUNE: 0.5 }
+  milestone-rewards:
+    5: ["RECIPE_UNLOCK:FARMER_BOOTS", "COINS:1000"]
+    10: ["RECIPE_UNLOCK:ENCHANTED_HAY_BALE", "COINS:5000"]
+  xp-sources:
+    WHEAT: 6
+    CARROTS: 6
+    POTATOES: 6
+    BEETROOTS: 6
+    NETHER_WART: 8
+    PUMPKIN: 12
+    MELON: 12
+    SUGAR_CANE: 4
 
+MINING:
+  display-name: "<blue>Mining"
+  icon: "DIAMOND_PICKAXE"
+  max-level: 60
+  rewards-per-level: { DEFENSE: 1, MINING_FORTUNE: 0.5 }
+  milestone-rewards:
+    10: ["ACCESS_UNLOCK:DWARVEN_MINES", "COINS:5000"]
+  xp-sources: # For vanilla mining outside of zones
+    COAL_ORE: 5
+    IRON_ORE: 8
+    GOLD_ORE: 10
+    DIAMOND_ORE: 20
+    EMERALD_ORE: 25
+    LAPIS_ORE: 12
+    REDSTONE_ORE: 12
 
-# --- SKILL DEFINITIONS ---
-skills:
-  MINING:
-    max-level: 60
-    xp-sources:
-      # Block materials that grant Mining XP when broken.
-      STONE: 1.0
-      COBBLESTONE: 1.0
-      DEEPSLATE: 1.5
-      COAL_ORE: 5.0
-      IRON_ORE: 10.0
-      GOLD_ORE: 15.0
-      DIAMOND_ORE: 25.0
-      EMERALD_ORE: 30.0
+FORAGING:
+  display-name: "<gold>Foraging"
+  icon: "OAK_SAPLING"
+  max-level: 50
+  rewards-per-level: { STRENGTH: 1, FORAGING_FORTUNE: 0.5 }
+  milestone-rewards:
+    5: ["RECIPE_UNLOCK:FORAGING_AXE", "COINS:1000"]
+  xp-sources:
+    OAK_LOG: 6
+    SPRUCE_LOG: 6
+    BIRCH_LOG: 6
+    JUNGLE_LOG: 8
+    ACACIA_LOG: 8
+    DARK_OAK_LOG: 10
 
-  FARMING:
-    max-level: 60
-    xp-sources:
-      # Block materials that grant Farming XP when broken/harvested.
-      WHEAT: 2.0
-      CARROTS: 2.0
-      POTATOES: 2.0
-      BEETROOTS: 2.0
-      PUMPKIN: 5.0
-      MELON: 5.0
-      NETHER_WART: 3.0
+FISHING:
+  display-name: "<aqua>Fishing"
+  icon: "FISHING_ROD"
+  max-level: 50
+  rewards-per-level: { HEALTH: 1.5 }
+  milestone-rewards:
+    5: ["RECIPE_UNLOCK:ANGLER_ARMOR", "COINS:1000"]
+  xp-sources:
+    DEFAULT_CATCH: 20 # XP for catching a regular fish
+    TREASURE_CATCH: 100 # Extra XP for catching treasure
 
-  FORAGING:
-    max-level: 50
-    xp-sources:
-      OAK_LOG: 3.0
-      SPRUCE_LOG: 3.0
-      BIRCH_LOG: 3.0
-      JUNGLE_LOG: 3.0
-      ACACIA_LOG: 3.0
-      DARK_OAK_LOG: 3.0
+COMBAT:
+  display-name: "<red>Combat"
+  icon: "IRON_SWORD"
+  max-level: 60
+  rewards-per-level: { CRIT_CHANCE: 0.5 }
+  milestone-rewards:
+    10: ["RECIPE_UNLOCK:CLEAVER", "COINS:5000"]
 
-  COMBAT:
-    max-level: 60
-    xp-sources:
-      # Mob entity types that grant Combat XP when killed.
-      ZOMBIE: 5.0
-      SKELETON: 5.0
-      SPIDER: 4.0
-      CREEPER: 8.0
-      ENDERMAN: 10.0
+ENCHANTING:
+  display-name: "<light_purple>Enchanting"
+  icon: "ENCHANTING_TABLE"
+  max-level: 60
+  rewards-per-level: { INTELLIGENCE: 1, ABILITY_DAMAGE: 0.5 }
+  milestone-rewards:
+    10: ["TRADE_UNLOCK:EXPERIENCE_BOTTLES", "COINS:2500"]
+  xp-sources:
+    # XP gained is (XP cost of enchant * this multiplier)
+    ENCHANT_MULTIPLIER: 1.5
 
-  # Define other skills (FISHING, ENCHANTING, ALCHEMY, CARPENTRY) here...
+ALCHEMY:
+  display-name: "<dark_purple>Alchemy"
+  icon: "BREWING_STAND"
+  max-level: 50
+  rewards-per-level: { INTELLIGENCE: 1 }
+  milestone-rewards:
+    5: ["RECIPE_UNLOCK:SPEED_ARTIFACT", "COINS:1000"]
+  xp-sources:
+    # Flat XP per potion brewed
+    DEFAULT_POTION: 250
+
+CARPENTRY:
+  display-name: "<yellow>Carpentry"
+  icon: "CRAFTING_TABLE"
+  max-level: 50
+  rewards-per-level: { HEALTH: 0.5 }
+  milestone-rewards:
+    10: ["TRADE_UNLOCK:PERSONAL_WORKBENCH", "COINS:2500"]
+  xp-sources:
+    # XP gained is (number of items crafted * this multiplier)
+    CRAFT_MULTIPLIER: 0.5

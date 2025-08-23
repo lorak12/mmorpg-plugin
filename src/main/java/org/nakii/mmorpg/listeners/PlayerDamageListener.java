@@ -149,53 +149,65 @@ public class PlayerDamageListener implements Listener {
         SlayerManager slayerManager = plugin.getSlayerManager();
         String mobId = plugin.getMobManager().getMobId(victim);
 
-        // --- 1. Check if the killed mob is the player's active quest boss ---
-        ActiveSlayerQuest quest = slayerManager.getActiveSlayerQuest(killer);
-        if (quest != null && quest.getState() == ActiveSlayerQuest.QuestState.BOSS_FIGHT) {
-            if (victim.equals(quest.getActiveBoss())) {
-                // The player has killed their boss!
-                quest.setState(ActiveSlayerQuest.QuestState.AWAITING_CLAIM);
-                quest.setActiveBoss(null);
-                plugin.getScoreboardManager().updateScoreboard(killer); // Update to "CLAIM REWARDS"
-                killer.sendMessage(MMORPGCore.getInstance().getMiniMessage().deserialize("<green><b>SLAYER BOSS SLAIN!</b></green> <gray>Visit Maddox to claim your rewards.</gray>"));
-                killer.playSound(killer.getLocation(), Sound.ENTITY_ENDER_DRAGON_DEATH, 1.0f, 1.2f);
+        // --- 1. Handle Slayer Boss Death Logic ---
+        if (mobId != null) {
+            ActiveSlayerQuest quest = slayerManager.getActiveSlayerQuest(killer);
+            if (quest != null && quest.getState() == ActiveSlayerQuest.QuestState.BOSS_FIGHT) {
+                if (victim.getUniqueId().equals(quest.getActiveBoss().getUniqueId())) {
+                    // It's the player's quest boss, update the quest state.
+                    quest.setState(ActiveSlayerQuest.QuestState.AWAITING_CLAIM);
+                    quest.setActiveBoss(null);
+                    plugin.getScoreboardManager().updateScoreboard(killer);
+                    killer.sendMessage(MMORPGCore.getInstance().getMiniMessage().deserialize("<green><b>SLAYER BOSS SLAIN!</b></green> <gray>Visit Maddox to claim your rewards.</gray>"));
+                    killer.playSound(killer.getLocation(), Sound.ENTITY_ENDER_DRAGON_DEATH, 1.0f, 1.2f);
 
-                // Record that the player has now defeated this tier.
-                PlayerSlayerData slayerData = plugin.getSlayerDataManager().getData(killer);
-                if (slayerData != null) {
-                    slayerData.setHighestTierDefeated(quest.getSlayerType(), quest.getTier());
-                }
+                    // Record that the player has now defeated this tier.
+                    PlayerSlayerData slayerData = plugin.getSlayerDataManager().getData(killer);
+                    if (slayerData != null) {
+                        slayerData.setHighestTierDefeated(quest.getSlayerType(), quest.getTier());
+                    }
 
-                // Grant Slayer Leveling XP right here
-                ConfigurationSection bossConfig = slayerManager.getBossConfigById(mobId);
-                if (bossConfig != null) {
-                    int xpReward = bossConfig.getInt("slayer-xp-reward", 0);
-                    slayerManager.addSlayerExperience(killer, quest.getSlayerType(), xpReward);
+                    // Grant Slayer Leveling XP.
+                    ConfigurationSection bossConfig = slayerManager.getBossConfigById(mobId);
+                    if (bossConfig != null) {
+                        int xpReward = bossConfig.getInt("slayer-xp-reward", 0);
+                        slayerManager.addSlayerExperience(killer, quest.getSlayerType(), xpReward);
+                    }
                 }
             }
         }
 
         // --- 2. Handle Loot for all Custom Mobs (Bosses and regular) ---
         if (mobId != null) {
+            // Take full manual control of drops.
             event.getDrops().clear();
             event.setDroppedExp(0);
 
-            List<ItemStack> customLoot;
+            List<ItemStack> finalLoot;
             ConfigurationSection bossConfig = slayerManager.getBossConfigById(mobId);
 
             if (bossConfig != null) {
-                customLoot = plugin.getLootManager().rollSlayerLoot(killer, bossConfig);
+                finalLoot = plugin.getLootManager().rollSlayerLoot(killer, bossConfig);
             } else {
-                customLoot = plugin.getLootManager().rollLootTable(killer, mobId);
+                finalLoot = plugin.getLootManager().rollLootTable(killer, mobId);
             }
-            // Add loot directly to the event drops
-            event.getDrops().addAll(customLoot);
+
+            // --- THIS IS THE CORRECTED DROP LOGIC ---
+            // Iterate the CALCULATED loot, not the event's empty drop list.
+            for (ItemStack drop : finalLoot) {
+                String collectionId = plugin.getCollectionManager().getCollectionId(drop.getType());
+                if (collectionId != null) {
+                    plugin.getCollectionManager().addProgress(killer, collectionId, drop.getAmount());
+                }
+                // Use the pristine dropper for every single item.
+                org.nakii.mmorpg.utils.ItemDropper.dropPristineItem(killer, victim.getLocation(), drop);
+            }
         }
 
-        // --- 3. Handle Combat XP (Your existing logic that is guaranteed to work) ---
+        // --- 3. Handle Combat XP (Runs for ALL mobs, custom or vanilla) ---
         plugin.getSkillManager().handleMobKill(killer, victim);
 
-        // --- 4. Handle onKill Enchantment Effects (Your existing logic) ---
+        // --- 4. Handle onKill Enchantment Effects (Runs for ALL mobs) ---
         ItemStack weapon = killer.getInventory().getItemInMainHand();
         if (weapon == null || weapon.getType().isAir()) return;
 

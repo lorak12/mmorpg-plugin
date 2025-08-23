@@ -1,114 +1,141 @@
 package org.nakii.mmorpg.listeners;
 
-import org.bukkit.GameMode;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
-import org.nakii.mmorpg.managers.RegenerationManager;
-import org.nakii.mmorpg.managers.ZoneManager;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.managers.*;
+import org.nakii.mmorpg.player.PlayerStats;
+import org.nakii.mmorpg.player.Stat;
+import org.nakii.mmorpg.skills.Skill;
+import org.nakii.mmorpg.utils.ItemDropper;
 import org.nakii.mmorpg.zone.BlockBreakingFlags;
 import org.nakii.mmorpg.zone.BlockNode;
-import org.nakii.mmorpg.zone.Zone;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Optional;
+import java.util.*;
 
 public class BlockBreakListener implements Listener {
 
+    private final MMORPGCore plugin;
     private final ZoneManager zoneManager;
     private final RegenerationManager regenerationManager;
+    private final CollectionManager collectionManager;
+    private final StatsManager statsManager;
+    private final ItemManager itemManager; // Add this
+    private final Map<UUID, BukkitRunnable> activeMiningTasks = new HashMap<>();
 
-    public BlockBreakListener(ZoneManager zoneManager, RegenerationManager regenerationManager) {
-        this.zoneManager = zoneManager;
-        this.regenerationManager = regenerationManager;
+    public BlockBreakListener(MMORPGCore plugin) {
+        this.plugin = plugin;
+        this.zoneManager = plugin.getZoneManager();
+        this.regenerationManager = plugin.getRegenerationManager();
+        this.collectionManager = plugin.getCollectionManager();
+        this.statsManager = plugin.getStatsManager();
+        this.itemManager = plugin.getItemManager(); // Initialize this
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
-        Player player = event.getPlayer();
-        Block block = event.getBlock();
+        // The packet system now controls all custom timed breaking.
+        // We only cancel the event here to be absolutely sure players cannot break blocks normally.
+        // This stops vanilla drops for blocks we don't manage in zones.
+        if (zoneManager.getZoneForLocation(event.getPlayer().getLocation()) != null) {
+            event.setCancelled(true);
+        }
+    }
 
-        Zone zone = zoneManager.getZoneForLocation(player.getLocation());
-        if (zone == null) return;
+    public void finishBreaking(Player player, Block block, BlockNode node, PlayerStats stats, BlockBreakingFlags flags) {
+        cancelMiningTask(player);
+        player.sendBlockDamage(block.getLocation(), 0.0f);
 
-        BlockBreakingFlags flags = zone.getEffectiveFlags().blockBreakingFlags();
-        if (flags == null) return;
-
-        Optional<BlockNode> nodeOpt = flags.findNodeByMaterial(block.getType());
-
-        if (nodeOpt.isEmpty()) {
-            if (flags.unlistedBlocksUnbreakable()) {
-                event.setCancelled(true);
+        // --- 1. Handle Skill XP ---
+        // This is now clean, direct, and unambiguous.
+        if (node.skillType() != null && node.skillXpReward() > 0) {
+            try {
+                Skill skill = Skill.valueOf(node.skillType().toUpperCase());
+                plugin.getSkillManager().addXp(player, skill, node.skillXpReward());
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("Invalid skill-type '" + node.skillType() + "' in zone config for node '" + node.id() + "'");
             }
-            return;
         }
 
-        // --- START OF NEW/MODIFIED LOGIC ---
+        // --- 2. Calculate Drops & Grant Collection Progress ---
+        // This part of the logic is already correct and does not need to change.
+        String collectionId = node.collectionId();
+        String dropId = node.customDropId();
 
-        // Get the tool the player is using to correctly calculate drops
-        ItemStack tool = player.getInventory().getItemInMainHand();
-
-        // Before we cancel, calculate what would have dropped
-        int expToDrop = event.getExpToDrop();
-        Collection<ItemStack> drops;
-
-        if (player.getGameMode() == GameMode.CREATIVE) {
-            // Creative mode players get no drops or exp
-            drops = null;
-            expToDrop = 0;
-        } else {
-            // This Bukkit method correctly handles Fortune and Silk Touch
-            drops = block.getDrops(tool, player);
+        if (dropId == null) {
+            Collection<ItemStack> vanillaDrops = block.getDrops(player.getInventory().getItemInMainHand(), player);
+            if (!vanillaDrops.isEmpty()) {
+                dropId = vanillaDrops.iterator().next().getType().name();
+            }
         }
 
-        // We MUST cancel the event to take control of the block's lifecycle
-        event.setCancelled(true);
-        // We also manually set exp to 0 to prevent other plugins from interfering
-        event.setExpToDrop(0);
+        if (dropId != null) {
+            double fortuneStat = stats.getStat(Stat.MINING_FORTUNE); // Or Foraging Fortune, etc.
+            int finalAmount = 1;
+            finalAmount += (int) (fortuneStat / 100.0);
+            if (Math.random() < (fortuneStat % 100) / 100.0) finalAmount++;
 
-        // Give the calculated drops to the player
-        if (drops != null) {
-            for (ItemStack drop : drops) {
-                // Try to add the item to the inventory
-                HashMap<Integer, ItemStack> leftovers = player.getInventory().addItem(drop);
-                // If the inventory is full, drop the rest on the ground
-                if (!leftovers.isEmpty()) {
-                    leftovers.values().forEach(item -> block.getWorld().dropItemNaturally(block.getLocation().toCenterLocation(), item));
+            ItemStack finalDrop = itemManager.createItemStack(dropId);
+            if(finalDrop == null) {
+                finalDrop = itemManager.createDefaultItemStack(Material.matchMaterial(dropId));
+            }
+
+            if (finalDrop != null) {
+                finalDrop.setAmount(finalAmount);
+                if (collectionId != null) {
+                    collectionManager.addProgress(player, collectionId, finalDrop.getAmount());
                 }
+                ItemDropper.dropPristineItem(player, block.getLocation().toCenterLocation(), finalDrop);
             }
         }
 
-        // Spawn the experience orb at the block's location
-        if (expToDrop > 0) {
-            int finalExpToDrop = expToDrop;
-            block.getWorld().spawn(block.getLocation().toCenterLocation(), org.bukkit.entity.ExperienceOrb.class, orb -> orb.setExperience(finalExpToDrop));
-        }
+        // --- 3. Handle Regeneration ---
+        handleRegeneration(block, node, flags);
+    }
 
-        // --- END OF NEW/MODIFIED LOGIC ---
+    // Add a handler to cancel mining when a player quits
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        cancelMiningTask(event.getPlayer());
+    }
 
-        BlockNode currentNode = nodeOpt.get();
-
+    // --- ADD THIS NEW HELPER METHOD ---
+    /**
+     * A dedicated helper to handle the block regeneration state change.
+     */
+    private void handleRegeneration(Block block, BlockNode node, BlockBreakingFlags flags) {
         regenerationManager.cancelRegeneration(block.getLocation());
-
-        String breaksToId = currentNode.breaksTo();
+        String breaksToId = node.breaksTo();
         if (breaksToId == null) {
-            block.setType(org.bukkit.Material.AIR);
+            block.setType(Material.AIR);
             return;
         }
 
         BlockNode nextNode = flags.definitions().get(breaksToId);
-        if (nextNode == null) {
-            block.setType(org.bukkit.Material.AIR);
-            System.err.println("Zone '" + zone.getId() + "' has a broken block-breaking chain. Node '" + currentNode.id() + "' points to non-existent node '" + breaksToId + "'.");
-            return;
+        if (nextNode != null) {
+            block.setType(nextNode.material());
+            regenerationManager.startRegeneration(block, nextNode);
+        } else {
+            block.setType(Material.AIR);
+            System.err.println("Zone has a broken block-breaking chain. Node '" + node.id() + "' points to non-existent node '" + breaksToId + "'.");
         }
+    }
 
-        block.setType(nextNode.material());
-        regenerationManager.startRegeneration(block, nextNode);
+    private void cancelMiningTask(Player player) {
+        BukkitRunnable task = activeMiningTasks.remove(player.getUniqueId());
+        if (task != null) {
+            try {
+                task.cancel();
+            } catch (IllegalStateException ignored) {
+                // Task may have already finished and cancelled itself.
+            }
+        }
     }
 }

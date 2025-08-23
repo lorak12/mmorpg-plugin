@@ -9,24 +9,14 @@ import org.nakii.mmorpg.skills.Skill;
 
 public class CarpentryListener implements Listener {
     private final MMORPGCore plugin;
-
-    public CarpentryListener(MMORPGCore plugin) {
-        this.plugin = plugin;
-    }
+    public CarpentryListener(MMORPGCore plugin) { this.plugin = plugin; }
 
     @EventHandler
     public void onCraft(CraftItemEvent event) {
-        if (event.isCancelled()) return;
-
+        if (event.isCancelled() || !(event.getWhoClicked() instanceof Player)) return;
         Player player = (Player) event.getWhoClicked();
-        String materialName = event.getRecipe().getResult().getType().name();
-
-        double xpToGive = plugin.getSkillManager().getSkillConfig()
-                .getDouble("skills.crafting.xp_sources." + materialName,
-                        plugin.getSkillManager().getSkillConfig().getDouble("skills.crafting.xp_sources.DEFAULT", 0.0));
-
-        if (xpToGive > 0) {
-            plugin.getSkillManager().addExperience(player, Skill.CARPENTRY, xpToGive);
-        }
+        double multiplier = plugin.getSkillManager().getSkillsConfig().getDouble("CARPENTRY.xp-sources.CRAFT_MULTIPLIER", 0.1);
+        double xpToGive = event.getRecipe().getResult().getAmount() * multiplier;
+        plugin.getSkillManager().addXp(player, Skill.CARPENTRY, xpToGive);
     }
 }

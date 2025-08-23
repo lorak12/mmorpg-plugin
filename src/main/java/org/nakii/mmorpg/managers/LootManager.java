@@ -1,5 +1,6 @@
 package org.nakii.mmorpg.managers;
 
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -24,6 +25,7 @@ public class LootManager {
 
     /**
      * Processes a mob's loot table and generates a list of item drops.
+     * This version handles both custom items and formatted vanilla items.
      * @param looter The player who killed the mob, used for Magic Find calculations.
      * @param mobId The ID of the custom mob that was killed.
      * @return A List of ItemStacks to be dropped.
@@ -32,7 +34,7 @@ public class LootManager {
         List<ItemStack> loot = new ArrayList<>();
         CustomMobTemplate template = plugin.getMobManager().getTemplate(mobId);
         if (template == null || template.getLootTable().isEmpty()) {
-            return loot; // No template or loot table found for this mob
+            return loot;
         }
 
         PlayerStats looterStats = plugin.getStatsManager().getStats(looter);
@@ -40,21 +42,31 @@ public class LootManager {
 
         for (CustomMobTemplate.LootDrop dropInfo : template.getLootTable()) {
             double chance = dropInfo.chance();
-
-            // Apply Magic Find to the chance
             if (dropInfo.magicFind()) {
                 chance *= (1 + (magicFind / 100.0));
             }
 
-            // Roll the dice for the drop
             if (ThreadLocalRandom.current().nextDouble() <= chance) {
                 int amount = parseQuantity(dropInfo.quantity());
                 if (amount <= 0) continue;
 
+                // --- THIS LOGIC NOW WORKS CORRECTLY ---
                 ItemStack item = plugin.getItemManager().createItemStack(dropInfo.itemId());
+
+                if (item == null) {
+                    // It's not a custom item, so we try to create it as a formatted default item.
+                    try {
+                        Material material = Material.valueOf(dropInfo.itemId().toUpperCase());
+                        item = plugin.getItemManager().createDefaultItemStack(material);
+                    } catch (IllegalArgumentException e) {
+                        plugin.getLogger().warning("Loot table for mob '" + mobId + "' contains an invalid item/material ID: " + dropInfo.itemId());
+                        continue;
+                    }
+                }
+
                 if (item != null) {
                     item.setAmount(amount);
-                    // Generate the final lore for the player who is receiving it
+                    // Update lore to apply any player-specific stats if needed
                     plugin.getItemLoreGenerator().updateLore(item, looter);
                     loot.add(item);
                 }
@@ -62,6 +74,7 @@ public class LootManager {
         }
         return loot;
     }
+
 
     /**
      * Parses a quantity string like "1" or "1-3" into a random amount.

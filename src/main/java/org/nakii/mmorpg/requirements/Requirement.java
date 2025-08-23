@@ -29,7 +29,9 @@ public interface Requirement {
 
         return switch (type) {
             case "SKILL" -> new SkillRequirement(context, value);
-            // case "COLLECTION" -> new CollectionRequirement(context, value); // Example for the future
+            case "SLAYER" -> new SlayerRequirement(context, value);
+            case "COLLECTION" -> new CollectionRequirement(context, value);
+
             default -> null;
         };
     }

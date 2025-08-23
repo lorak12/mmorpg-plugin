@@ -8,10 +8,20 @@ import org.bukkit.Material; /**
  * @param revertsTo The ID of the node this block reverts to over time. Can be null.
  * @param revertTimeSeconds The time in seconds it takes to revert. 0 if not applicable.
  */
+/**
+ * Represents a single state in a block regeneration cycle.
+ * Can also represent a custom block node with unique properties.
+ */
 public record BlockNode(
         String id,
         Material material,
         String breaksTo,
         String revertsTo,
-        long revertTimeSeconds
+        long revertTimeSeconds,
+        String customDropId,
+        String collectionId,
+        int breakingPowerRequired,
+        double baseBreakTimeSeconds,
+        double skillXpReward, // Use double for XP
+        String skillType // --- ADD THIS NEW FIELD ---
 ) {}

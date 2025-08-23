@@ -1,0 +1,31 @@
+id: "coal_mine"
+display-name: "<dark_gray>Coal Mine"
+icon: "COAL"
+bounds:
+  min-y: 40
+  max-y: 128
+  points:
+    - "300,200"
+    - "350,250"
+    - "300,300"
+    - "250,250"
+flags:
+  block-breaking:
+    unlisted-blocks-unbreakable: true
+    definitions:
+      COAL_ORE_NODE:
+        material: COAL_ORE
+        custom-drop-id: "COAL" # Drops regular coal
+        collection-id: "COAL"
+        # Custom block properties
+        breaking-power-required: 2
+        base-break-time-seconds: 4
+        # XP reawrd from mining
+        skill-type: "MINING" # Explicitly define the skill for this node
+        skill-xp-reward: 10
+        # Regeneration path
+        breaks-to: "BEDROCK_NODE"
+        reverts-to: "COAL_ORE_NODE:20s"
+      BEDROCK_NODE:
+        material: BEDROCK
+        reverts-to: "COAL_ORE_NODE:10s"

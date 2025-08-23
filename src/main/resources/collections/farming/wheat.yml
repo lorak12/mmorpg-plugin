@@ -1,0 +1,10 @@
+id: "WHEAT"
+display-name: "<yellow>Wheat"
+material: "WHEAT"
+category: "FARMING"
+tiers:
+  1: { required: 50, rewards: ["RECIPE_UNLOCK:HAY_BALE"], skill-xp: 2 }
+  2: { required: 100, rewards: ["RECIPE_UNLOCK:BREAD"], skill-xp: 2 }
+  3: { required: 250, rewards: ["RECIPE_UNLOCK:FARMING_TALISMAN"], skill-xp: 3 }
+  4: { required: 500, rewards: ["RECIPE_UNLOCK:ENCHANTED_BREAD"], skill-xp: 3 }
+  5: { required: 1000, rewards: ["SKILL_XP:FARMING:1000"], skill-xp: 5 }

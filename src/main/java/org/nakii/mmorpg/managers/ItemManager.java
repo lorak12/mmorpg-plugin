@@ -13,8 +13,10 @@ import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.item.CustomItemTemplate;
 import org.nakii.mmorpg.item.Rarity;
+import org.nakii.mmorpg.utils.ChatUtils;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,10 +37,14 @@ public class ItemManager {
     public static final NamespacedKey ARMOR_SET_STATS_KEY = new NamespacedKey(MMORPGCore.getInstance(), "armor_set_stats");
     public static final NamespacedKey REFORGE_ID_KEY = new NamespacedKey(MMORPGCore.getInstance(), "reforge_id");
     public static final NamespacedKey REFORGE_STATS_KEY = new NamespacedKey(MMORPGCore.getInstance(), "reforge_stats");
+    public static final NamespacedKey PRISTINE_KEY = new NamespacedKey(MMORPGCore.getInstance(), "pristine_item");
+
+    private final Map<Material, Rarity> defaultRarities = new HashMap<>();
 
     public ItemManager(MMORPGCore plugin) {
         this.plugin = plugin;
         loadItems();
+        loadDefaults();
     }
 
     public void loadItems() {
@@ -85,18 +91,7 @@ public class ItemManager {
         if (template == null) {
             // Handle requests for vanilla items
             try {
-                Material mat = Material.valueOf(itemId.toUpperCase());
-                ItemStack vanillaItem = new ItemStack(mat);
-                ItemMeta meta = vanillaItem.getItemMeta();
-                if (meta == null) return vanillaItem;
-
-                PersistentDataContainer data = meta.getPersistentDataContainer();
-                data.set(ITEM_ID_KEY, PersistentDataType.STRING, mat.name());
-                data.set(RARITY_KEY, PersistentDataType.STRING, Rarity.COMMON.name()); // Default rarity
-                meta.setUnbreakable(true); // Default to unbreakable
-
-                vanillaItem.setItemMeta(meta);
-                return vanillaItem;
+                return createDefaultItemStack(Material.valueOf(itemId.toUpperCase()));
             } catch (IllegalArgumentException e) {
                 plugin.getLogger().warning("Could not create item: Unknown item ID or material '" + itemId + "'.");
                 return null;
@@ -162,4 +157,70 @@ public class ItemManager {
     public Map<String, CustomItemTemplate> getCustomItems(){
         return itemRegistry;
     }
+
+    private void loadDefaults() {
+        File defaultsFile = new File(plugin.getDataFolder(), "defaults.yml");
+        if (!defaultsFile.exists()) {
+            plugin.saveResource("defaults.yml", false);
+        }
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(defaultsFile);
+        for (String materialName : config.getKeys(false)) {
+            try {
+                Material material = Material.valueOf(materialName.toUpperCase());
+                Rarity rarity = Rarity.valueOf(config.getString(materialName, "COMMON").toUpperCase());
+                defaultRarities.put(material, rarity);
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("Invalid material or rarity in defaults.yml: " + materialName);
+            }
+        }
+        plugin.getLogger().info("Loaded " + defaultRarities.size() + " default item rarities.");
+    }
+
+    // --- ADD THIS NEW PUBLIC METHOD ---
+    /**
+     * Creates a formatted ItemStack for a vanilla material, applying default rarity and lore.
+     * @param material The vanilla material to create an item for.
+     * @return A formatted ItemStack, or null if the material is invalid.
+     */
+    public ItemStack createDefaultItemStack(Material material) {
+        if (material == null || material.isAir()) {
+            return null;
+        }
+
+        // Get the rarity from our new map, defaulting to COMMON if not specified.
+        Rarity rarity = defaultRarities.getOrDefault(material, Rarity.COMMON);
+
+        // Format the name nicely (e.g., ROTTEN_FLESH -> Rotten Flesh)
+        String name = formatMaterialName(material);
+
+        // This uses your existing ItemBuilder or manual meta creation.
+        ItemStack item = new ItemStack(material);
+        item.editMeta(meta -> {
+            // Apply the rarity color to the name
+            meta.displayName(ChatUtils.format(rarity.getColorTag() + name));
+
+            // Apply the standard collection lore
+            List<String> lore = new ArrayList<>();
+            lore.add("<dark_gray>Collection item</dark_gray>");
+            lore.add(" ");
+            lore.add(rarity.getDisplayTag()); // e.g., "<white><b>COMMON</b></white>"
+
+            meta.lore(ChatUtils.formatList(lore));
+        });
+
+        return item;
+    }
+
+    // --- ADD THIS NEW HELPER METHOD ---
+    private String formatMaterialName(Material material) {
+        String name = material.name().replace('_', ' ');
+        // Basic title case formatting
+        String[] words = name.toLowerCase().split(" ");
+        for (int i = 0; i < words.length; i++) {
+            words[i] = words[i].substring(0, 1).toUpperCase() + words[i].substring(1);
+        }
+        return String.join(" ", words);
+    }
+
+
 }

@@ -1,0 +1,250 @@
+# =================================================== #
+#             UNIVERSAL LEVEL PROGRESSION             #
+# =================================================== #
+# This file defines the XP and universal rewards for every skill level.
+
+levels:
+  0:
+    xp_required: 0
+    cumulative_xp: 0
+    coins: 0
+  1:
+    xp_required: 50
+    cumulative_xp: 50
+    coins: 100
+  2:
+    xp_required: 125
+    cumulative_xp: 175
+    coins: 250
+  3:
+    xp_required: 200
+    cumulative_xp: 375
+    coins: 500
+  4:
+    xp_required: 300
+    cumulative_xp: 675
+    coins: 750
+  5:
+    xp_required: 500
+    cumulative_xp: 1175
+    coins: 1000
+  6:
+    xp_required: 750
+    cumulative_xp: 1925
+    coins: 2000
+  7:
+    xp_required: 1000
+    cumulative_xp: 2925
+    coins: 3000
+  8:
+    xp_required: 1500
+    cumulative_xp: 4425
+    coins: 4000
+  9:
+    xp_required: 2000
+    cumulative_xp: 6425
+    coins: 5000
+  10:
+    xp_required: 3500
+    cumulative_xp: 9925
+    coins: 7500
+  11:
+    xp_required: 5000
+    cumulative_xp: 14925
+    coins: 10000
+  12:
+    xp_required: 7500
+    cumulative_xp: 22425
+    coins: 15000
+  13:
+    xp_required: 10000
+    cumulative_xp: 32425
+    coins: 20000
+  14:
+    xp_required: 15000
+    cumulative_xp: 47425
+    coins: 25000
+  15:
+    xp_required: 20000
+    cumulative_xp: 67425
+    coins: 30000
+  16:
+    xp_required: 30000
+    cumulative_xp: 97425
+    coins: 40000
+  17:
+    xp_required: 50000
+    cumulative_xp: 147425
+    coins: 50000
+  18:
+    xp_required: 75000
+    cumulative_xp: 222425
+    coins: 65000
+  19:
+    xp_required: 100000
+    cumulative_xp: 322425
+    coins: 80000
+  20:
+    xp_required: 200000
+    cumulative_xp: 522425
+    coins: 100000
+  21:
+    xp_required: 250000
+    cumulative_xp: 772425
+    coins: 120000
+  22:
+    xp_required: 300000
+    cumulative_xp: 1072425
+    coins: 140000
+  23:
+    xp_required: 350000
+    cumulative_xp: 1422425
+    coins: 160000
+  24:
+    xp_required: 400000
+    cumulative_xp: 1822425
+    coins: 180000
+  25:
+    xp_required: 450000
+    cumulative_xp: 2272425
+    coins: 200000
+  26:
+    xp_required: 500000
+    cumulative_xp: 2772425
+    coins: 225000
+  27:
+    xp_required: 550000
+    cumulative_xp: 3322425
+    coins: 250000
+  28:
+    xp_required: 600000
+    cumulative_xp: 3922425
+    coins: 275000
+  29:
+    xp_required: 650000
+    cumulative_xp: 4572425
+    coins: 300000
+  30:
+    xp_required: 700000
+    cumulative_xp: 5272425
+    coins: 350000
+  31:
+    xp_required: 800000
+    cumulative_xp: 6072425
+    coins: 375000
+  32:
+    xp_required: 900000
+    cumulative_xp: 6972425
+    coins: 400000
+  33:
+    xp_required: 1000000
+    cumulative_xp: 7972425
+    coins: 425000
+  34:
+    xp_required: 1100000
+    cumulative_xp: 9072425
+    coins: 450000
+  35:
+    xp_required: 1200000
+    cumulative_xp: 10272425
+    coins: 500000
+  36:
+    xp_required: 1300000
+    cumulative_xp: 11572425
+    coins: 525000
+  37:
+    xp_required: 1400000
+    cumulative_xp: 12972425
+    coins: 550000
+  38:
+    xp_required: 1500000
+    cumulative_xp: 14472425
+    coins: 575000
+  39:
+    xp_required: 1600000
+    cumulative_xp: 16072425
+    coins: 600000
+  40:
+    xp_required: 1700000
+    cumulative_xp: 17772425
+    coins: 650000
+  41:
+    xp_required: 1800000
+    cumulative_xp: 19572425
+    coins: 675000
+  42:
+    xp_required: 1900000
+    cumulative_xp: 21472425
+    coins: 700000
+  43:
+    xp_required: 2000000
+    cumulative_xp: 23472425
+    coins: 725000
+  44:
+    xp_required: 2100000
+    cumulative_xp: 25572425
+    coins: 750000
+  45:
+    xp_required: 2200000
+    cumulative_xp: 27772425
+    coins: 800000
+  46:
+    xp_required: 2300000
+    cumulative_xp: 30072425
+    coins: 850000
+  47:
+    xp_required: 2400000
+    cumulative_xp: 32472425
+    coins: 900000
+  48:
+    xp_required: 2500000
+    cumulative_xp: 34972425
+    coins: 950000
+  49:
+    xp_required: 2600000
+    cumulative_xp: 37572425
+    coins: 1000000
+  50:
+    xp_required: 2700000
+    cumulative_xp: 40272425
+    coins: 1100000
+  51:
+    xp_required: 2800000
+    cumulative_xp: 43072425
+    coins: 1200000
+  52:
+    xp_required: 2900000
+    cumulative_xp: 45972425
+    coins: 1300000
+  53:
+    xp_required: 3000000
+    cumulative_xp: 48972425
+    coins: 1400000
+  54:
+    xp_required: 3100000
+    cumulative_xp: 52072425
+    coins: 1500000
+  55:
+    xp_required: 3200000
+    cumulative_xp: 55272425
+    coins: 1600000
+  56:
+    xp_required: 3300000
+    cumulative_xp: 58572425
+    coins: 1700000
+  57:
+    xp_required: 3400000
+    cumulative_xp: 61972425
+    coins: 1800000
+  58:
+    xp_required: 3500000
+    cumulative_xp: 65472425
+    coins: 1900000
+  59:
+    xp_required: 3600000
+    cumulative_xp: 69072425
+    coins: 2000000
+  60:
+    xp_required: 3700000
+    cumulative_xp: 72772425
+    coins: 2500000

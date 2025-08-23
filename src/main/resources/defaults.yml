@@ -1,0 +1,27 @@
+# =================================================== #
+#             Default Item Configuration              #
+# =================================================== #
+# This file maps vanilla materials to a default rarity.
+# Any material NOT listed here will default to COMMON.
+# This is used by ItemManager to create custom-lore items
+# from vanilla sources.
+
+# Example Rarities
+DIAMOND: RARE
+EMERALD: RARE
+GOLD_INGOT: UNCOMMON
+IRON_INGOT: UNCOMMON
+
+# Nether Materials
+NETHERITE_INGOT: EPIC
+NETHER_STAR: LEGENDARY
+
+# Common Drops
+ROTTEN_FLESH: COMMON
+BONE: COMMON
+STRING: COMMON
+SPIDER_EYE: COMMON
+COAL: COMMON
+WHEAT: COMMON
+CACTUS: COMMON
+# ... you can add any other material here

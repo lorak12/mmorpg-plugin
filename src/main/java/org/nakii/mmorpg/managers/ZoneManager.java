@@ -193,7 +193,17 @@ public class ZoneManager {
                             revertTime = Long.parseLong(parts[1].replace("s", ""));
                         }
 
-                        definitions.put(nodeId, new BlockNode(nodeId, material, breaksTo, revertsTo, revertTime));
+                        String customDropId = nodeConfig.getString("custom-drop-id");
+                        String collectionId = nodeConfig.getString("collection-id");
+                        int breakingPower = nodeConfig.getInt("breaking-power-required", 0);
+                        double breakTime = nodeConfig.getDouble("base-break-time-seconds", 0.0);
+
+                        double skillXp = nodeConfig.getDouble("skill-xp-reward", 0.0);
+                        String skillType = nodeConfig.getString("skill-type"); // <-- READ THE NEW KEY
+
+                        definitions.put(nodeId, new BlockNode(nodeId, material, breaksTo, revertsTo, revertTime,
+                                customDropId, collectionId, breakingPower, breakTime, skillXp, skillType)); // Update constructor call
+
 
                     } catch (IllegalArgumentException e) {
                         plugin.getLogger().warning("Invalid material in block-breaking definition for node '" + nodeId + "'");

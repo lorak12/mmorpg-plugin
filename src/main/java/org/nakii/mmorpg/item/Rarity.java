@@ -26,4 +26,8 @@ public enum Rarity {
             return COMMON; // Default to COMMON if the rarity is invalid or missing
         }
     }
+
+    public String getDisplayTag() {
+        return this.colorTag + "<b>" + this.name() + "</b>";
+    }
 }

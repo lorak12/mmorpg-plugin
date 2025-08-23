@@ -4,8 +4,11 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import org.bukkit.entity.Player;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.collection.PlayerCollectionData;
 import org.nakii.mmorpg.economy.PlayerEconomy;
 import org.nakii.mmorpg.economy.Transaction;
+import org.nakii.mmorpg.player.PlayerBonusStats;
+import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.skills.PlayerSkillData;
 import org.nakii.mmorpg.skills.Skill;
 import org.nakii.mmorpg.slayer.ActiveSlayerQuest;
@@ -14,10 +17,7 @@ import org.nakii.mmorpg.slayer.PlayerSlayerData;
 import java.io.File;
 import java.lang.reflect.Type;
 import java.sql.*;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class DatabaseManager {
 
@@ -47,6 +47,8 @@ public class DatabaseManager {
         createWorldDataTable();
         createPlayerSlayersTable();
         createActiveQuestsTable();
+        createPlayerCollectionsTable();
+        createPlayerBonusStatsTable();
     }
 
     /**
@@ -312,6 +314,94 @@ public class DatabaseManager {
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, uuid.toString());
             pstmt.executeUpdate();
+        }
+    }
+
+    // Colection part
+    // --- ADD THIS NEW TABLE CREATION METHOD ---
+    private void createPlayerCollectionsTable() throws SQLException {
+        String sql = """
+        CREATE TABLE IF NOT EXISTS player_collections (
+            uuid TEXT NOT NULL,
+            collection_id TEXT NOT NULL,
+            amount INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (uuid, collection_id)
+        );
+        """;
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    // --- ADD THESE THREE NEW METHODS ---
+    public PlayerCollectionData loadPlayerCollectionData(Player player) throws SQLException {
+        PlayerCollectionData data = new PlayerCollectionData();
+        String sql = "SELECT collection_id, amount FROM player_collections WHERE uuid = ?;";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, player.getUniqueId().toString());
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                data.setProgress(rs.getString("collection_id"), rs.getInt("amount"));
+            }
+        }
+        return data;
+    }
+
+    public void savePlayerCollectionData(Player player, PlayerCollectionData data) throws SQLException {
+        String sql = "INSERT OR REPLACE INTO player_collections (uuid, collection_id, amount) VALUES (?, ?, ?);";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            // We iterate through the player's known collections to save them.
+            for (Map.Entry<String, Integer> entry : data.getCollectionProgressMap().entrySet()) {
+                pstmt.setString(1, player.getUniqueId().toString());
+                pstmt.setString(2, entry.getKey());
+                pstmt.setInt(3, entry.getValue());
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+        }
+    }
+
+    // Stats from eg. Slayer rewards, collections etc.
+    private void createPlayerBonusStatsTable() throws SQLException {
+        String sql = """
+        CREATE TABLE IF NOT EXISTS player_bonus_stats (
+            uuid TEXT NOT NULL,
+            stat TEXT NOT NULL,
+            value REAL NOT NULL,
+            PRIMARY KEY (uuid, stat)
+        );
+        """;
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    public PlayerBonusStats loadPlayerBonusStats(UUID uuid) throws SQLException {
+        PlayerBonusStats data = new PlayerBonusStats();
+        String sql = "SELECT stat, value FROM player_bonus_stats WHERE uuid = ?;";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, uuid.toString());
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                try {
+                    Stat stat = Stat.valueOf(rs.getString("stat"));
+                    data.setBonus(stat, rs.getDouble("value"));
+                } catch (IllegalArgumentException ignored) {}
+            }
+        }
+        return data;
+    }
+
+    public void savePlayerBonusStats(UUID uuid, PlayerBonusStats data) throws SQLException {
+        String sql = "INSERT OR REPLACE INTO player_bonus_stats (uuid, stat, value) VALUES (?, ?, ?);";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            for (Map.Entry<Stat, Double> entry : data.getBonusStatsMap().entrySet()) {
+                pstmt.setString(1, uuid.toString());
+                pstmt.setString(2, entry.getKey().name());
+                pstmt.setDouble(3, entry.getValue());
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
         }
     }
 }

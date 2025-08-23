@@ -4,40 +4,39 @@ import java.util.EnumMap;
 import java.util.Map;
 
 /**
- * Stores the level and XP for all skills for a single player.
+ * Stores all skill-related data for a single player.
+ * XP is stored as TOTAL accumulated XP for that skill.
  */
 public class PlayerSkillData {
 
-    private final Map<Skill, Integer> skillLevels;
-    private final Map<Skill, Double> skillXp;
+    private final Map<Skill, Integer> levels;
+    private final Map<Skill, Double> totalExperience; // Renamed for clarity
 
     public PlayerSkillData() {
-        this.skillLevels = new EnumMap<>(Skill.class);
-        this.skillXp = new EnumMap<>(Skill.class);
-        // Initialize all skills to Level 1, 0 XP
-        for (Skill skill : Skill.values()) {
-            skillLevels.put(skill, 1);
-            skillXp.put(skill, 0.0);
-        }
+        this.levels = new EnumMap<>(Skill.class);
+        this.totalExperience = new EnumMap<>(Skill.class);
     }
 
     public int getLevel(Skill skill) {
-        return skillLevels.getOrDefault(skill, 1);
+        return levels.getOrDefault(skill, 0);
     }
 
     public void setLevel(Skill skill, int level) {
-        skillLevels.put(skill, level);
+        levels.put(skill, level);
     }
 
+    /**
+     * @return The TOTAL accumulated XP for this skill.
+     */
     public double getXp(Skill skill) {
-        return skillXp.getOrDefault(skill, 0.0);
+        return totalExperience.getOrDefault(skill, 0.0);
     }
 
-    public void setXp(Skill skill, double xp) {
-        skillXp.put(skill, xp);
+    public void setXp(Skill skill, double totalXp) {
+        totalExperience.put(skill, totalXp);
     }
 
     public void addXp(Skill skill, double amount) {
-        skillXp.put(skill, getXp(skill) + amount);
+        setXp(skill, getXp(skill) + amount);
     }
 }
