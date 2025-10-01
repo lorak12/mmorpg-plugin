@@ -79,7 +79,7 @@ public class SkillManager {
             handleLevelUp(player, skill, newLevel, currentLevel);
         }
 
-        // TODO: Send an action bar message to the player showing "+X Skill XP"
+        plugin.getHUDManager().updateActionBar(player, "<aqua>+" + amount + skill.name() + "XP", 3);
     }
 
     private void handleLevelUp(Player player, Skill skill, int newLevel, int oldLevel) {

@@ -1,0 +1,19 @@
+# Unique identifier for this world.
+world-name: "starting_island"
+
+# Display name shown to players.
+display-name: "<green>Starting Island</green>"
+
+# Default flags for the entire world.
+flags:
+  # Players cannot place blocks anywhere.
+  block-place: false
+
+  # Players cannot break blocks anywhere.
+  block-break: false
+
+  # No hostile mobs will spawn naturally.
+  force-peaceful: true
+
+  # PvP is disabled.
+  pvp: false

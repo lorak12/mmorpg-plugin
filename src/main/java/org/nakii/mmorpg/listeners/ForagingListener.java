@@ -1,7 +1,6 @@
 package org.nakii.mmorpg.listeners;
 
 import org.bukkit.GameMode;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,9 +24,10 @@ public class ForagingListener implements Listener {
         Player player = event.getPlayer();
         Block block = event.getBlock();
 
-        // We don't want to grant XP if the player is in creative or if the block is a custom one
-        // managed by our more advanced BlockBreakListener.
-        Zone zone = plugin.getZoneManager().getZoneForLocation(player.getLocation());
+        // We get the zone from the new WorldManager.
+        // The logic is to prevent giving vanilla XP if the block is in a custom zone,
+        // which might have its own XP rules defined in a BlockNode.
+        Zone zone = plugin.getWorldManager().getZoneForLocation(player.getLocation());
         if (player.getGameMode() == GameMode.CREATIVE || zone != null) {
             return;
         }

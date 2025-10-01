@@ -1,14 +1,11 @@
 package org.nakii.mmorpg.commands;
 
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -18,9 +15,6 @@ import org.jetbrains.annotations.Nullable;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.utils.ChatUtils;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -38,7 +32,7 @@ public class MmorpgCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         if (args.length == 0) {
             sender.sendMessage(ChatUtils.format("<red>Usage: /mmorpg <subcommand>"));
             return true;
@@ -71,13 +65,13 @@ public class MmorpgCommand implements CommandExecutor, TabCompleter {
         plugin.getItemManager().loadItems();
         plugin.getMobManager().loadMobs();
         plugin.getRecipeManager().loadRecipes();
-        plugin.getZoneManager().loadZones();
+        plugin.getWorldManager().loadWorlds();
         // reload other managers...
         sender.sendMessage(ChatUtils.format("<green>MMORPGCore configs reloaded successfully.</green>"));
     }
 
     private void handleWandCommand(CommandSender sender) {
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player player)) {
             sender.sendMessage(ChatUtils.format("<red>This command can only be used by a player."));
             return;
         }
@@ -86,7 +80,6 @@ public class MmorpgCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        Player player = (Player) sender;
         ItemStack wand = new ItemStack(Material.STICK);
         ItemMeta meta = wand.getItemMeta();
         meta.displayName(ChatUtils.format("<gold><b>Zone Wand</b></gold>"));
@@ -102,7 +95,7 @@ public class MmorpgCommand implements CommandExecutor, TabCompleter {
     }
 
     private void handleZoneCommand(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player player)) {
             sender.sendMessage(ChatUtils.format("<red>Zone commands can only be used by a player."));
             return;
         }
@@ -116,7 +109,6 @@ public class MmorpgCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        Player player = (Player) sender;
         String action = args[1].toLowerCase();
         String zoneId = args[2];
 

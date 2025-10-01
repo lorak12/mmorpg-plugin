@@ -5,10 +5,7 @@ import com.comphenix.protocol.ProtocolManager;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Listener;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.commands.*;
@@ -16,7 +13,6 @@ import org.nakii.mmorpg.listeners.*;
 import org.nakii.mmorpg.listeners.packet.CustomMiningPacketListener;
 import org.nakii.mmorpg.managers.*;
 import org.nakii.mmorpg.tasks.*;
-import org.nakii.mmorpg.zone.PlayerZoneTracker;
 
 import java.io.File;
 import java.sql.SQLException;
@@ -37,8 +33,6 @@ public final class MMORPGCore extends JavaPlugin {
     private ZoneManager zoneManager;
     private LootManager lootManager;
     private RecipeManager recipeManager;
-//    private EnvironmentManager environmentManager;
-    private PlayerZoneTracker playerZoneTracker;
     private HUDManager hudManager;
     private EnchantmentManager enchantmentManager;
     private EnchantmentEffectManager enchantmentEffectManager;
@@ -58,14 +52,19 @@ public final class MMORPGCore extends JavaPlugin {
     private BossAbilityManager bossAbilityManager;
     private CollectionManager collectionManager;
     private RewardManager rewardManager;
+    private WorldManager worldManager;
+    private RequirementManager requirementManager;
+    private TravelManager travelManager;
 
     private BlockBreakListener blockBreakListener;
 
     private ClimateTask climateTask;
-
-    private boolean libsDisguisesEnabled = false;
+    private MobSpawningTask mobSpawningTask;
+    private PlayerMovementTracker playerMovementTracker;
 
     private MiniMessage miniMessage;
+
+
 
     @Override
     public void onEnable() {
@@ -82,8 +81,6 @@ public final class MMORPGCore extends JavaPlugin {
                 )
                 .build();
 
-        setupAPIHooks();
-        saveDefaultConfig();
         setupDefaultItemFiles();
 
         try {
@@ -105,6 +102,7 @@ public final class MMORPGCore extends JavaPlugin {
             damageManager = new DamageManager(this);
             playerStateManager = new PlayerStateManager();
             rewardManager = new RewardManager(this);
+            requirementManager = new RequirementManager(this);
 
             // Item & Content Systems
             itemManager = new ItemManager(this);
@@ -129,24 +127,32 @@ public final class MMORPGCore extends JavaPlugin {
             timedBuffManager = new TimedBuffManager();
 
             // World & UI Systems
+            worldManager = new WorldManager(this);
             zoneManager = new ZoneManager(this);
-            playerZoneTracker = new PlayerZoneTracker(this);
             regenerationManager = new RegenerationManager(this);
             guiManager = new GUIManager(this);
             hudManager = new HUDManager(this);
             economyManager = new EconomyManager(this);
             bankManager = new BankManager(this);
             scoreboardManager = new ScoreboardManager(this);
+            travelManager = new TravelManager(this);
+
+            // Load world managed by WorldManager
+            worldManager.loadWorlds();
 
             // Standalone manager for health regen task
             healthManager = new HealthManager(this);
 
             getLogger().info("All managers initialized successfully.");
 
-            climateTask = new ClimateTask(this.playerZoneTracker, this.playerStateManager, this.statsManager);
-            climateTask.runTaskTimer(this, 100L, 40L);
+            mobSpawningTask = new MobSpawningTask(this);
+            mobSpawningTask.runTaskTimer(this, 20L * 10, 20L * 5); // 10s delay, 5s interval
 
-            new ZoneMobSpawnerTask(this).runTaskTimer(this, 200L, 100L);
+            climateTask = new ClimateTask(this);
+            climateTask.runTaskTimer(this, 20L * 5, 20L); // 5s delay, 1s interval for responsiveness
+
+            playerMovementTracker = new PlayerMovementTracker(this);
+            playerMovementTracker.runTaskTimer(this, 100L, 20L); // Start after 5s, check every 1s
 
             new BossAIController(this).runTaskTimer(this, 200L, 20L); // Start after 10s, run every 1s
 
@@ -162,8 +168,6 @@ public final class MMORPGCore extends JavaPlugin {
             // --- STEP 4: START TASKS ---
             worldTimeManager.startTask();
             healthManager.startHealthRegenTask();
-            playerZoneTracker.runTaskTimerAsynchronously(this, 0L, 20L);
-            zoneManager.loadZones();
             hudManager.startHUDTask();
 
 
@@ -181,6 +185,8 @@ public final class MMORPGCore extends JavaPlugin {
         getLogger().info("MMORPGCore enabled successfully.");
     }
 
+
+
     @Override
     public void onDisable() {
 
@@ -196,6 +202,10 @@ public final class MMORPGCore extends JavaPlugin {
                 getLogger().info(" - Saved data for " + player.getName());
             }
             getLogger().info("Player data saving complete.");
+        }
+
+        if (this.playerMovementTracker != null) {
+            this.playerMovementTracker.cancel();
         }
 
         if (databaseManager != null) {
@@ -229,8 +239,8 @@ public final class MMORPGCore extends JavaPlugin {
         pm.registerEvents(new CraftingTableListener(this), this);
         pm.registerEvents(new PlayerDeathListener(this), this);
         pm.registerEvents(new ScoreboardListener(this), this);
-        pm.registerEvents(new ZoneListener(this), this);
-        pm.registerEvents(new ZoneWandListener(), this);
+        pm.registerEvents(new BlockPlaceListener(this), this);
+
 
         this.blockBreakListener = new BlockBreakListener(this);
         pm.registerEvents(this.blockBreakListener, this);
@@ -241,19 +251,7 @@ public final class MMORPGCore extends JavaPlugin {
 
     }
 
-    // --- All other methods and getters remain the same as your original file ---
-    private void setupAPIHooks() {
 
-        // --- LIBSDISGUISES ---
-        // This check should remain, because we are NOT shading LibsDisguises.
-        Plugin disguises = Bukkit.getPluginManager().getPlugin("LibsDisguises");
-        if (disguises != null && disguises.isEnabled()) {
-            libsDisguisesEnabled = true;
-            getLogger().info("Hooked into LibsDisguises.");
-        } else {
-            getLogger().warning("LibsDisguises not found. Mob disguises disabled.");
-        }
-    }
     private void setupDefaultItemFiles() {
         File itemsFolder = new File(getDataFolder(), "items");
         if (!itemsFolder.exists()) {
@@ -286,6 +284,7 @@ public final class MMORPGCore extends JavaPlugin {
             saveResource("mobs/undead/crypt_ghoul.yml", false);
             saveResource("mobs/slayer_bosses.yml", false);
             saveResource("mobs/obisidan_sanctuary.yml", false);
+            saveResource("mobs/zombies.yml", false);
 
             getLogger().info("Default mob files created successfully.");
         }
@@ -299,13 +298,16 @@ public final class MMORPGCore extends JavaPlugin {
             getLogger().info("Default recipes files created successfully.");
         }
 
-        File zonesFolder = new File(getDataFolder(), "zones");
-        if (!zonesFolder.exists()) {
-            getLogger().info("Creating default zones configuration files...");
+        File worldsFolder = new File(getDataFolder(), "worlds");
+        if (!worldsFolder.exists()) {
+            getLogger().info("Creating default world configuration files...");
 
-            saveResource("zones/mines.yml", false);
+            saveResource("worlds/the_mines/world.yml", false);
+            saveResource("worlds/the_mines/zones.yml", false);
+            saveResource("worlds/starting_island/world.yml", false);
+            saveResource("worlds/starting_island/zones.yml", false);
 
-            getLogger().info("Default recipes zones created successfully.");
+            getLogger().info("Default worlds created successfully.");
         }
 
         // Save single config files
@@ -328,8 +330,10 @@ public final class MMORPGCore extends JavaPlugin {
         getCommand("eco").setExecutor(new EcoCommand(this));
         getCommand("bank").setExecutor(new BankCommand(this));
         getCommand("debugclimate").setExecutor(new ClimateDebugCommand(climateTask));
-        getCommand("zone").setExecutor(new ZoneCommand(this));
         getCommand("collections").setExecutor(new CollectionCommand(this));
+        getCommand("worldadmin").setExecutor(new WorldAdminCommand(this));
+        getCommand("mmorpgdebug").setExecutor(new MmorpgDebugCommand(this));
+        getCommand("travel").setExecutor(new TravelCommand(this));
     }
     private void startAutoSaveTask() {
         long interval = 20L * 60 * 5; // Every 5 minutes
@@ -346,7 +350,6 @@ public final class MMORPGCore extends JavaPlugin {
     }
 
     public static MMORPGCore getInstance() { return instance; }
-    public boolean isLibsDisguisesEnabled() { return libsDisguisesEnabled; }
 
     public MiniMessage getMiniMessage() {
         return this.miniMessage;
@@ -377,9 +380,6 @@ public final class MMORPGCore extends JavaPlugin {
     public WorldTimeManager getWorldTimeManager() { return worldTimeManager; }
     public ScoreboardManager getScoreboardManager() { return scoreboardManager; }
     public BankManager getBankManager() { return bankManager; }
-    public PlayerZoneTracker getPlayerZoneTracker() {
-        return playerZoneTracker;
-    }
     public RegenerationManager getRegenerationManager() {
         return regenerationManager;
     }
@@ -402,4 +402,19 @@ public final class MMORPGCore extends JavaPlugin {
     public RewardManager getRewardManager() {
         return rewardManager;
     }
+    public WorldManager getWorldManager() {
+        return worldManager;
+    }
+
+    public RequirementManager getRequirementManager() {
+        return requirementManager;
+    }
+    public PlayerMovementTracker getPlayerMovementTracker() {
+        return playerMovementTracker;
+    }
+
+    public TravelManager getTravelManager() {
+        return travelManager;
+    }
+
 }

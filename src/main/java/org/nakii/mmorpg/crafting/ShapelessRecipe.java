@@ -61,11 +61,7 @@ public class ShapelessRecipe extends CustomRecipe {
 
         // 5. Check if there are any extra, un-required items in the grid.
         // If the number of unique item types doesn't match, it's not a match.
-        if (availableCounts.size() != requiredCounts.size()) {
-            return false;
-        }
-
-        return true; // All checks passed
+        return availableCounts.size() == requiredCounts.size();// All checks passed
     }
 
     @Override

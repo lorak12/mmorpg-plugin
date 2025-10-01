@@ -5,7 +5,8 @@ api-version: '1.21'
 author: Nakii
 description: A comprehensive MMORPG plugin.
 
-softdepend: [LibsDisguises, ProtocolLib]
+softdepend: [Multiverse-Core]
+depend: [ProtocolLib]
 
 commands:
   mmorpg:
@@ -57,6 +58,17 @@ commands:
   collections:
     description: Opens collections GUI
     usage: /collections
+  worldadmin:
+    description: Main command for managing world settings.
+    usage: /worldadmin <subcommand>
+    aliases: [wa, wadmin]
+  mmorpgdebug:
+    description: Toggles debug mode for MMORPGCore.
+    usage: /mmorpgdebug
+    aliases: [mdebug]
+  travel:
+    description: Use to travel between worlds and zones.
+    usage: /travel
 
 permissions:
   mmorpg.admin:

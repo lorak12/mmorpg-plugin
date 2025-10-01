@@ -23,7 +23,6 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.7-R0.1-SNAPSHOT")
-    compileOnly(group = "me.libraryaddict.disguises", name = "libsdisguises", version = "11.0.0")
 
     compileOnly("net.dmulloy2:ProtocolLib:5.4.0")
 

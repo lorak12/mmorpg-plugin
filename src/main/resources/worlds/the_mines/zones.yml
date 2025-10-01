@@ -1,0 +1,54 @@
+zones:
+  diamond_vein:
+    display-name: "<aqua>Diamond Vein</aqua>"
+    icon: "⛏"
+    # An optional warp point for this zone.
+    warp-point: "75.5, 15, 75.5, -180, 5"
+    bounds:
+      min-y: 0
+      max-y: 30
+      # A rectangular area for mining.
+      points:
+        - "50,50"
+        - "50,100"
+        - "100,100"
+        - "100,50"
+    flags:
+      # Custom block breaking rules for this specific zone.
+      block-breaking:
+        # If true, vanilla blocks like dirt and gravel cannot be broken here.
+        unlisted-blocks-unbreakable: true
+        definitions:
+          DIAMOND_ORE_NODE:
+            material: DIAMOND_ORE
+            breaks-to: "BEDROCK_NODE"
+            base-break-time-seconds: 5.0
+            breaking-power-required: 50
+            skill-type: "MINING"
+            skill-xp-reward: 25.0
+          BEDROCK_NODE:
+            material: BEDROCK
+            reverts-to: "DIAMOND_ORE_NODE:10s" # Reverts after 10 seconds.
+
+  goblin_camp:
+    display-name: "<dark_red>Goblin Camp</dark_red>"
+    icon: "☠"
+
+    bounds:
+      min-y: 60
+      max-y: 90
+      points:
+        - "-100,-100"
+        - "-100,-50"
+        - "-50,-50"
+        - "-50,-100"
+    flags:
+      mob-spawning:
+        spawn-cap: 5
+        mobs:
+          # Assumes you have a ZOMBIE_LVL5 template.
+          ZOMBIE_LVL5: 10 # Weight
+        spawner-points:
+          # Mobs will only spawn at these exact locations.
+          - "-75,64,-75"
+          - "-80,65,-80"

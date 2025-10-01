@@ -24,7 +24,7 @@ public class SpawnMobCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player player)) {
             sender.sendMessage(ChatUtils.format("<red>This command can only be used by a player.</red>"));
             return true;
         }
@@ -39,7 +39,6 @@ public class SpawnMobCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        Player player = (Player) sender;
         String mobId = args[0];
 
         if (plugin.getMobManager().spawnMob(mobId, player.getLocation(), null) == null) {

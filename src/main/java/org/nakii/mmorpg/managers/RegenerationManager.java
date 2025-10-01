@@ -32,9 +32,9 @@ public class RegenerationManager {
             public void run() {
                 activeRegenTasks.remove(block.getLocation()); // Remove task from map once it runs
 
-                // Safely get the current zone for the block's location
-                Zone zone = plugin.getZoneManager().getZoneForLocation(block.getLocation());
-                if (zone == null || zone.getEffectiveFlags().blockBreakingFlags() == null) {
+                // Get the current zone for the block's location using the new WorldManager.
+                Zone zone = plugin.getWorldManager().getZoneForLocation(block.getLocation());
+                if (zone == null || zone.getFlags().blockBreakingFlags() == null) {
                     // If the block is no longer in a valid regen zone, do nothing.
                     return;
                 }

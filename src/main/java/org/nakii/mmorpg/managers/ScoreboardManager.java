@@ -1,7 +1,6 @@
 package org.nakii.mmorpg.managers;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -9,11 +8,10 @@ import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.scoreboard.PlayerScoreboard;
 import org.nakii.mmorpg.scoreboard.ScoreboardProvider;
 import org.nakii.mmorpg.utils.ChatUtils;
-import org.nakii.mmorpg.zone.SubZone;
+import org.nakii.mmorpg.world.CustomWorld;
 import org.nakii.mmorpg.zone.Zone;
 
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.*;
 
 public class ScoreboardManager {
@@ -87,7 +85,7 @@ public class ScoreboardManager {
             };
         }
 
-        String seasonName = currentSeason.name().substring(0, 1) + currentSeason.name().substring(1).toLowerCase();
+        String seasonName = currentSeason.name().charAt(0) + currentSeason.name().substring(1).toLowerCase();
         String dateLine = String.format("<white>%s%s %d%s</white>", seasonPrefix, seasonName, dayOfMonth, daySuffix);
         lines.add(dateLine);
 
@@ -100,29 +98,24 @@ public class ScoreboardManager {
         lines.add(timeLine);
 
         // Location (from ZoneManager)
-        Zone zone = plugin.getZoneManager().getZoneForLocation(player.getLocation());
+        CustomWorld world = plugin.getWorldManager().getCustomWorld(player.getWorld().getName());
+        Zone zone = plugin.getWorldManager().getZoneForLocation(player.getLocation());
+
         Component locationComponent;
-
-        if (zone == null) {
-            // Player is in an un-zoned area
-            locationComponent = miniMessage.deserialize("<green>Wilderness");
-        } else if (zone instanceof SubZone subZone) {
-            // Player is in a sub-zone, show Parent / Child
-            Zone parent = subZone.getParent();
-            // Ensure parent display name is not null
-            Component parentDisplay = (parent != null && parent.getDisplayName() != null)
-                    ? parent.getDisplayName()
-                    : Component.text("Unknown", NamedTextColor.DARK_GRAY);
-
-            locationComponent = parentDisplay
-                    .append(Component.text(" / ", NamedTextColor.DARK_GRAY))
-                    .append(subZone.getDisplayName());
+        if (zone != null) {
+            // Player is in a specific zone, show its icon and display name.
+            String icon = zone.getIcon() != null ? zone.getIcon() + " " : "";
+            locationComponent = miniMessage.deserialize(icon).append(zone.getDisplayName());
+        } else if (world != null) {
+            // Player is in a custom world but not a specific zone.
+            locationComponent = miniMessage.deserialize(world.getDisplayName());
         } else {
-            // Player is in a main zone
-            locationComponent = zone.getDisplayName();
+            // Player is in a vanilla world not managed by our system.
+            locationComponent = miniMessage.deserialize("<green>Wilderness");
         }
         lines.add(miniMessage.serialize(locationComponent));
         lines.add("  "); // Empty line
+
 
         // Economy (from EconomyManager)
         double purse = plugin.getEconomyManager().getEconomy(player).getPurse();

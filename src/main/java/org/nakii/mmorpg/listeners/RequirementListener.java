@@ -71,14 +71,13 @@ public class RequirementListener implements Listener {
         Type type = new TypeToken<List<String>>(){}.getType();
         List<String> reqStrings = gson.fromJson(reqJson, type);
 
-        for (String reqString : reqStrings) {
-            Requirement requirement = Requirement.fromString(reqString);
-            if (requirement != null && !requirement.meets(player)) {
-                player.sendMessage(ChatUtils.format("<red>You do not meet the requirements to use this item!</red>"));
-                // In the future, you can add a more detailed message from the requirement object itself.
-                return false;
-            }
+        // --- THE CHANGE ---
+        // Instead of checking the requirements here, we delegate to the manager.
+        if (!plugin.getRequirementManager().meetsAll(player, reqStrings)) {
+            player.sendMessage(ChatUtils.format("<red>You do not meet the requirements to use this item!</red>"));
+            return false;
         }
+
         return true;
     }
 }

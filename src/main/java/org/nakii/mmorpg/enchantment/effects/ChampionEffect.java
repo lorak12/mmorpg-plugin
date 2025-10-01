@@ -26,7 +26,7 @@ public class ChampionEffect implements EnchantmentEffect {
         if (hitData.hitCount() == 2) {
             // 'value' is the extra Combat XP, 'cost' is the coin multiplier
             // For simplicity, we'll just spawn orbs and message about coins.
-            int orbValue = (int) (7 + (level -1) * 2);
+            int orbValue = 7 + (level -1) * 2;
             double coinValue = 1.4 + (level -1) * 0.4;
 
             ExperienceOrb orb = player.getWorld().spawn(event.getEntity().getLocation(), ExperienceOrb.class);

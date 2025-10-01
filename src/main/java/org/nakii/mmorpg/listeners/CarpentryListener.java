@@ -13,8 +13,7 @@ public class CarpentryListener implements Listener {
 
     @EventHandler
     public void onCraft(CraftItemEvent event) {
-        if (event.isCancelled() || !(event.getWhoClicked() instanceof Player)) return;
-        Player player = (Player) event.getWhoClicked();
+        if (event.isCancelled() || !(event.getWhoClicked() instanceof Player player)) return;
         double multiplier = plugin.getSkillManager().getSkillsConfig().getDouble("CARPENTRY.xp-sources.CRAFT_MULTIPLIER", 0.1);
         double xpToGive = event.getRecipe().getResult().getAmount() * multiplier;
         plugin.getSkillManager().addXp(player, Skill.CARPENTRY, xpToGive);

@@ -10,12 +10,12 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.managers.PlayerStateManager;
 import org.nakii.mmorpg.managers.StatsManager;
+import org.nakii.mmorpg.managers.WorldManager;
 import org.nakii.mmorpg.player.PlayerState;
 import org.nakii.mmorpg.player.PlayerStats;
 import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.utils.ChatUtils;
 import org.nakii.mmorpg.zone.Climate;
-import org.nakii.mmorpg.zone.PlayerZoneTracker;
 import org.nakii.mmorpg.zone.Zone;
 
 import java.util.Collections;
@@ -25,7 +25,7 @@ import java.util.UUID;
 
 public class ClimateTask extends BukkitRunnable {
 
-    private final PlayerZoneTracker zoneTracker;
+    private final WorldManager worldManager;
     private final PlayerStateManager stateManager;
     private final StatsManager statsManager;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
@@ -46,19 +46,20 @@ public class ClimateTask extends BukkitRunnable {
     // ==================================
 
 
-    public ClimateTask(PlayerZoneTracker zoneTracker, PlayerStateManager stateManager, StatsManager statsManager) {
-        this.zoneTracker = zoneTracker;
-        this.stateManager = stateManager;
-        this.statsManager = statsManager;
+    public ClimateTask(MMORPGCore plugin) {
+        this.worldManager = plugin.getWorldManager();
+        this.stateManager = plugin.getPlayerStateManager();
+        this.statsManager = plugin.getStatsManager();
     }
 
     @Override
     public void run() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            Zone zone = zoneTracker.getCachedZone(player);
+            // --- CORE CHANGE: Get the zone directly from the WorldManager ---
+            Zone zone = worldManager.getZoneForLocation(player.getLocation());
             PlayerState state = stateManager.getState(player);
-            Climate climate = (zone != null && zone.getEffectiveFlags().climate() != null)
-                    ? zone.getEffectiveFlags().climate()
+            Climate climate = (zone != null && zone.getFlags().climate() != null)
+                    ? zone.getFlags().climate()
                     : null;
 
             if (climate == null || "NEUTRAL".equalsIgnoreCase(climate.type())) {

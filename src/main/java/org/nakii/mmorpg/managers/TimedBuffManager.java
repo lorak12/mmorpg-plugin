@@ -42,7 +42,7 @@ public class TimedBuffManager {
     }
 
     public void applyBuff(Player player, Stat stat, double amount, String source, int durationSeconds) {
-        String key = player.getUniqueId().toString() + "-" + source;
+        String key = player.getUniqueId() + "-" + source;
         StatBuff buff = new StatBuff(stat, amount, source);
 
         // In a real system, you'd handle stacking logic here. For now, we just overwrite.

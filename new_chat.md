@@ -125,21 +125,6 @@ The `DatabaseManager` is the **sole authority on data persistence**. Its only jo
 
 These files are all designed to be interconnected, demonstrating how the systems work together.
 
-#### `config.yml` (Main Plugin Configuration)
-```yaml
-# =================================================== #
-#                MAIN PLUGIN CONFIG                   #
-# =================================================== #
-database:
-  # The name of the SQLite database file.
-  file: "player_data.db"
-
-# Settings for the default action bar HUD
-hud:
-  # How often the action bar updates, in ticks (20 ticks = 1 second).
-  update-interval: 20
-```
-
 #### `defaults.yml` (For Vanilla Item Formatting)
 ```yaml
 # Maps vanilla materials to a default rarity when they are first obtained.

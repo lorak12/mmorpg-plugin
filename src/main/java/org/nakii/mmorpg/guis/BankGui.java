@@ -52,10 +52,10 @@ public class BankGui extends AbstractGui {
     private final DecimalFormat formatter = new DecimalFormat("#,###");
 
     // --- Temporary sign state for "Specific Amount" input ---
-    private static Block pendingSignBlock = null;
-    private static BlockData previousBlockData = null;
-    private static ViewState pendingSignType = null;
-    private static UUID pendingSignPlayer = null;
+    private static final Block pendingSignBlock = null;
+    private static final BlockData previousBlockData = null;
+    private static final ViewState pendingSignType = null;
+    private static final UUID pendingSignPlayer = null;
 
     // --- THIS IS THE NEW DYNAMIC TIME LOGIC ---
     WorldTimeManager timeManager = plugin.getWorldTimeManager();
@@ -69,9 +69,9 @@ public class BankGui extends AbstractGui {
 
     // Convert remaining days and current time into a total "plugin seconds left" value
     long secondsLeftInDay = WorldTimeManager.PLUGIN_SECONDS_PER_DAY -
-            ((timeManager.getCurrentHour() * WorldTimeManager.PLUGIN_MINUTES_PER_HOUR) + timeManager.getCurrentMinute());
+            (((long) timeManager.getCurrentHour() * WorldTimeManager.PLUGIN_MINUTES_PER_HOUR) + timeManager.getCurrentMinute());
 
-    long totalSecondsLeft = (daysLeft * WorldTimeManager.PLUGIN_SECONDS_PER_DAY) + secondsLeftInDay;
+    long totalSecondsLeft = ((long) daysLeft * WorldTimeManager.PLUGIN_SECONDS_PER_DAY) + secondsLeftInDay;
 
     // Convert total plugin seconds into real-life hours and minutes for display
     long realMinutesLeft = (totalSecondsLeft / 60); // 1 plugin minute = 1 real second -> 60 plugin minutes = 1 real minute

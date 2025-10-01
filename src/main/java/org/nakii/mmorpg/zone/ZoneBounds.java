@@ -1,6 +1,5 @@
 package org.nakii.mmorpg.zone;
 
-import org.bukkit.Bukkit;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -11,7 +10,6 @@ import org.bukkit.util.BoundingBox;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -33,7 +31,7 @@ public class ZoneBounds {
         // Construct the 2D polygon shape from the list of points
         this.shape = new Path2D.Double();
         if (points != null && !points.isEmpty()) {
-            shape.moveTo(points.get(0).getX(), points.get(0).getY());
+            shape.moveTo(points.getFirst().getX(), points.getFirst().getY());
             for (int i = 1; i < points.size(); i++) {
                 shape.lineTo(points.get(i).getX(), points.get(i).getY());
             }
@@ -67,15 +65,10 @@ public class ZoneBounds {
     /**
      * Gets a collection of entities that are physically within the zone's cuboid bounds.
      * Note: This is a broad-phase check and does not check the polygonal shape.
+     * @param world The world to check for entities in.
      * @return A collection of nearby entities.
      */
-    public Collection<Entity> getNearbyEntities() {
-        // You'll need to figure out the world and center point.
-        // This is a simplification. A real implementation needs access to the world object.
-        // Let's assume you have a method to get the world and a center point.
-        World world = Bukkit.getWorld("world"); // This needs to be dynamic
-        if (world == null) return Collections.emptyList();
-
+    public Collection<Entity> getNearbyEntities(World world) {
         // This is an approximation. A more accurate method might be needed.
         BoundingBox box = new BoundingBox(getMinX(), minY, getMinZ(), getMaxX(), maxY, getMaxZ());
         return world.getNearbyEntities(box);
@@ -87,10 +80,7 @@ public class ZoneBounds {
      * @param random A Random instance.
      * @return A safe Location, or null if one couldn't be found after several tries.
      */
-    public Location getRandomSafeLocation(Random random) {
-        // This requires access to the world and bounding box corners
-        World world = Bukkit.getWorld("world"); // Again, needs to be dynamic
-        if (world == null) return null;
+    public Location getRandomSafeLocation(Random random, World world) {
 
         int minX = (int) getMinX();
         int minZ = (int) getMinZ();
@@ -117,8 +107,16 @@ public class ZoneBounds {
     }
 
     // You'll need to add methods to get the min/max X and Z of the polygon
-    private double getMinX() { return shape.getBounds2D().getMinX(); }
-    private double getMaxX() { return shape.getBounds2D().getMaxX(); }
-    private double getMinZ() { return shape.getBounds2D().getMinY(); } // minY of a Path2D is the minZ in Minecraft
-    private double getMaxZ() { return shape.getBounds2D().getMaxY(); } // maxY of a Path2D is the maxZ in Minecraft
+    public double getMinX() { return shape.getBounds2D().getMinX(); }
+    public double getMaxX() { return shape.getBounds2D().getMaxX(); }
+    public double getMinZ() { return shape.getBounds2D().getMinY(); } // Path2D's Y is our Z
+    public double getMaxZ() { return shape.getBounds2D().getMaxY(); }
+
+    /**
+     * Checks if a 2D point is within the polygonal shape, ignoring Y level.
+     * More efficient for the initial check in the population task.
+     */
+    public boolean containsXZ(int x, int z) {
+        return shape.contains(x, z);
+    }
 }

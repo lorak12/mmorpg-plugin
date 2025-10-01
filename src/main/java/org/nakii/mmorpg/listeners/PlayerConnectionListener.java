@@ -1,6 +1,5 @@
 package org.nakii.mmorpg.listeners;
 
-import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -55,6 +54,7 @@ public class PlayerConnectionListener implements Listener {
 
         try {
             // Save all data before unloading/removing from caches
+            plugin.getPlayerMovementTracker().removePlayer(event.getPlayer());
             plugin.getSkillManager().savePlayerData(player);
             plugin.getStatsManager().unloadPlayer(player);
             plugin.getEconomyManager().unloadPlayer(player);

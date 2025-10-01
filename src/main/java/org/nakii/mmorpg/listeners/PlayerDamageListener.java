@@ -1,6 +1,5 @@
 package org.nakii.mmorpg.listeners;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.LivingEntity;

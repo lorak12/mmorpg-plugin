@@ -8,5 +8,5 @@ public enum ApplicableType {
     BOW,
     ARMOR,
     TOOL,
-    FISHING_ROD;
+    FISHING_ROD
 }

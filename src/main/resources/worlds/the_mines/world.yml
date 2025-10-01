@@ -1,0 +1,23 @@
+# Unique identifier for this world.
+world-name: "the_mines"
+
+# Display name shown to players.
+display-name: "<gray>The Mines</gray>"
+
+# The default spawn point for this world.
+# Format: "x,y,z,yaw,pitch"
+spawn-point: "-50.5, 65, -50.5, 90, 0"
+
+# Default flags for the entire world.
+flags:
+  # Players cannot place blocks anywhere.
+  block-place: false
+
+  # Players CAN break blocks in the wilderness of this world.
+  block-break: true
+
+  # Hostile mobs can spawn.
+  force-peaceful: false
+
+  # PvP is enabled.
+  pvp: true

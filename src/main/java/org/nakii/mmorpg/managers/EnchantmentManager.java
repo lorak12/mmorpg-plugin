@@ -217,6 +217,6 @@ public class EnchantmentManager {
             }
         }
 
-        return "<blue>" + enchantJoiner.toString() + "</blue>";
+        return "<blue>" + enchantJoiner + "</blue>";
     }
 }

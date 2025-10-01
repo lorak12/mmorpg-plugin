@@ -41,7 +41,7 @@ public class CollectionsGui extends AbstractGui {
     public @NotNull String getTitle() {
         return switch (currentMenu) {
             case MAIN_MENU -> "Collections";
-            case CATEGORY_VIEW -> selectedCategory.substring(0, 1) + selectedCategory.substring(1).toLowerCase() + " Collections";
+            case CATEGORY_VIEW -> selectedCategory.charAt(0) + selectedCategory.substring(1).toLowerCase() + " Collections";
             case COLLECTION_VIEW -> plugin.getCollectionManager().getCollectionConfig(selectedCollectionId).getString("display-name", "Collection");
         };
     }

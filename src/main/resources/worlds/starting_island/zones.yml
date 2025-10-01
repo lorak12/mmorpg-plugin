@@ -1,0 +1,35 @@
+# This file contains the specific zones within the 'starting_island' world.
+zones:
+  village_square:
+    display-name: "<yellow>Village Square</yellow>"
+    icon: "⚑"
+    bounds:
+      min-y: 60
+      max-y: 80
+      # A simple 40x40 square for the village.
+      points:
+        - "-20,-20"
+        - "-20,20"
+        - "20,20"
+        - "20,-20"
+    flags:
+    # No special flags needed, it inherits the safe properties from world.yml
+    # This zone just exists to show a name when a player enters.
+
+  frozen_peak:
+    display-name: "<aqua>Frozen Peak</aqua>"
+    icon: "❄"
+    bounds:
+      min-y: 100
+      max-y: 150
+      # A larger area for the mountain.
+      points:
+        - "100,100"
+        - "100,200"
+        - "200,200"
+        - "200,100"
+    flags:
+      # This zone overrides the world's neutral climate.
+      climate:
+        type: "COLD"
+        required-resistance: 10 # Player needs 10 Cold Resistance to be immune.
