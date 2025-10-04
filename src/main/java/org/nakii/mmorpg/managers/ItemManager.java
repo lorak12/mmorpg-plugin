@@ -38,6 +38,9 @@ public class ItemManager {
     public static final NamespacedKey REFORGE_ID_KEY = new NamespacedKey(MMORPGCore.getInstance(), "reforge_id");
     public static final NamespacedKey REFORGE_STATS_KEY = new NamespacedKey(MMORPGCore.getInstance(), "reforge_stats");
     public static final NamespacedKey PRISTINE_KEY = new NamespacedKey(MMORPGCore.getInstance(), "pristine_item");
+    public static final NamespacedKey ABILITY_KEY = new NamespacedKey(MMORPGCore.getInstance(), "ability_key");
+    public static final NamespacedKey PASSIVE_EFFECT_KEY = new NamespacedKey(MMORPGCore.getInstance(), "passive_effect_key");
+
 
     private final Map<Material, Rarity> defaultRarities = new HashMap<>();
 
@@ -143,7 +146,10 @@ public class ItemManager {
             data.set(ARMOR_SET_STATS_KEY, PersistentDataType.STRING, gson.toJson(bonusStats));
         });
 
-        // (We don't save Ability info to NBT here as it's static and can be read from the template)
+        // --- NEW: Save Ability Key to NBT for quick lookup ---
+        template.getAbilityInfo().ifPresent(abilityInfo -> {
+            data.set(ABILITY_KEY, PersistentDataType.STRING, abilityInfo.key());
+        });
 
         item.setItemMeta(meta);
         return item;
@@ -176,7 +182,6 @@ public class ItemManager {
         plugin.getLogger().info("Loaded " + defaultRarities.size() + " default item rarities.");
     }
 
-    // --- ADD THIS NEW PUBLIC METHOD ---
     /**
      * Creates a formatted ItemStack for a vanilla material, applying default rarity and lore.
      * @param material The vanilla material to create an item for.
@@ -211,7 +216,6 @@ public class ItemManager {
         return item;
     }
 
-    // --- ADD THIS NEW HELPER METHOD ---
     private String formatMaterialName(Material material) {
         String name = material.name().replace('_', ' ');
         // Basic title case formatting

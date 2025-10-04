@@ -55,6 +55,10 @@ public final class MMORPGCore extends JavaPlugin {
     private WorldManager worldManager;
     private RequirementManager requirementManager;
     private TravelManager travelManager;
+    private PlayerManager playerManager;
+    private AbilityManager abilityManager;
+    private CooldownManager cooldownManager;
+
 
     private BlockBreakListener blockBreakListener;
 
@@ -103,6 +107,9 @@ public final class MMORPGCore extends JavaPlugin {
             playerStateManager = new PlayerStateManager();
             rewardManager = new RewardManager(this);
             requirementManager = new RequirementManager(this);
+            playerManager = new PlayerManager(this);
+            abilityManager = new AbilityManager(this);
+            cooldownManager = new CooldownManager();
 
             // Item & Content Systems
             itemManager = new ItemManager(this);
@@ -155,6 +162,14 @@ public final class MMORPGCore extends JavaPlugin {
             playerMovementTracker.runTaskTimer(this, 100L, 20L); // Start after 5s, check every 1s
 
             new BossAIController(this).runTaskTimer(this, 200L, 20L); // Start after 10s, run every 1s
+
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    playerManager.regenerateMana();
+                }
+            }.runTaskTimer(this, 20L, 20L);
+
 
             // --- STEP 2: REGISTER LISTENERS ---
             // Now that all managers are guaranteed to be non-null, we can safely register listeners.
@@ -240,6 +255,8 @@ public final class MMORPGCore extends JavaPlugin {
         pm.registerEvents(new PlayerDeathListener(this), this);
         pm.registerEvents(new ScoreboardListener(this), this);
         pm.registerEvents(new BlockPlaceListener(this), this);
+        pm.registerEvents(new AbilityListener(this), this);
+
 
 
         this.blockBreakListener = new BlockBreakListener(this);
@@ -383,6 +400,9 @@ public final class MMORPGCore extends JavaPlugin {
     public RegenerationManager getRegenerationManager() {
         return regenerationManager;
     }
+    public PlayerManager getPlayerManager() { return playerManager; }
+    public AbilityManager getAbilityManager() { return abilityManager; }
+    public CooldownManager getCooldownManager() { return cooldownManager; }
 
     public ClimateTask getClimateTask() {
         return climateTask;

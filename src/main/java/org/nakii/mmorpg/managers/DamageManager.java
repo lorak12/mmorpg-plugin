@@ -5,11 +5,14 @@ import com.google.gson.Gson;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.player.PlayerStats;
+import org.nakii.mmorpg.player.Stat;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Type;
 import java.util.Map;
 
@@ -19,6 +22,7 @@ public class DamageManager {
 
     private final Gson gson = new Gson();
     private final Type statMapType = new TypeToken<Map<String, Double>>(){}.getType();
+    public static final String BYPASS_DEFENSE_META_KEY = "mmorpg_bypass_defense";
 
     public DamageManager(MMORPGCore plugin) {
         this.plugin = plugin;
@@ -105,5 +109,35 @@ public class DamageManager {
         // If the victim is not a player, they have no custom defense.
         // In the future, you could add a check here for custom mob defense stats.
         return incomingDamage;
+    }
+
+    /**
+     * Initiates a damage event that scales like an ability and bypasses enemy defense.
+     * It sets a metadata flag that PlayerDamageListener will check.
+     * @param victim The entity to damage.
+     * @param baseAbilityDamage The base damage of the ability before scaling.
+     * @param attacker The player using the ability.
+     */
+    public void dealAbilityDamage(LivingEntity victim, double baseAbilityDamage, Player attacker) {
+        PlayerStats stats = plugin.getStatsManager().getStats(attacker);
+
+        // --- 1. Calculate the final damage here, inside the manager ---
+        // Scale with the Ability Damage stat
+        double finalDamage = baseAbilityDamage * (1 + (stats.getStat(Stat.ABILITY_DAMAGE) / 100.0));
+
+        // Apply crit chance and crit damage
+        boolean isCrit = (Math.random() * 100 < stats.getCritChance());
+        if (isCrit) {
+            finalDamage *= (1 + stats.getCritDamage() / 100.0);
+            // You might want to play a crit sound or show a crit particle here or in the listener
+        }
+
+        // --- 2. Set the metadata flag ---
+        victim.setMetadata(BYPASS_DEFENSE_META_KEY, new FixedMetadataValue(plugin, true));
+
+        // --- 3. Call the damage event with the final calculated damage ---
+        victim.damage(finalDamage, attacker);
+
+        // The listener will see the metadata, skip the defense step, and then remove the metadata.
     }
 }

@@ -34,6 +34,7 @@ public class PlayerConnectionListener implements Listener {
             // Now that Skill data is in the cache, it is safe to load StatsManager, which
             // triggers the first recalculateStats.
             plugin.getStatsManager().loadPlayer(player);
+            plugin.getPlayerManager().loadPlayer(player);
 
             // Load remaining data
             plugin.getEconomyManager().loadPlayer(player);
@@ -58,6 +59,7 @@ public class PlayerConnectionListener implements Listener {
             plugin.getSkillManager().savePlayerData(player);
             plugin.getStatsManager().unloadPlayer(player);
             plugin.getEconomyManager().unloadPlayer(player);
+            plugin.getPlayerManager().unloadPlayer(player);
 
             PlayerSlayerData slayerData = plugin.getSlayerDataManager().getData(player);
             if (slayerData != null) {

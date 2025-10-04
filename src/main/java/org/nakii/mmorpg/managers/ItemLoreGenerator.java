@@ -107,7 +107,21 @@ public class ItemLoreGenerator {
             lore.add(Component.empty());
         });
 
-        // (Add Ability and Passive blocks here in the same way)
+        // --- NEW: Ability and Passive blocks ---
+        if (!template.getPassiveEffectLore().isEmpty()) {
+            template.getPassiveEffectLore().forEach(line -> lore.add(ChatUtils.format(line)));
+            lore.add(Component.empty());
+        }
+
+        template.getAbilityInfo().ifPresent(ability -> {
+            String header = String.format("<gold>Ability: %s <aqua>RIGHT CLICK</aqua></gold>", ability.name());
+            lore.add(ChatUtils.format(header));
+            ability.description().forEach(line -> lore.add(ChatUtils.format(line)));
+            lore.add(ChatUtils.format("<dark_gray>Mana Cost: <dark_aqua>" + (int)ability.manaCost() + "</dark_aqua></dark_gray>"));
+            lore.add(ChatUtils.format("<dark_gray>Cooldown: <green>" + ability.cooldownSeconds() + "s</green></dark_gray>"));
+            lore.add(Component.empty());
+        });
+
 
         // --- 6. Unmet Requirements and Reforge Text ---
         boolean meetsAllReqs = true;

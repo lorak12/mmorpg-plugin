@@ -1,7 +1,6 @@
 # =================================================== #
 #             Slayer Boss Base Templates              #
 #    These are the base blueprints for slayer bosses. #
-# Stats are overridden by the slayers.yml config.     #
 # =================================================== #
 
 # ------------------- Zombie Slayer -------------------

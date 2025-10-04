@@ -11,6 +11,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.enchantment.effects.EnchantmentEffect;
@@ -20,6 +21,7 @@ import org.nakii.mmorpg.player.PlayerStats;
 import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.slayer.ActiveSlayerQuest;
 import org.nakii.mmorpg.slayer.PlayerSlayerData;
+import org.nakii.mmorpg.utils.VectorUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -45,48 +47,73 @@ public class PlayerDamageListener implements Listener {
 
         if (!(event.getEntity() instanceof LivingEntity victim)) return;
 
+        // --- NEW: Check for the Bypass Defense flag ---
+        boolean bypassDefense = victim.hasMetadata(DamageManager.BYPASS_DEFENSE_META_KEY);
+        if (bypassDefense) {
+            // It's important to remove the metadata so it doesn't affect subsequent hits
+            victim.removeMetadata(DamageManager.BYPASS_DEFENSE_META_KEY, plugin);
+        }
+
         double finalDamage = event.getDamage();
         boolean isCustomCrit = false;
 
-        // Neutralize vanilla critical damage
-        if (event.isCritical()) {
-            finalDamage /= 1.5;
-        }
+        // If the damage is from our ability, we don't need to recalculate it.
+        // We only run these blocks for standard weapon/mob attacks.
+        if (!bypassDefense) {
+            // Neutralize vanilla critical damage
+            if (event.isCritical()) {
+                finalDamage /= 1.5;
+            }
 
-        // --- Phase 1: Determine Attacker's Base Damage ---
+            // --- Phase 1: Determine Attacker's Base Damage ---
+            if (event.getDamager() instanceof Player attacker) {
+                PlayerStats attackerStats = statsManager.getStats(attacker);
+                isCustomCrit = (Math.random() * 100 < attackerStats.getCritChance());
 
-        // 1a: If the attacker is a PLAYER
-        if (event.getDamager() instanceof Player attacker) {
-            PlayerStats attackerStats = statsManager.getStats(attacker);
-            isCustomCrit = (Math.random() * 100 < attackerStats.getCritChance());
+                // Calculate full outgoing damage, including stats and offensive enchants
+                finalDamage = damageManager.calculatePlayerDamage(attacker, victim, finalDamage, isCustomCrit);
 
-            // Calculate full outgoing damage, including stats and offensive enchants
-            finalDamage = damageManager.calculatePlayerDamage(attacker, victim, finalDamage, isCustomCrit);
+                ItemStack weapon = attacker.getInventory().getItemInMainHand();
 
-            // Apply damage-modifying enchantments
-            ItemStack weapon = attacker.getInventory().getItemInMainHand();
-            if (weapon != null && !weapon.getType().isAir()) {
-                Map<String, Integer> enchantments = enchantmentManager.getEnchantments(weapon);
-                for (Map.Entry<String, Integer> entry : enchantments.entrySet()) {
-                    CustomEnchantment enchantment = enchantmentManager.getEnchantment(entry.getKey());
-                    if (enchantment == null || enchantment.getCustomLogicKey() == null) continue;
-                    EnchantmentEffect effect = plugin.getEnchantmentEffectManager().getEffect(enchantment.getCustomLogicKey());
-                    if (effect != null) {
-                        finalDamage = effect.onDamageModify(finalDamage, event, enchantment, entry.getValue(), isCustomCrit);
+                // --- NEW: Passive Effect Logic ---
+                if (weapon != null && weapon.hasItemMeta()) {
+                    // Example: Livid Dagger passive
+                    String itemId = weapon.getItemMeta().getPersistentDataContainer().get(ItemManager.ITEM_ID_KEY, PersistentDataType.STRING);
+                    if ("LIVID_DAGGER".equals(itemId)) {
+                        if (VectorUtils.isBehind(attacker, victim)) {
+                            // Apply 100% more damage if it's a critical hit
+                            if (isCustomCrit) {
+                                finalDamage *= 2;
+                            }
+                        }
+                    }
+                }
+
+
+                // Apply damage-modifying enchantments
+                if (weapon != null && !weapon.getType().isAir()) {
+                    Map<String, Integer> enchantments = enchantmentManager.getEnchantments(weapon);
+                    for (Map.Entry<String, Integer> entry : enchantments.entrySet()) {
+                        CustomEnchantment enchantment = enchantmentManager.getEnchantment(entry.getKey());
+                        if (enchantment == null || enchantment.getCustomLogicKey() == null) continue;
+                        EnchantmentEffect effect = plugin.getEnchantmentEffectManager().getEffect(enchantment.getCustomLogicKey());
+                        if (effect != null) {
+                            finalDamage = effect.onDamageModify(finalDamage, event, enchantment, entry.getValue(), isCustomCrit);
+                        }
                     }
                 }
             }
-        }
-        // 1b: --- THIS IS THE NEW LOGIC BLOCK ---
-        // If the attacker is a MOB
-        else if (event.getDamager() instanceof LivingEntity mobAttacker) {
-            // Check if it's one of our custom mobs
-            if (plugin.getMobManager().isCustomMob(mobAttacker)) {
-                CustomMobTemplate template = plugin.getMobManager().getTemplate(plugin.getMobManager().getMobId(mobAttacker));
-                if (template != null) {
-                    // Set the event's base damage to our custom mob's damage stat.
-                    // In the future, you could add a formula here for mob Strength, etc.
-                    finalDamage = template.getStat(Stat.DAMAGE);
+            // 1b: --- THIS IS THE NEW LOGIC BLOCK ---
+            // If the attacker is a MOB
+            else if (event.getDamager() instanceof LivingEntity mobAttacker) {
+                // Check if it's one of our custom mobs
+                if (plugin.getMobManager().isCustomMob(mobAttacker)) {
+                    CustomMobTemplate template = plugin.getMobManager().getTemplate(plugin.getMobManager().getMobId(mobAttacker));
+                    if (template != null) {
+                        // Set the event's base damage to our custom mob's damage stat.
+                        // In the future, you could add a formula here for mob Strength, etc.
+                        finalDamage = template.getStat(Stat.DAMAGE);
+                    }
                 }
             }
         }
