@@ -13,8 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.managers.ItemManager;
-import org.nakii.mmorpg.requirements.Requirement;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 
 import java.lang.reflect.Type;
 import java.util.List;

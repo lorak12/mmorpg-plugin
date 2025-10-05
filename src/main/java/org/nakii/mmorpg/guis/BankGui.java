@@ -1,6 +1,5 @@
 package org.nakii.mmorpg.guis;
 
-import io.papermc.paper.connection.PlayerGameConnection;
 import io.papermc.paper.dialog.Dialog;
 import io.papermc.paper.dialog.DialogResponseView;
 import io.papermc.paper.registry.data.dialog.ActionButton;
@@ -10,7 +9,6 @@ import io.papermc.paper.registry.data.dialog.input.DialogInput;
 import io.papermc.paper.registry.data.dialog.type.DialogType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickCallback;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -28,21 +26,15 @@ import org.nakii.mmorpg.economy.Transaction;
 import org.nakii.mmorpg.events.PluginTimeUpdateEvent;
 import org.nakii.mmorpg.managers.BankManager;
 import org.nakii.mmorpg.managers.WorldTimeManager;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import net.kyori.adventure.key.Key;
-import net.kyori.adventure.dialog.*;
 import net.kyori.adventure.audience.Audience;
-
-import io.papermc.paper.event.player.PlayerCustomClickEvent;
-
 
 
 public class BankGui extends AbstractGui {

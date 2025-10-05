@@ -16,6 +16,10 @@ repositories {
         name = "papermc"
         url = uri("https://repo.papermc.io/repository/maven-public/")
     }
+    maven {
+        name = "citizens-repo"
+        url = uri("https://maven.citizensnpcs.co/repo")
+    }
     maven("https://jitpack.io")
     maven("https://repo.md-5.net/content/groups/public/")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
@@ -25,6 +29,12 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.7-R0.1-SNAPSHOT")
 
     compileOnly("net.dmulloy2:ProtocolLib:5.4.0")
+    compileOnly("net.citizensnpcs:citizens-main:2.0.40-SNAPSHOT"){
+        exclude("*", "*")
+
+    }
+    compileOnly("com.github.decentsoftware-eu:decentholograms:2.9.7")
+
 
     implementation("net.objecthunter:exp4j:0.4.8")
     shadow("net.objecthunter:exp4j:0.4.8")

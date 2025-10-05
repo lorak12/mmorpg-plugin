@@ -14,7 +14,7 @@ import org.nakii.mmorpg.managers.WorldManager;
 import org.nakii.mmorpg.player.PlayerState;
 import org.nakii.mmorpg.player.PlayerStats;
 import org.nakii.mmorpg.player.Stat;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 import org.nakii.mmorpg.zone.Climate;
 import org.nakii.mmorpg.zone.Zone;
 

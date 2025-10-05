@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.scoreboard.PlayerScoreboard;
 import org.nakii.mmorpg.scoreboard.ScoreboardProvider;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 import org.nakii.mmorpg.world.CustomWorld;
 import org.nakii.mmorpg.zone.Zone;
 

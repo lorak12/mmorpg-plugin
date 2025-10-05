@@ -10,8 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.player.PlayerStats;
-import org.nakii.mmorpg.player.Stat;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;

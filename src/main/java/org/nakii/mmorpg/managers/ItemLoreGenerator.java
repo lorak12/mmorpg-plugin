@@ -16,7 +16,7 @@ import org.nakii.mmorpg.item.CustomItemTemplate;
 import org.nakii.mmorpg.item.Rarity;
 import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.requirements.Requirement;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;

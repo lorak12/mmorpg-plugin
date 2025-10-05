@@ -5,8 +5,8 @@ api-version: '1.21'
 author: Nakii
 description: A comprehensive MMORPG plugin.
 
-softdepend: [Multiverse-Core]
-depend: [ProtocolLib]
+softdepend: [Multiverse-Core, DecentHolograms]
+depend: [ProtocolLib, Citizens]
 
 commands:
   mmorpg:

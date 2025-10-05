@@ -1,4 +1,4 @@
-package org.nakii.mmorpg.utils;
+package org.nakii.mmorpg.util;
 
 import net.kyori.adventure.text.Component;
 import org.nakii.mmorpg.MMORPGCore;

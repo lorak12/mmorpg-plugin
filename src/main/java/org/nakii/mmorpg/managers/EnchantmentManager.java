@@ -2,7 +2,6 @@ package org.nakii.mmorpg.managers;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -24,7 +23,6 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import org.nakii.mmorpg.enchantment.ApplicableType;
-import org.nakii.mmorpg.utils.ChatUtils;
 
 import java.util.stream.Collectors;
 

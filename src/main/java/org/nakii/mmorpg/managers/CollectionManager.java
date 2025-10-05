@@ -1,7 +1,6 @@
 package org.nakii.mmorpg.managers;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -11,7 +10,7 @@ import org.bukkit.entity.Player;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.collection.PlayerCollectionData;
 import org.nakii.mmorpg.skills.Skill;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;

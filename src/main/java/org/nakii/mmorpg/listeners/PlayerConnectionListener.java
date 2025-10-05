@@ -8,7 +8,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.collection.PlayerCollectionData;
 import org.nakii.mmorpg.slayer.PlayerSlayerData;
-import org.nakii.mmorpg.utils.ChatUtils; // Assuming you have this for formatting
+import org.nakii.mmorpg.util.ChatUtils; // Assuming you have this for formatting
 
 import java.sql.SQLException;
 
@@ -36,6 +36,8 @@ public class PlayerConnectionListener implements Listener {
             plugin.getStatsManager().loadPlayer(player);
             plugin.getPlayerManager().loadPlayer(player);
 
+            plugin.getQuestManager().loadPlayerData(player);
+
             // Load remaining data
             plugin.getEconomyManager().loadPlayer(player);
             plugin.getSlayerManager().loadQuestForPlayer(player);
@@ -60,6 +62,8 @@ public class PlayerConnectionListener implements Listener {
             plugin.getStatsManager().unloadPlayer(player);
             plugin.getEconomyManager().unloadPlayer(player);
             plugin.getPlayerManager().unloadPlayer(player);
+
+            plugin.getQuestManager().unloadPlayerData(player);
 
             PlayerSlayerData slayerData = plugin.getSlayerDataManager().getData(player);
             if (slayerData != null) {

@@ -8,7 +8,7 @@ import org.bukkit.inventory.ItemStack;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.skills.Skill;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -21,7 +21,7 @@ import org.nakii.mmorpg.player.PlayerStats;
 import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.slayer.ActiveSlayerQuest;
 import org.nakii.mmorpg.slayer.PlayerSlayerData;
-import org.nakii.mmorpg.utils.VectorUtils;
+import org.nakii.mmorpg.util.VectorUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -226,7 +226,7 @@ public class PlayerDamageListener implements Listener {
                     plugin.getCollectionManager().addProgress(killer, collectionId, drop.getAmount());
                 }
                 // Use the pristine dropper for every single item.
-                org.nakii.mmorpg.utils.ItemDropper.dropPristineItem(killer, victim.getLocation(), drop);
+                org.nakii.mmorpg.util.ItemDropper.dropPristineItem(killer, victim.getLocation(), drop);
             }
         }
 

@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.guis.TheHexGui;
-import org.nakii.mmorpg.utils.ChatUtils;
 
 public class HexCommand implements CommandExecutor {
 

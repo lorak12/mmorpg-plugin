@@ -14,7 +14,7 @@ import org.nakii.mmorpg.managers.*;
 import org.nakii.mmorpg.player.PlayerStats;
 import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.skills.Skill;
-import org.nakii.mmorpg.utils.ItemDropper;
+import org.nakii.mmorpg.util.ItemDropper;
 import org.nakii.mmorpg.zone.BlockBreakingFlags;
 import org.nakii.mmorpg.zone.BlockNode;
 import org.nakii.mmorpg.zone.Zone;

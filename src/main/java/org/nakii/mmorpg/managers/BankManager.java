@@ -1,7 +1,6 @@
 package org.nakii.mmorpg.managers;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -14,7 +13,7 @@ import org.nakii.mmorpg.economy.PlayerEconomy;
 import org.nakii.mmorpg.economy.Transaction;
 import org.nakii.mmorpg.events.PlayerBalanceChangeEvent;
 import org.nakii.mmorpg.events.PluginTimeUpdateEvent; // Assuming you have a general time event
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 
 import java.io.File;
 import java.util.*;

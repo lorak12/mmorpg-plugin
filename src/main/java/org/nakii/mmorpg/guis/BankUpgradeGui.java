@@ -1,7 +1,6 @@
 package org.nakii.mmorpg.guis;
 
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -10,7 +9,6 @@ import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.economy.PlayerEconomy;
 import org.nakii.mmorpg.managers.BankManager;
-import org.nakii.mmorpg.utils.ChatUtils;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;

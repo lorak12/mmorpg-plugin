@@ -1,6 +1,5 @@
-package org.nakii.mmorpg.utils;
+package org.nakii.mmorpg.util;
 
-import com.destroystokyo.paper.event.player.PlayerPickupExperienceEvent;
 import org.bukkit.Location;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;

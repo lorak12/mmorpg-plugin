@@ -1,4 +1,4 @@
-package org.nakii.mmorpg.utils;
+package org.nakii.mmorpg.util;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;

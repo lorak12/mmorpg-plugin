@@ -11,7 +11,7 @@ import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.managers.EnchantmentManager;
 import org.nakii.mmorpg.managers.SkillManager;
 import org.nakii.mmorpg.skills.Skill;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 
 import java.util.ArrayList;
 import java.util.List;

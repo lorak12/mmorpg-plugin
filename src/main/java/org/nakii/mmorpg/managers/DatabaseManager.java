@@ -49,6 +49,7 @@ public class DatabaseManager {
         createActiveQuestsTable();
         createPlayerCollectionsTable();
         createPlayerBonusStatsTable();
+        createPlayerQuestDataTable();
     }
 
     /**
@@ -402,6 +403,57 @@ public class DatabaseManager {
                 pstmt.addBatch();
             }
             pstmt.executeBatch();
+        }
+    }
+
+    // ========================================================== //
+    // ---               NEW QUEST DATA SECTION               --- //
+    // ========================================================== //
+
+    /**
+     * Creates the table to store serialized player quest data.
+     */
+    private void createPlayerQuestDataTable() throws SQLException {
+        String sql = """
+        CREATE TABLE IF NOT EXISTS player_quest_data (
+            uuid TEXT PRIMARY KEY,
+            quest_data TEXT NOT NULL
+        );
+        """;
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    /**
+     * Loads a player's entire quest data as a single JSON string.
+     * @param uuid The UUID of the player to load.
+     * @return The JSON string of the player's quest data, or null if not found.
+     */
+    public String loadPlayerQuestData(UUID uuid) throws SQLException {
+        String sql = "SELECT quest_data FROM player_quest_data WHERE uuid = ?;";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, uuid.toString());
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("quest_data");
+            }
+        }
+        return null; // Return null if no data is found for the player
+    }
+
+    /**
+     * Saves a player's entire quest data as a single JSON string.
+     * This will create a new entry or replace an existing one.
+     * @param uuid The UUID of the player to save.
+     * @param jsonData The JSON string representing the player's full quest data.
+     */
+    public void savePlayerQuestData(UUID uuid, String jsonData) throws SQLException {
+        String sql = "INSERT OR REPLACE INTO player_quest_data (uuid, quest_data) VALUES (?, ?);";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, uuid.toString());
+            pstmt.setString(2, jsonData);
+            pstmt.executeUpdate();
         }
     }
 }

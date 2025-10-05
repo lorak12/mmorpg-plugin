@@ -16,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.mob.CustomMobTemplate;
 import org.nakii.mmorpg.player.Stat;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 
 import java.io.File;
 import java.util.*;

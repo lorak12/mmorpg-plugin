@@ -8,7 +8,7 @@ import org.nakii.mmorpg.events.PlayerGainCombatXpEvent;
 import org.nakii.mmorpg.events.SlayerProgressUpdateEvent;
 import org.nakii.mmorpg.managers.SlayerManager;
 import org.nakii.mmorpg.slayer.ActiveSlayerQuest;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 
 public class SlayerProgressListener implements Listener {
 

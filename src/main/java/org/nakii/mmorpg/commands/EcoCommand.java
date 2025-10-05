@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.economy.PlayerEconomy;
 import org.nakii.mmorpg.managers.EconomyManager;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;

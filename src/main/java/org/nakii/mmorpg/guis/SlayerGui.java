@@ -1,6 +1,5 @@
 package org.nakii.mmorpg.guis;
 
-import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
@@ -14,13 +13,11 @@ import org.nakii.mmorpg.managers.EconomyManager;
 import org.nakii.mmorpg.managers.SlayerManager;
 import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.requirements.Requirement;
-import org.nakii.mmorpg.slayer.ActiveSlayerQuest;
 import org.nakii.mmorpg.slayer.PlayerSlayerData;
-import org.nakii.mmorpg.utils.ChatUtils;
+import org.nakii.mmorpg.util.ChatUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public class SlayerGui extends AbstractGui {
 

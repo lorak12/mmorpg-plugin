@@ -5,20 +5,15 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.collection.PlayerCollectionData;
-import org.nakii.mmorpg.guis.AbstractGui;
-import org.nakii.mmorpg.guis.CollectionMenu;
 import org.nakii.mmorpg.managers.CollectionManager;
-import org.nakii.mmorpg.utils.ChatUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class CollectionsGui extends AbstractGui {
 
