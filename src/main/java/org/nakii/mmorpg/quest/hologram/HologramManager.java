@@ -1,59 +1,103 @@
 package org.nakii.mmorpg.quest.hologram;
 
-// Imports for your chosen Hologram API
-// import eu.decentsoftware.holograms.api.DHAPI;
-// import eu.decentsoftware.holograms.api.holograms.Hologram;
-
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.nakii.mmorpg.MMORPGCore;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import org.nakii.mmorpg.quest.QuestManager;
+import org.nakii.mmorpg.quest.hologram.ManagedHologram;
+import org.nakii.mmorpg.quest.model.QuestHologram;
 
-/**
- * Manages the display of conditional quest holograms over NPC heads.
- * Implements a staggered ticker for performance.
- */
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class HologramManager {
+
     private final MMORPGCore plugin;
-    private final Queue<Player> playerCheckQueue = new ConcurrentLinkedQueue<>();
+    private final QuestManager questManager;
+    private final Map<String, ManagedHologram> managedHolograms = new ConcurrentHashMap<>();
+
+    private BukkitTask visibilityTask;
+    private BukkitTask followTask;
 
     public HologramManager(MMORPGCore plugin) {
         this.plugin = plugin;
-        startTicker();
+        this.questManager = plugin.getQuestManager();
     }
 
-    private void startTicker() {
-        new BukkitRunnable() {
+    public void initialize() {
+        // Load all hologram configurations from quest files
+        loadAllHolograms();
+
+        // Start the tasks that will manage them
+        startTasks();
+    }
+
+    public void shutdown() {
+        // Stop the tasks
+        if (visibilityTask != null) visibilityTask.cancel();
+        if (followTask != null) followTask.cancel();
+
+        // Cleanly delete all managed holograms
+        managedHolograms.values().forEach(ManagedHologram::destroy);
+        managedHolograms.clear();
+    }
+
+    private void loadAllHolograms() {
+        shutdown(); // Ensure we're starting fresh
+        plugin.getLogger().info("Loading all quest holograms...");
+
+        for (QuestHologram template : questManager.getAllHolograms()) {
+            ManagedHologram managedHologram = new ManagedHologram(template);
+            managedHolograms.put(managedHologram.getId(), managedHologram);
+        }
+
+        plugin.getLogger().info("Loaded " + managedHolograms.size() + " managed holograms.");
+    }
+
+    private void startTasks() {
+        // This task checks conditions and toggles visibility. Runs less frequently.
+        visibilityTask = new BukkitRunnable() {
             @Override
             public void run() {
-                // Add all online players to the queue if they aren't already
-                for (Player player : plugin.getServer().getOnlinePlayers()) {
-                    if (!playerCheckQueue.contains(player)) {
-                        playerCheckQueue.add(player);
-                    }
-                }
+                if (Bukkit.getOnlinePlayers().isEmpty()) return;
 
-                // Process a portion of the queue each tick to distribute load
-                int playersToProcess = Math.max(1, playerCheckQueue.size() / 20); // Process 5% of players per tick
-                for (int i = 0; i < playersToProcess; i++) {
-                    Player player = playerCheckQueue.poll();
-                    if (player != null && player.isOnline()) {
-                        updateHologramsForPlayer(player);
-                        playerCheckQueue.add(player); // Add them back to the end of the queue
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    for (ManagedHologram hologram : managedHolograms.values()) {
+                        boolean conditionsMet = questManager.checkConditions(player, hologram.getTemplate().getConditions());
+                        hologram.updateVisibilityFor(player, conditionsMet);
                     }
                 }
             }
-        }.runTaskTimerAsynchronously(plugin, 100L, 1L); // Start after 5s, run every tick
+        }.runTaskTimer(plugin, 60L, 40L); // Start after 3s, repeat every 2s
+
+        // This task makes holograms follow NPCs. Runs every tick for smoothness.
+        followTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (ManagedHologram hologram : managedHolograms.values()) {
+                    if (hologram.getTemplate().isAttachedToNpc()) {
+                        hologram.updatePosition();
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 60L, 1L); // Start after 3s, repeat every tick
     }
 
-    private void updateHologramsForPlayer(Player player) {
-        // This is where the core logic will go.
-        // 1. Get all NPCs within the player's view distance.
-        // 2. For each NPC, get its list of potential holograms from the QuestManager.
-        // 3. For each potential hologram, check its conditions using the ConditionFactory.
-        // 4. Find the first hologram whose conditions are met.
-        // 5. Use the Hologram API (e.g., DHAPI.showHologramToPlayer / hideHologramFromPlayer)
-        //    to ensure the player is only seeing the correct hologram (or none at all).
+    public void onPlayerQuit(Player player) {
+        // Clean up the player's data from all holograms to prevent memory leaks
+        for (ManagedHologram hologram : managedHolograms.values()) {
+            hologram.removePlayer(player);
+        }
+    }
+
+    public void reload() {
+        plugin.getLogger().info("Reloading all quest holograms...");
+        // The shutdown method already deletes all holograms and cancels tasks.
+        shutdown();
+        // The initialize method already loads all holograms and starts the tasks.
+        initialize();
+        plugin.getLogger().info("Hologram reload complete.");
     }
 }

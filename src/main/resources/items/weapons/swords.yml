@@ -13,3 +13,11 @@ UNDEAD_SWORD:
   requirements:
     - "SKILL:COMBAT:5"
   sell-price: 500
+NOVICE_SWORD:
+  material: IRON_SWORD
+  display-name: "<white>Novice's Sword</white>"
+  rarity: COMMON
+  item-type: SWORD
+  stats:
+    DAMAGE: 15
+    STRENGTH: 5

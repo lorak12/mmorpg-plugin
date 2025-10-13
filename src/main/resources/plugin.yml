@@ -21,8 +21,6 @@ commands:
     description: Opens the skills GUI.
     usage: /skills
     permission: mmorpg.command.skills
-
-  # --- NEW COMMANDS ---
   giveitem:
     description: Gives a custom item.
     usage: /giveitem <item_id> [amount] [player]
@@ -69,21 +67,21 @@ commands:
   travel:
     description: Use to travel between worlds and zones.
     usage: /travel
+  questAdmin:
+    description: Admin command for managing quests.
+    usage: /questAdmin <subcommand>
+    aliases: [qadmin, qa]
 
 permissions:
   mmorpg.admin:
     description: Grants access to all MMORPGCore administrative commands.
     default: op
-
-  # --- NEW PERMISSIONS ---
   mmorpg.command.giveitem:
     description: Allows the user to use the /giveitem command.
     default: op
   mmorpg.command.spawnmob:
     description: Allows the user to use the /spawnmob command.
     default: op
-
-  # Base user permissions
   mmorpg.command.stats:
     description: Allows the user to use the /stats command.
     default: true

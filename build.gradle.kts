@@ -23,6 +23,7 @@ repositories {
     maven("https://jitpack.io")
     maven("https://repo.md-5.net/content/groups/public/")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
+    maven("https://repo.dmulloy2.net/repository/public/")
 }
 
 dependencies {

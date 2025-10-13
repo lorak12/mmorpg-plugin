@@ -1,12 +1,12 @@
-# This key 'ZOMBIE_LVL5' must match the key in the mob-spawning flag.
-ZOMBIE_LVL5:
-  entity-type: "ZOMBIE"
-  display-name: "<dark_red>Goblin Grunt</dark_red>"
-  level: 5
-  mob-category: "GOBLIN"
+GHOSTLY_ZOMBIE:
+  type: ZOMBIE
+  display-name: "<gray>Ghostly Zombie</gray>"
+  level: 3
   stats:
-    health: 50
-    damage: 10
-    defense: 5
-  equipment:
-    hand: "WOODEN_SWORD"
+    HEALTH: 40
+    DAMAGE: 10
+  loot-table:
+    - item: "ROTTEN_FLESH"
+      quantity: "1"
+      chance: 0.5
+      magic-find: false

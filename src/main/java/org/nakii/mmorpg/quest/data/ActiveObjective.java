@@ -1,27 +1,24 @@
 package org.nakii.mmorpg.quest.data;
 
-
+import org.nakii.mmorpg.quest.engine.objective.BlockObjective;
 import org.nakii.mmorpg.quest.engine.objective.KillObjective;
 import org.nakii.mmorpg.quest.engine.objective.QuestObjective;
 
 /**
- * Represents a player's current progress on a specific objective.
- * This object is part of PlayerQuestData and is serialized to the database.
+ * A wrapper around a QuestObjective template that holds a player's current progress.
  */
 public class ActiveObjective {
 
-    private final String objectiveId;
     private final QuestObjective template;
     private int progress;
 
     public ActiveObjective(QuestObjective template) {
-        this.objectiveId = template.getObjectiveId();
         this.template = template;
         this.progress = 0;
     }
 
     public String getObjectiveId() {
-        return objectiveId;
+        return template.getObjectiveId();
     }
 
     public QuestObjective getTemplate() {
@@ -32,6 +29,10 @@ public class ActiveObjective {
         return progress;
     }
 
+    public void setProgress(int progress) {
+        this.progress = progress;
+    }
+
     public void incrementProgress(int amount) {
         this.progress += amount;
     }
@@ -40,7 +41,11 @@ public class ActiveObjective {
         if (template instanceof KillObjective killObjective) {
             return progress >= killObjective.getAmount();
         }
-        // Add other objective type checks here
-        return false;
+        if (template instanceof BlockObjective blockObjective) {
+            return progress >= blockObjective.getAmount();
+        }
+        // For objectives without an "amount" (location, interact, die),
+        // any progress (>= 1) means they are complete.
+        return progress >= 1;
     }
 }

@@ -7,9 +7,10 @@ public class PlayerQuestData {
     // transient keyword prevents Gson from serializing this field, which is correct
     // as we want to save the raw string set, not this case-insensitive wrapper.
     private final transient Set<String> caseInsensitiveTags;
-    private final Set<String> tags;
+    private Set<String> tags = new HashSet<>();
     private final Map<String, Double> reputation;
     private final List<ActiveObjective> activeObjectives;
+
 
     public PlayerQuestData() {
         this.tags = new HashSet<>();
@@ -21,21 +22,26 @@ public class PlayerQuestData {
     // --- NEW METHODS for TagEvent and TagCondition ---
 
     public boolean hasTag(String tag) {
-        return caseInsensitiveTags.contains(tag.toLowerCase());
+        return tags.contains(tag.toLowerCase());
     }
 
     public void addTag(String tag) {
-        tags.add(tag);
-        caseInsensitiveTags.add(tag.toLowerCase());
+        tags.add(tag.toLowerCase());
     }
 
     public void removeTag(String tag) {
-        tags.remove(tag);
-        caseInsensitiveTags.remove(tag.toLowerCase());
+        tags.remove(tag.toLowerCase());
+    }
+
+    public Set<String> getTags() {
+        return tags;
     }
 
     public double getReputation(String faction) {
         return reputation.getOrDefault(faction.toLowerCase(), 0.0);
+    }
+    public Map<String, Double> getReputations() {
+        return reputation;
     }
 
     public void addReputation(String faction, double amount) {

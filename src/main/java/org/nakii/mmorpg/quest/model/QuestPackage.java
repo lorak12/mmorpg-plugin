@@ -19,6 +19,8 @@ public class QuestPackage {
     private final Map<String, String> objectives = new HashMap<>();
     private final Map<String, Conversation> conversations = new HashMap<>();
     private final Map<String, QuestObjective> objectiveTemplates = new HashMap<>();
+    private final Map<String, QuestHologram> holograms = new HashMap<>();
+    private final Map<Integer, NPCVisibilityRule> visibilityRules = new HashMap<>();
 
     public QuestPackage(String name) {
         this.name = name;
@@ -45,5 +47,9 @@ public class QuestPackage {
     // NEW: Methods to store the parsed QuestObjective objects
     public void addQuestObjective(String key, QuestObjective template) { this.objectiveTemplates.put(key, template); }
     public QuestObjective getQuestObjective(String key) { return this.objectiveTemplates.get(key); }
+
+    public void addHologram(String key, QuestHologram hologram) { this.holograms.put(key, hologram); }
+
+    public void addVisibilityRule(int npcId, NPCVisibilityRule rule) { this.visibilityRules.put(npcId, rule); }
 
 }

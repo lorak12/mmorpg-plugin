@@ -1,0 +1,61 @@
+# Test Quest: The Whispering Ghost
+npcs:
+  "1": "MARCUS_INTRO" # Citizen NPC Marcus (ID 20) starts this quest.
+
+conversations:
+  MARCUS_INTRO:
+    quester: "Marcus"
+    first: "GREETING"
+    NPC_options:
+      GREETING:
+        conditions: "!tag ghost_quest_started"
+        text: "<white>Traveler, thank goodness you're here. The old ruins are crawling with restless spirits. Could you put three of them to rest?</white>"
+        pointers: "PLAYER_ACCEPT,PLAYER_DECLINE"
+      POST_ACCEPT:
+        text: "<white>Thank you. Take this sword, it should be of some use.</white>"
+      GOODBYE:
+        text: "<white>A shame. Be careful out there.</white>"
+    player_options:
+      PLAYER_ACCEPT:
+        text: "[Accept] I will handle it."
+        event: "START_GHOST_QUEST"
+        pointer: "POST_ACCEPT"
+      PLAYER_DECLINE:
+        text: "[Decline] I'm not interested."
+        pointer: "GOODBYE"
+
+events:
+  START_GHOST_QUEST: "folder give_sword, add_start_tag, start_kill_obj, reminder_msg"
+  FINISH_GHOST_QUEST: "folder complete_msg, add_finish_tag, delete_kill_obj"
+  give_sword: "give NOVICE_SWORD:1"
+  add_start_tag: "tag add ghost_quest_started"
+  start_kill_obj: "objective start KILL_GHOSTLY_ZOMBIES"
+  reminder_msg: "message <gray>New Objective: Slay the zombies plaguing the old ruins."
+  complete_msg: "message <green><b>Quest Complete!</b> As the last spirit falls, you feel a strange presence nearby...</green>"
+  add_finish_tag: "tag add ghost_quest_complete"
+  delete_kill_obj: "objective delete KILL_GHOSTLY_ZOMBIES"
+
+objectives:
+  KILL_GHOSTLY_ZOMBIES: 'kill GHOSTLY_ZOMBIE 3 events:FINISH_GHOST_QUEST description:"Defeat 3 Ghostly Zombies"'
+
+npc_visibility:
+  "2":
+    conditions:
+      - "tag ghost_quest_complete"
+
+holograms:
+  GHOST_QUEST_START_MARKER:
+    # REQUIRED: The ID of the Citizens NPC to attach to.
+    npcId: 1
+
+    # REQUIRED: How many blocks above the NPC's head to display the hologram.
+    # A value of ~2.1 usually places it just above their nameplate.
+    offset: 2.1
+
+    # REQUIRED: The text lines to display. Uses MiniMessage format.
+    lines:
+      - "<yellow><b>!</b></yellow>"
+
+    # OPTIONAL: The hologram will only appear if the player meets all these conditions.
+    conditions:
+      - "!tag ghost_quest_started"
