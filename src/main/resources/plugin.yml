@@ -5,7 +5,7 @@ api-version: '1.21'
 author: Nakii
 description: A comprehensive MMORPG plugin.
 
-softdepend: [Multiverse-Core, DecentHolograms]
+softdepend: [Multiverse-Core, DecentHolograms, Vault, EffectLib, WorldEdit, WorldGuard, FancyNpcs, ZNPCsPlus, HolographicDisplays, FastAsyncWorldEdit]
 depend: [ProtocolLib, Citizens]
 
 commands:
@@ -72,6 +72,41 @@ commands:
     usage: /questAdmin <subcommand>
     aliases: [qadmin, qa]
 
+  # BQ integration commands
+  journal:
+    description: Adds journal to your inventory
+    usage: /<command>
+    permission: betonquest.journal
+    aliases: [ j, bj, bjournal, betonjournal, betonquestjournal ]
+  backpack:
+    description: Opens quest backpack
+    usage: /<command>
+    permission: betonquest.backpack
+    aliases: [ b, bb, bbackpack, betonbackpack, betonquestbackpack ]
+  compass:
+    description: Opens the compass menu
+    usage: /<command>
+    permission: betonquest.compass
+    aliases: [ bc, bcompass, betoncompass, betonquestcompass ]
+  cancelquest:
+    description: Opens the window with quest cancelers
+    usage: /<command>
+    permission: betonquest.cancelquest
+    aliases: [ bcq, bcancelquest, betoncancelquest, betonquestcancelquest ]
+  questlang:
+    description: Changes the language
+    usage: /<command> lang
+    permission: betonquest.language
+    aliases: [ ql ]
+  betonquest:
+    description: General quest command
+    usage: /<command>
+    permission: betonquest.admin
+    aliases: [ q, bq, bquest, bquests, betonquests, quest, quests ]
+  betonquestanswer:
+    description: Selects an answer in a conversation
+    usage: No manual usage
+
 permissions:
   mmorpg.admin:
     description: Grants access to all MMORPGCore administrative commands.
@@ -96,4 +131,18 @@ permissions:
     default: true
   mmorpg.command.slayer:
     description: Allow the user to use the /slayer command.
+    default: true
+  betonquest.admin:
+    default: op
+  betonquest.journal:
+    default: true
+  betonquest.backpack:
+    default: true
+  betonquest.cancelquest:
+    default: true
+  betonquest.compass:
+    default: true
+  betonquest.conversation:
+    default: true
+  betonquest.language:
     default: true

@@ -9,7 +9,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.collection.PlayerCollectionData;
-import org.nakii.mmorpg.quest.NPCVisibilityManager;
 import org.nakii.mmorpg.slayer.PlayerSlayerData;
 import org.nakii.mmorpg.util.ChatUtils; // Assuming you have this for formatting
 
@@ -39,10 +38,7 @@ public class PlayerConnectionListener implements Listener {
             plugin.getStatsManager().loadPlayer(player);
             plugin.getPlayerManager().loadPlayer(player);
 
-            plugin.getQuestManager().loadPlayerData(player);
 
-            // This is still important for players who join AFTER the server has started
-            plugin.getNpcVisibilityManager().onPlayerJoin(event.getPlayer());
 
             // Load remaining data
             plugin.getEconomyManager().loadPlayer(player);
@@ -69,8 +65,7 @@ public class PlayerConnectionListener implements Listener {
             plugin.getEconomyManager().unloadPlayer(player);
             plugin.getPlayerManager().unloadPlayer(player);
 
-            plugin.getHologramManager().onPlayerQuit(player);
-            plugin.getQuestManager().unloadPlayerData(player);
+
 
 
             PlayerSlayerData slayerData = plugin.getSlayerDataManager().getData(player);
@@ -93,20 +88,4 @@ public class PlayerConnectionListener implements Listener {
         plugin.getScoreboardManager().removeScoreboard(player);
     }
 
-    /**
-     * This handler listens for the moment Citizens finishes loading all its NPCs at startup.
-     * It then forces a visibility update for all players who might have logged in before
-     * the NPCs were ready, fixing the startup visibility bug.
-     */
-    @EventHandler
-    public void onCitizensEnabled(CitizensEnableEvent event) {
-        plugin.getLogger().info("Citizens enabled. Applying initial NPC visibility for all online players...");
-        NPCVisibilityManager visibilityManager = plugin.getNpcVisibilityManager();
-        if (visibilityManager == null) return;
-
-        // Iterate over any players already online and correct their NPC visibility state.
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            visibilityManager.forceFullUpdateForPlayer(player);
-        }
-    }
 }

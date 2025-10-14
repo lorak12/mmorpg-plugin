@@ -12,16 +12,7 @@ import org.nakii.mmorpg.commands.*;
 import org.nakii.mmorpg.listeners.*;
 import org.nakii.mmorpg.listeners.packet.CustomMiningPacketListener;
 import org.nakii.mmorpg.managers.*;
-import org.nakii.mmorpg.quest.NPCVisibilityManager;
-import org.nakii.mmorpg.quest.QuestManager;
-import org.nakii.mmorpg.quest.conversation.ConversationManager;
-import org.nakii.mmorpg.quest.engine.CoreQuestTypes;
-import org.nakii.mmorpg.quest.engine.kernel.CoreRegistry;
-import org.nakii.mmorpg.quest.engine.profile.ProfileManager;
-import org.nakii.mmorpg.quest.hologram.HologramManager;
-import org.nakii.mmorpg.quest.conversation.NPCInteractionListener;
-import org.nakii.mmorpg.quest.engine.objective.ObjectiveProgressListener;
-import org.nakii.mmorpg.quest.hider.CitizensHider;
+import org.nakii.mmorpg.quest.QuestModule;
 import org.nakii.mmorpg.tasks.*;
 
 import java.io.File;
@@ -30,6 +21,8 @@ import java.sql.SQLException;
 public final class MMORPGCore extends JavaPlugin {
 
     private static MMORPGCore instance;
+
+    private QuestModule questModule;
 
     // All manager instances
     private ItemManager itemManager;
@@ -75,13 +68,7 @@ public final class MMORPGCore extends JavaPlugin {
     private ClimateTask climateTask;
     private MobSpawningTask mobSpawningTask;
     private PlayerMovementTracker playerMovementTracker;
-    private QuestManager questManager;
-    private ConversationManager conversationManager;
-    private HologramManager hologramManager;
-    private NPCVisibilityManager npcVisibilityManager;
-    private ProfileManager profileManager;
-    private CoreRegistry coreRegistry;
-    private CoreQuestTypes coreQuestTypes;
+
 
     private MiniMessage miniMessage;
 
@@ -105,13 +92,11 @@ public final class MMORPGCore extends JavaPlugin {
         setupDefaultItemFiles();
 
         try {
-            // Initialize CitizenHider to manage NPC visibility
-            if (Bukkit.getPluginManager().getPlugin("Citizens") == null) {
-                getLogger().warning("Citizens plugin not found! NPCs and quests will not function properly.");
-            }
-            CitizensHider.start(this);
 
-
+            getLogger().info("Initializing Quest Module...");
+            this.questModule = new QuestModule(this);
+            this.questModule.enable();
+            getLogger().info("Quest Module initialized.");
 
             // --- STEP 1: INITIALIZE ALL MANAGERS FIRST ---
             // This is the critical fix. All manager instances must be created before
@@ -133,17 +118,6 @@ public final class MMORPGCore extends JavaPlugin {
             abilityManager = new AbilityManager(this);
             cooldownManager = new CooldownManager();
 
-            conversationManager = new ConversationManager(this);
-            questManager = new QuestManager(this);
-            hologramManager = new HologramManager(this);
-            hologramManager.initialize();
-
-            npcVisibilityManager = new NPCVisibilityManager(this, questManager);
-            npcVisibilityManager.initialize();
-            profileManager = new ProfileManager();
-            coreRegistry = new CoreRegistry();
-            coreQuestTypes = new CoreQuestTypes();
-            coreQuestTypes.register(coreRegistry);
 
             // Item & Content Systems
             itemManager = new ItemManager(this);
@@ -239,6 +213,10 @@ public final class MMORPGCore extends JavaPlugin {
     @Override
     public void onDisable() {
 
+        if (this.questModule != null) {
+            this.questModule.disable();
+        }
+
         // Save the time when the server shuts down
         if (worldTimeManager != null) {
             worldTimeManager.saveTime();
@@ -261,17 +239,7 @@ public final class MMORPGCore extends JavaPlugin {
             databaseManager.disconnect();
         }
 
-        if (questManager != null && databaseManager != null) {
-            getLogger().info("Saving quest data for all online players...");
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                questManager.unloadPlayerData(player);
-                getLogger().info(" - Saved quest data for " + player.getName());
-            }
-        }
 
-        if (hologramManager != null) {
-            hologramManager.shutdown();
-        }
 
         getLogger().info("MMORPGCore disabled.");
     }
@@ -279,11 +247,7 @@ public final class MMORPGCore extends JavaPlugin {
     private void registerListeners() {
         var pm = getServer().getPluginManager();
 
-        if (getServer().getPluginManager().getPlugin("Citizens") != null) {
-            pm.registerEvents(new NPCInteractionListener(this), this);
-        } else {
-            getLogger().warning("Citizens plugin not found. Quest system will not be fully functional.");
-        }
+
 
         pm.registerEvents(new PristineItemListener(), this);
 
@@ -308,7 +272,6 @@ public final class MMORPGCore extends JavaPlugin {
         pm.registerEvents(new ScoreboardListener(this), this);
         pm.registerEvents(new BlockPlaceListener(this), this);
         pm.registerEvents(new AbilityListener(this), this);
-        pm.registerEvents(new ObjectiveProgressListener(this), this);
 
 
 
@@ -410,9 +373,6 @@ public final class MMORPGCore extends JavaPlugin {
         getCommand("worldadmin").setExecutor(new WorldAdminCommand(this));
         getCommand("mmorpgdebug").setExecutor(new MmorpgDebugCommand(this));
         getCommand("travel").setExecutor(new TravelCommand(this));
-        QuestAdminCommand questAdminCmd = new QuestAdminCommand(this);
-        getCommand("questadmin").setExecutor(questAdminCmd);
-        getCommand("questadmin").setTabCompleter(questAdminCmd);
     }
     private void startAutoSaveTask() {
         long interval = 20L * 60 * 5; // Every 5 minutes
@@ -429,6 +389,11 @@ public final class MMORPGCore extends JavaPlugin {
     }
 
     public static MMORPGCore getInstance() { return instance; }
+
+    public File getPluginFile() {
+        return getFile();
+    }
+
 
     public MiniMessage getMiniMessage() {
         return this.miniMessage;
@@ -485,11 +450,7 @@ public final class MMORPGCore extends JavaPlugin {
     public RequirementManager getRequirementManager() { return requirementManager; }
     public PlayerMovementTracker getPlayerMovementTracker() { return playerMovementTracker; }
     public TravelManager getTravelManager() { return travelManager; }
-    public QuestManager getQuestManager() { return questManager; }
-    public ConversationManager getConversationManager() { return conversationManager; }
-    public HologramManager getHologramManager() { return hologramManager; }
-    public NPCVisibilityManager getNpcVisibilityManager() { return npcVisibilityManager; }
-    public ProfileManager getProfileManager() { return profileManager; }
-    public CoreRegistry getCoreRegistry() { return coreRegistry; }
+    public QuestModule getQuestModule() { return questModule; }
+
 
 }

@@ -1,0 +1,625 @@
+# Put patches for BetonQuest's config here. The syntax is documented in the docs/API/Configuration-Files.md
+3.0.0.18:
+  - type: REMOVE
+    key: journal.format.show_separator
+  - type: VALUE_REPLACE
+    key: journal.format.color.date.day
+    oldValue: '9'
+    newValue: '@[minimessage]<blue>'
+  - type: VALUE_REPLACE
+    key: journal.format.color.date.hour
+    oldValue: '6'
+    newValue: '@[minimessage]<gold>'
+  - type: VALUE_REPLACE
+    key: journal.format.color.line
+    oldValue: '4'
+    newValue: '@[minimessage]<dark_red>'
+  - type: VALUE_REPLACE
+    key: journal.format.color.text
+    oldValue: '0'
+    newValue: '@[minimessage]<black>'
+  - type: VALUE_REPLACE
+    key: journal.format.separator
+    oldValue: '---------------'
+    newValue: '@[minimessage]<newline>'
+  - type: KEY_RENAME
+    oldKey: journal.format.chars_per_line
+    newKey: journal.format.line_length
+  - type: KEY_RENAME
+    oldKey: journal.format.lines_per_page
+    newKey: journal.format.line_count
+  - type: VALUE_REPLACE
+    key: journal.format.line_length
+    oldValue: 19
+    newValue: 114
+  - type: TYPE_TRANSFORM
+    key: journal.format.line_length
+    newType: integer
+  - type: VALUE_REPLACE
+    key: journal.format.line_count
+    oldValue: 13
+    newValue: 14
+  - type: TYPE_TRANSFORM
+    key: journal.format.line_count
+    newType: integer
+3.0.0.17:
+  - type: KEY_RENAME
+    oldKey: conversation.io.menu.npc_name_seperator
+    newKey: conversation.io.menu.npc_name_separator
+  - type: KEY_RENAME
+    oldKey: conversation.io.menu.options_seperator
+    newKey: conversation.io.menu.options_separator
+3.0.0.16:
+  - type: VALUE_REPLACE
+    key: item.backpack.previous_button
+    oldValue: .
+    newValue: >
+  - type: VALUE_REPLACE
+    key: item.backpack.next_button
+    oldValue: .
+    newValue: >
+  - type: VALUE_REPLACE
+    key: item.backpack.cancel_button
+    oldValue: .
+    newValue: >
+  - type: VALUE_REPLACE
+    key: item.backpack.compass_button
+    oldValue: .
+    newValue: >
+3.0.0.15:
+  - type: KEY_RENAME
+    oldKey: message_parser
+    newKey: text_parser
+3.0.0.14:
+  - type: KEY_RENAME
+    oldKey: conversation.io.menu.selection_cooldown
+    newKey: conversation.io.menu.rate_limit
+  - type: KEY_RENAME
+    oldKey: conversation.io.menu.start_new_lines
+    newKey: conversation.io.menu.line_fill_before
+  - type: KEY_RENAME
+    oldKey: conversation.io.menu.npc_name_newline_separator
+    newKey: conversation.io.menu.npc_name_seperator
+  - type: KEY_RENAME
+    oldKey: conversation.io.menu.npc_text_fill_new_lines
+    newKey: conversation.io.menu.options_seperator
+  - type: KEY_RENAME
+    oldKey: conversation.io.menu.npc_wrap
+    newKey: conversation.io.menu.npc_text_wrap
+  - type: KEY_RENAME
+    oldKey: conversation.io.menu.option_wrap
+    newKey: conversation.io.menu.option_text_wrap
+  - type: KEY_RENAME
+    oldKey: conversation.io.menu.option_selected
+    newKey: conversation.io.menu.option_selected_text
+  - type: KEY_RENAME
+    oldKey: conversation.io.menu.option_selected_wrap
+    newKey: conversation.io.menu.option_selected_text_wrap
+  - type: KEY_RENAME
+    oldKey: conversation.io.menu.npc_name_format
+    newKey: conversation.io.menu.npc_name
+  - type: SET
+    key: conversation.io.menu.line_count
+    value: 10
+3.0.0.13:
+  - type: KEY_RENAME
+    oldKey: conversation.combat_delay
+    newKey: conversation.damage.combat_delay
+  - type: SET
+    key: conversation.damage.invincible
+    value: true
+3.0.0.12:
+  - type: SET
+    key: conversation.io.menu.scroll_up
+    value: '@[minimessage]<white>        ↑</white>'
+  - type: SET
+    key: conversation.io.menu.scroll_down
+    value: '@[minimessage]<white>        ↓</white>'
+3.0.0.11:
+  - type: VALUE_REPLACE
+    key: conversation.io.menu.npc_wrap
+    oldValue: '&l &r'
+    newValue: '@[minimessage] '
+  - type: VALUE_REPLACE
+    key: conversation.io.menu.npc_text
+    oldValue: '&l &r&f{npc_text}'
+    newValue: '@[minimessage] <white>{npc_text}'
+  - type: VALUE_REPLACE
+    key: conversation.io.menu.option_wrap
+    oldValue: '&r&l &l &l &l &r'
+    newValue: '@[minimessage]    '
+  - type: VALUE_REPLACE
+    key: conversation.io.menu.option_text
+    oldValue: '&l &l &l &l &r&8[ &b{option_text}&8 ]'
+    newValue: '@[minimessage]    <dark_gray>[ <aqua>{option_text}</aqua> ]'
+  - type: VALUE_REPLACE
+    key: conversation.io.menu.option_selected
+    oldValue: '&l &r &r&7»&r &8[ &f&n{option_text}&8 ]'
+    newValue: '@[minimessage] <gray>» <dark_gray>[ <white><underlined>{option_text}</underlined></white> ]'
+  - type: VALUE_REPLACE
+    key: conversation.io.menu.option_selected_wrap
+    oldValue: '&r&l &l &l &l &r&f&n'
+    newValue: '@[minimessage]    <white><underlined>'
+  - type: VALUE_REPLACE
+    key: conversation.io.menu.npc_name_format
+    oldValue: '&e{npc_name}&r'
+    newValue: '@[minimessage]<yellow>{npc_name}'
+3.0.0.10:
+  - type: VALUE_REPLACE
+    key: conversation.color.npc
+    oldValue: dark_red
+    newValue: '@[minimessage]<dark_red>'
+  - type: VALUE_REPLACE
+    key: conversation.color.player
+    oldValue: dark_green
+    newValue: '@[minimessage]<dark_green>'
+  - type: VALUE_REPLACE
+    key: conversation.color.text
+    oldValue: green,italic
+    newValue: '@[minimessage]<green><italic>'
+  - type: VALUE_REPLACE
+    key: conversation.color.answer
+    oldValue: gray
+    newValue: '@[minimessage]<gray>'
+  - type: VALUE_REPLACE
+    key: conversation.color.number
+    oldValue: yellow
+    newValue: '@[minimessage]<yellow>'
+  - type: VALUE_REPLACE
+    key: conversation.color.option
+    oldValue: aqua
+    newValue: '@[minimessage]<aqua>'
+3.0.0.9:
+  - type: REMOVE
+    key: conversation.io.menu.option_selected_reset
+  - type: REMOVE
+    key: conversation.io.menu.option_text_reset
+  - type: REMOVE
+    key: conversation.io.menu.npc_text_reset
+  - type: VALUE_REPLACE
+    key: conversation.io.menu.line_length
+    oldValue: 50
+    newValue: 320
+  - type: TYPE_TRANSFORM
+    key: conversation.io.menu.line_length
+    newType: integer
+3.0.0.8:
+  - type: SET
+    key: conversation.io.menu.selection_cooldown
+    value: 10
+  - type: SET
+    key: conversation.io.menu.refresh_delay
+    value: 180
+  - type: SET
+    key: conversation.io.menu.line_length
+    value: 50
+  - type: SET
+    key: conversation.io.menu.start_new_lines
+    value: 10
+  - type: SET
+    key: conversation.io.menu.npc_name_newline_separator
+    value: true
+  - type: SET
+    key: conversation.io.menu.npc_text_fill_new_lines
+    value: true
+  - type: SET
+    key: conversation.io.menu.control_select
+    value: jump,left_click
+  - type: SET
+    key: conversation.io.menu.control_cancel
+    value: sneak
+  - type: SET
+    key: conversation.io.menu.control_move
+    value: scroll,move
+  - type: SET
+    key: conversation.io.menu.npc_name_align
+    value: center
+  - type: SET
+    key: conversation.io.menu.npc_name_type
+    value: chat
+  - type: SET
+    key: conversation.io.menu.npc_wrap
+    value: '&l &r'
+  - type: SET
+    key: conversation.io.menu.npc_text
+    value: '&l &r&f{npc_text}'
+  - type: SET
+    key: conversation.io.menu.npc_text_reset
+    value: '&f'
+  - type: SET
+    key: conversation.io.menu.option_wrap
+    value: '&r&l &l &l &l &r'
+  - type: SET
+    key: conversation.io.menu.option_text
+    value: '&l &l &l &l &r&8[ &b{option_text}&8 ]'
+  - type: SET
+    key: conversation.io.menu.option_text_reset
+    value: '&b'
+  - type: SET
+    key: conversation.io.menu.option_selected
+    value: '&l &r &r&7»&r &8[ &f&n{option_text}&8 ]'
+  - type: SET
+    key: conversation.io.menu.option_selected_reset
+    value: '&f'
+  - type: SET
+    key: conversation.io.menu.option_selected_wrap
+    value: '&r&l &l &l &l &r&f&n'
+  - type: SET
+    key: conversation.io.menu.npc_name_format
+    value: '&e{npc_name}&r'
+3.0.0.7:
+  - type: KEY_RENAME
+    oldKey: update
+    newKey: updater
+  - type: KEY_RENAME
+    oldKey: updater.ingameNotification
+    newKey: updater.ingame_notification
+  - type: KEY_RENAME
+    oldKey: download
+    newKey: downloader
+  - type: KEY_RENAME
+    oldKey: downloader.pull_requests
+    newKey: downloader.pull_request
+  - type: KEY_RENAME
+    oldKey: npcs
+    newKey: npc
+  - type: KEY_RENAME
+    oldKey: profiles
+    newKey: profile
+  - type: KEY_RENAME
+    oldKey: debug.history_in_minutes
+    newKey: debug.history
+  - type: REMOVE
+    key: hook.playerpoints
+
+  - type: KEY_RENAME
+    oldKey: conversation_IO_config
+    newKey: conversation.io
+  - type: KEY_RENAME
+    oldKey: default_conversation_IO
+    newKey: conversation.default_io
+  - type: KEY_RENAME
+    oldKey: conversation_colors
+    newKey: conversation.color
+  - type: KEY_RENAME
+    oldKey: default_interceptor
+    newKey: conversation.interceptor.default
+  - type: KEY_RENAME
+    oldKey: display_chat_after_conversation
+    newKey: conversation.interceptor.display_missed
+  - type: KEY_RENAME
+    oldKey: combat_delay
+    newKey: conversation.combat_delay
+  - type: KEY_RENAME
+    oldKey: notify_pullback
+    newKey: conversation.stop.notify
+  - type: KEY_RENAME
+    oldKey: cmd_blacklist
+    newKey: conversation.cmd_blacklist
+  - type: KEY_RENAME
+    oldKey: max_conversation_distance
+    newKey: conversation.stop.distance
+
+  - type: KEY_RENAME
+    oldKey: default_hologram
+    newKey: hologram.default
+  - type: KEY_RENAME
+    oldKey: hologram_update_interval
+    newKey: hologram.update_interval
+
+  - type: KEY_RENAME
+    oldKey: items
+    newKey: item
+  - type: KEY_RENAME
+    oldKey: remove_items_after_respawn
+    newKey: item.quest.remove_after_respawn
+  - type: KEY_RENAME
+    oldKey: quest_items_unbreakable
+    newKey: item.quest.unbreakable
+
+  - type: KEY_RENAME
+    oldKey: journal
+    newKey: journal.format
+  - type: KEY_RENAME
+    oldKey: journal_colors
+    newKey: journal.format.color
+  - type: KEY_RENAME
+    oldKey: default_journal_slot
+    newKey: journal.default_slot
+  - type: KEY_RENAME
+    oldKey: journal.format.show_in_backpack
+    newKey: journal.show_in_backpack
+  - type: KEY_RENAME
+    oldKey: journal.format.lock_default_journal_slot
+    newKey: journal.lock_default_slot
+  - type: KEY_RENAME
+    oldKey: journal.format.give_on_respawn
+    newKey: journal.give_on_respawn
+  - type: KEY_RENAME
+    oldKey: journal.format.custom_model_data
+    newKey: journal.custom_model_data
+
+  - type: KEY_RENAME
+    oldKey: player_hider_check_interval
+    newKey: hider.player_update_interval
+  - type: KEY_RENAME
+    oldKey: npc_hider_check_interval
+    newKey: hider.npc_update_interval
+
+  - type: VALUE_REPLACE
+    key: item.backpack.cancel_button
+    oldValue: DEFAULT
+    newValue: ''
+  - type: VALUE_REPLACE
+    key: item.backpack.compass_button
+    oldValue: DEFAULT
+    newValue: ''
+
+  - type: KEY_RENAME
+    oldKey: default_close
+    newKey: menu.default_close
+
+  - type: SET
+    key: default_notify_io
+    value: 'chat'
+  - type: SET
+    key: journal.format.show_separator
+    value: false
+3.0.0.6:
+  - type: REMOVE
+    key: sounds
+3.0.0.5:
+  - type: SET
+    key: hook.fancynpcs
+    value: true
+  - type: SET
+    key: hook.znpcsplus
+    value: true
+3.0.0.3:
+  - type: REMOVE
+    key: citizens_npcs_by_name
+  - type: KEY_RENAME
+    oldKey: max_npc_distance
+    newKey: max_conversation_distance
+  - type: KEY_RENAME
+    oldKey: acceptNPCLeftClick
+    newKey: npcs.accept_left_click
+  - type: KEY_RENAME
+    oldKey: npcInteractionLimit
+    newKey: npcs.interaction_limit
+  - type: SET
+    key: message_parser
+    value: 'legacyminimessage'
+3.0.0.2:
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'en'
+    newValue: 'en-US'
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'de'
+    newValue: 'de-DE'
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'es'
+    newValue: 'es-ES'
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'fr'
+    newValue: 'fr-FR'
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'hu'
+    newValue: 'hu-HU'
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'it'
+    newValue: 'it-IT'
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'nl'
+    newValue: 'nl-NL'
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'pl'
+    newValue: 'pl-PL'
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'pt-br'
+    newValue: 'pt-BR'
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'pt-pt'
+    newValue: 'pt-PT'
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'ru'
+    newValue: 'ru-RU'
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'vi'
+    newValue: 'vi-VN'
+  - type: VALUE_RENAME
+    key: language
+    oldValueRegex: 'cn'
+    newValue: 'zh-CN'
+  - type: SET
+    key: journal.separator
+    value: '---------------'
+  - type: SET
+    key: default_close
+    value: true
+3.0.0.1:
+  - type: KEY_RENAME
+    oldKey: hook.proskillapi
+    newKey: hook.fabled
+  - type: SET
+    key: hook.breweryx
+    value: true
+  - type: SET
+    key: hook.train_carts
+    value: true
+2.1.0.1:
+  - type: KEY_RENAME
+    oldKey: hook.aureliumskills
+    newKey: hook.auraskills
+2.0.0.6:
+  - type: VALUE_RENAME
+    key: default_interceptor
+    oldValueRegex: 'packet,simple'
+    newValue: 'redischat,packet,simple'
+2.0.0.5:
+  - type: VALUE_RENAME
+    key: items.backpack.compass_button
+    oldValueRegex: ''
+    newValue: 'DEFAULT'
+  - type: VALUE_RENAME
+    key: items.backpack.cancel_button
+    oldValueRegex: ''
+    newValue: 'DEFAULT'
+2.0.0.3:
+  - type: TYPE_TRANSFORM
+    key: default_journal_slot
+    newType: integer
+  - type: TYPE_TRANSFORM
+    key: max_npc_distance
+    newType: double
+  - type: TYPE_TRANSFORM
+    key: citizens_npcs_by_name
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: acceptNPCLeftClick
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: display_chat_after_conversation
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: combat_delay
+    newType: integer
+  - type: TYPE_TRANSFORM
+    key: notify_pullback
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: remove_items_after_respawn
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: quest_items_unbreakable
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.citizens
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.mythicmobs
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.vault
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.worldguard
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.skript
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.mcmmo
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.effectlib
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.playerpoints
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.heroes
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.magic
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.denizen
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.proskillapi
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.quests
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.shopkeepers
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.placeholderapi
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.holographicdisplays
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.worldedit
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.fastasyncworldedit
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.protocollib
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.brewery
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.jobs
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.mythiclib
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.mmocore
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.mmoitems
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.luckperms
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: hook.aureliumskills
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: journal_colors.date.day
+    newType: integer
+  - type: TYPE_TRANSFORM
+    key: journal_colors.date.hour
+    newType: integer
+  - type: TYPE_TRANSFORM
+    key: journal_colors.line
+    newType: integer
+  - type: TYPE_TRANSFORM
+    key: journal_colors.text
+    newType: integer
+2.0.0.2:
+  - type: TYPE_TRANSFORM
+    key: journal.lock_default_journal_slot
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: journal.give_on_respawn
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: journal.show_in_backpack
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: journal.chars_per_line
+    newType: integer
+  - type: TYPE_TRANSFORM
+    key: journal.lines_per_page
+    newType: integer
+  - type: TYPE_TRANSFORM
+    key: journal.one_entry_per_page
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: journal.reversed_order
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: journal.hide_date
+    newType: boolean
+  - type: TYPE_TRANSFORM
+    key: journal.full_main_page
+    newType: boolean

@@ -66,7 +66,6 @@ public class MmorpgCommand implements CommandExecutor, TabCompleter {
         plugin.getMobManager().loadMobs();
         plugin.getRecipeManager().loadRecipes();
         plugin.getWorldManager().loadWorlds();
-        plugin.getQuestManager().loadQuests();
         // reload other managers...
         sender.sendMessage(ChatUtils.format("<green>MMORPGCore configs reloaded successfully.</green>"));
     }
