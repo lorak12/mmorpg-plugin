@@ -1,0 +1,66 @@
+package org.nakii.mmorpg.quest.quest.event.log;
+
+import org.nakii.mmorpg.quest.api.instruction.Instruction;
+import org.nakii.mmorpg.quest.api.instruction.argument.Argument;
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLoggerFactory;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.event.PlayerEvent;
+import org.nakii.mmorpg.quest.api.quest.event.PlayerEventFactory;
+import org.nakii.mmorpg.quest.api.quest.event.PlayerlessEvent;
+import org.nakii.mmorpg.quest.api.quest.event.PlayerlessEventFactory;
+import org.nakii.mmorpg.quest.api.quest.event.nullable.NullableEventAdapter;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Factory to parse new {@link LogEvent}s.
+ */
+public class LogEventFactory implements PlayerEventFactory, PlayerlessEventFactory {
+
+    /**
+     * Regex used to detect a conditions statement at the end of the instruction.
+     */
+    private static final Pattern CONDITIONS_REGEX = Pattern.compile("conditions?:\\S*\\s*$");
+
+    /**
+     * Regex used to detect a level statement at the beginning of the instruction.
+     */
+    private static final Pattern LEVEL_REGEX = Pattern.compile("^\\s*level:\\S*\\s");
+
+    /**
+     * Logger factory to create a logger for the events.
+     */
+    private final BetonQuestLoggerFactory loggerFactory;
+
+    /**
+     * Create a new log event factory.
+     *
+     * @param loggerFactory the logger factory to create a logger for the events
+     */
+    public LogEventFactory(final BetonQuestLoggerFactory loggerFactory) {
+        this.loggerFactory = loggerFactory;
+    }
+
+    @Override
+    public PlayerEvent parsePlayer(final Instruction instruction) throws QuestException {
+        return createLogEvent(instruction);
+    }
+
+    @Override
+    public PlayerlessEvent parsePlayerless(final Instruction instruction) throws QuestException {
+        return createLogEvent(instruction);
+    }
+
+    private NullableEventAdapter createLogEvent(final Instruction instruction) throws QuestException {
+        final Variable<LogEventLevel> level = instruction.getValue("level", Argument.ENUM(LogEventLevel.class), LogEventLevel.INFO);
+        final String raw = String.join(" ", instruction.getValueParts());
+        final Matcher conditionsMatcher = CONDITIONS_REGEX.matcher(raw);
+        final Matcher levelMatcher = LEVEL_REGEX.matcher(raw);
+        final int msgStart = levelMatcher.find() ? levelMatcher.end() : 0;
+        final int msgEnd = conditionsMatcher.find() ? conditionsMatcher.start() : raw.length();
+        final Variable<String> message = instruction.get(raw.substring(msgStart, msgEnd), Argument.STRING);
+        return new NullableEventAdapter(new LogEvent(loggerFactory.create(LogEvent.class), level, message));
+    }
+}

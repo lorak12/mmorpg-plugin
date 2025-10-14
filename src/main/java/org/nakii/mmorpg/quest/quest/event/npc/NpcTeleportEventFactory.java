@@ -1,0 +1,61 @@
+package org.nakii.mmorpg.quest.quest.event.npc;
+
+import org.nakii.mmorpg.quest.api.feature.FeatureApi;
+import org.nakii.mmorpg.quest.api.instruction.Instruction;
+import org.nakii.mmorpg.quest.api.instruction.argument.Argument;
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.quest.PrimaryServerThreadData;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.event.PlayerEvent;
+import org.nakii.mmorpg.quest.api.quest.event.PlayerEventFactory;
+import org.nakii.mmorpg.quest.api.quest.event.PlayerlessEvent;
+import org.nakii.mmorpg.quest.api.quest.event.PlayerlessEventFactory;
+import org.nakii.mmorpg.quest.api.quest.event.nullable.NullableEventAdapter;
+import org.nakii.mmorpg.quest.api.quest.event.thread.PrimaryServerThreadEvent;
+import org.nakii.mmorpg.quest.api.quest.event.thread.PrimaryServerThreadPlayerlessEvent;
+import org.nakii.mmorpg.quest.api.quest.npc.NpcID;
+import org.bukkit.Location;
+
+/**
+ * Factory for {@link NpcTeleportEvent} from the {@link Instruction}.
+ */
+public class NpcTeleportEventFactory implements PlayerEventFactory, PlayerlessEventFactory {
+
+    /**
+     * Quest Type API.
+     */
+    private final FeatureApi featureApi;
+
+    /**
+     * Data to use for syncing to the primary server thread.
+     */
+    private final PrimaryServerThreadData data;
+
+    /**
+     * Create a new factory for Npc Teleport Events.
+     *
+     * @param featureApi the Feature API
+     * @param data       the data to use for syncing to the primary server thread
+     */
+    public NpcTeleportEventFactory(final FeatureApi featureApi, final PrimaryServerThreadData data) {
+        this.featureApi = featureApi;
+        this.data = data;
+    }
+
+    @Override
+    public PlayerEvent parsePlayer(final Instruction instruction) throws QuestException {
+        return new PrimaryServerThreadEvent(createNpcTeleportEvent(instruction), data);
+    }
+
+    @Override
+    public PlayerlessEvent parsePlayerless(final Instruction instruction) throws QuestException {
+        return new PrimaryServerThreadPlayerlessEvent(createNpcTeleportEvent(instruction), data);
+    }
+
+    private NullableEventAdapter createNpcTeleportEvent(final Instruction instruction) throws QuestException {
+        final Variable<NpcID> npcId = instruction.get(NpcID::new);
+        final Variable<Location> location = instruction.get(Argument.LOCATION);
+        final boolean spawn = instruction.hasArgument("spawn");
+        return new NullableEventAdapter(new NpcTeleportEvent(featureApi, npcId, location, spawn));
+    }
+}

@@ -1,0 +1,47 @@
+package org.nakii.mmorpg.quest.api.quest.condition;
+
+import org.nakii.mmorpg.quest.api.config.quest.QuestPackage;
+import org.nakii.mmorpg.quest.api.config.quest.QuestPackageManager;
+import org.nakii.mmorpg.quest.api.identifier.InstructionIdentifier;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * ID of a Condition.
+ */
+public class ConditionID extends InstructionIdentifier {
+
+    /**
+     * If the condition is used inverted.
+     */
+    private final boolean isInverted;
+
+    /**
+     * Create a new Condition ID.
+     *
+     * @param packManager the quest package manager to get quest packages from
+     * @param pack        the package of the condition
+     * @param identifier  the complete identifier of the condition, inclusive exclamation mark for negating
+     * @throws QuestException if there is no such condition
+     */
+    public ConditionID(final QuestPackageManager packManager, @Nullable final QuestPackage pack, final String identifier) throws QuestException {
+        super(packManager, pack, removeExclamationMark(identifier), "conditions", "Condition");
+        this.isInverted = !identifier.isEmpty() && identifier.charAt(0) == '!';
+    }
+
+    private static String removeExclamationMark(final String identifier) {
+        if (!identifier.isEmpty() && identifier.charAt(0) == '!') {
+            return identifier.substring(1);
+        }
+        return identifier;
+    }
+
+    /**
+     * If the Condition is defined as inverted.
+     *
+     * @return if the condition should be interpreted inverted
+     */
+    public boolean inverted() {
+        return isInverted;
+    }
+}

@@ -1,0 +1,175 @@
+package org.nakii.mmorpg.quest.quest.objective.npc;
+
+import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.quest.QuestModule;
+import org.nakii.mmorpg.quest.api.Objective;
+import org.nakii.mmorpg.quest.api.common.function.QuestBiPredicate;
+import org.nakii.mmorpg.quest.api.instruction.Instruction;
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.profile.OnlineProfile;
+import org.nakii.mmorpg.quest.api.profile.Profile;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.QuestListException;
+import org.nakii.mmorpg.quest.api.quest.npc.Npc;
+import org.nakii.mmorpg.quest.api.quest.npc.NpcID;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+
+import java.util.*;
+
+/**
+ * The player has to reach certain radius around a specified Npc.
+ */
+public class NpcRangeObjective extends Objective {
+
+    /**
+     * Stores the relevant Npc Ids to get their locations.
+     */
+    private final Variable<List<NpcID>> npcIds;
+
+    /**
+     * Maximal distance between player and NPC.
+     */
+    private final Variable<Number> radius;
+
+    /**
+     * Checks if the condition based on the {@link Trigger} is not met.
+     */
+    private final QuestBiPredicate<Profile, Boolean> checkStuff;
+
+    /**
+     * Stores the state of player to ensure correct completion based on the {@link Trigger}.
+     */
+    private final Map<UUID, Boolean> playersInRange;
+
+    /**
+     * BukkitTask ID to stop range check loop.
+     */
+    private final int npcMoveTask;
+
+    /**
+     * Creates a new NPCRangeObjective from the given instruction.
+     *
+     * @param instruction the user-provided instruction
+     * @param npcIds      the list of Npc IDs to check
+     * @param radius      the radius around the Npc
+     * @param trigger     the trigger type for the objective
+     * @throws QuestException if the instruction is invalid
+     */
+    public NpcRangeObjective(final Instruction instruction, final Variable<List<NpcID>> npcIds, final Variable<Number> radius,
+                             final Variable<Trigger> trigger) throws QuestException {
+        super(instruction);
+        this.npcIds = npcIds;
+        this.radius = radius;
+        this.checkStuff = getStuff(trigger);
+        this.playersInRange = new HashMap<>();
+        this.npcMoveTask = Bukkit.getScheduler().scheduleSyncRepeatingTask(MMORPGCore.getInstance(),
+                () -> qeHandler.handle(this::loop), 0, 20);
+    }
+
+    private QuestBiPredicate<Profile, Boolean> getStuff(final Variable<Trigger> trigger) {
+        return (profile, inside) -> {
+            final UUID uuid = profile.getPlayerUUID();
+            return switch (trigger.getValue(profile)) {
+                case INSIDE -> !inside;
+                case OUTSIDE -> inside;
+                case ENTER -> {
+                    if (playersInRange.containsKey(uuid)) {
+                        if (playersInRange.get(uuid) || !inside) {
+                            playersInRange.put(uuid, inside);
+                            yield true;
+                        }
+                    } else {
+                        playersInRange.put(uuid, inside);
+                        yield true;
+                    }
+                    yield false;
+                }
+                case LEAVE -> {
+                    if (playersInRange.containsKey(uuid)) {
+                        if (!playersInRange.get(uuid) || inside) {
+                            playersInRange.put(uuid, inside);
+                            yield true;
+                        }
+                    } else {
+                        playersInRange.put(uuid, inside);
+                        yield true;
+                    }
+                    yield false;
+                }
+            };
+        };
+    }
+
+    @Override
+    public void close() {
+        Bukkit.getScheduler().cancelTask(npcMoveTask);
+        super.close();
+    }
+
+    @SuppressWarnings("PMD.CognitiveComplexity")
+    private void loop() throws QuestException {
+        final List<UUID> profilesInside = new ArrayList<>();
+        final List<OnlineProfile> profiles = dataMap.keySet().stream()
+                .map(Profile::getOnlineProfile)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
+        final QuestListException questListException = new QuestListException("Could not loop all online profiles:");
+        for (final OnlineProfile onlineProfile : profiles) {
+            try {
+                for (final NpcID npcId : npcIds.getValue(onlineProfile)) {
+                    final Npc<?> npc = MMORPGCore.getInstance().getQuestModule().getFeatureApi().getNpc(npcId, onlineProfile);
+                    if (!npc.isSpawned()) {
+                        continue;
+                    }
+                    final Optional<Location> location = npc.getLocation();
+                    if (location.isEmpty()) {
+                        continue;
+                    }
+                    if (!profilesInside.contains(onlineProfile.getProfileUUID()) && isInside(onlineProfile, location.get())) {
+                        profilesInside.add(onlineProfile.getProfileUUID());
+                    }
+                }
+            } catch (final QuestException e) {
+                questListException.addException(onlineProfile.toString(), e);
+            }
+        }
+        for (final OnlineProfile onlineProfile : profiles) {
+            checkPlayer(onlineProfile, profilesInside.contains(onlineProfile.getProfileUUID()));
+        }
+        questListException.throwIfNotEmpty();
+    }
+
+    private boolean isInside(final OnlineProfile onlineProfile, final Location location) throws QuestException {
+        if (!location.getWorld().equals(onlineProfile.getPlayer().getWorld())) {
+            return false;
+        }
+        final double radius = this.radius.getValue(onlineProfile).doubleValue();
+        final double distanceSquared = location.distanceSquared(onlineProfile.getPlayer().getLocation());
+        final double radiusSquared = radius * radius;
+
+        return distanceSquared <= radiusSquared;
+    }
+
+    private void checkPlayer(final Profile profile, final boolean inside) throws QuestException {
+        if (checkStuff.test(profile, inside)) {
+            return;
+        }
+
+        if (checkConditions(profile)) {
+            playersInRange.remove(profile.getPlayerUUID());
+            completeObjective(profile);
+        }
+    }
+
+    @Override
+    public String getDefaultDataInstruction() {
+        return "";
+    }
+
+    @Override
+    public String getProperty(final String name, final Profile profile) {
+        return "";
+    }
+}

@@ -1,0 +1,71 @@
+package org.nakii.mmorpg.quest.quest.objective.equip;
+
+import com.destroystokyo.paper.event.player.PlayerArmorChangeEvent;
+import org.nakii.mmorpg.quest.api.Objective;
+import org.nakii.mmorpg.quest.api.instruction.Instruction;
+import org.nakii.mmorpg.quest.api.instruction.Item;
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.profile.OnlineProfile;
+import org.nakii.mmorpg.quest.api.profile.Profile;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+
+/**
+ * Requires the player to equip a specific item in a specific slot.
+ */
+public class EquipItemObjective extends Objective implements Listener {
+
+    /**
+     * The item that needs to be equipped.
+     */
+    private final Variable<Item> item;
+
+    /**
+     * The slot type where the item needs to be equipped.
+     */
+    private final Variable<PlayerArmorChangeEvent.SlotType> slotType;
+
+    /**
+     * Constructor for the EquipItemObjective.
+     *
+     * @param instruction the instruction that created this objective
+     * @param item        the item that needs to be equipped
+     * @param slotType    the slot type where the item needs to be equipped
+     * @throws QuestException if there is an error in the instruction
+     */
+    public EquipItemObjective(final Instruction instruction, final Variable<Item> item,
+                              final Variable<PlayerArmorChangeEvent.SlotType> slotType) throws QuestException {
+        super(instruction);
+        this.item = item;
+        this.slotType = slotType;
+    }
+
+    /**
+     * Check if the player has equipped the right item in the right slot.
+     *
+     * @param event the event that triggered this method
+     */
+    @EventHandler
+    public void onEquipmentChange(final PlayerArmorChangeEvent event) {
+        final OnlineProfile onlineProfile = profileProvider.getProfile(event.getPlayer());
+        qeHandler.handle(() -> {
+            if (containsPlayer(onlineProfile)
+                    && event.getSlotType() == slotType.getValue(onlineProfile)
+                    && item.getValue(onlineProfile).matches(event.getNewItem(), onlineProfile)
+                    && checkConditions(onlineProfile)) {
+                completeObjective(onlineProfile);
+            }
+        });
+    }
+
+    @Override
+    public String getDefaultDataInstruction() {
+        return "";
+    }
+
+    @Override
+    public String getProperty(final String name, final Profile profile) {
+        return "";
+    }
+}

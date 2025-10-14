@@ -1,0 +1,55 @@
+package org.nakii.mmorpg.quest.quest.event.explosion;
+
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.profile.Profile;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.event.nullable.NullableEvent;
+import org.bukkit.Location;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Spawns an explosion in a given location and with given stats.
+ */
+public class ExplosionEvent implements NullableEvent {
+    /**
+     * The location of the explosion.
+     */
+    private final Variable<Location> location;
+
+    /**
+     * The power of the explosion.
+     */
+    private final Variable<Number> power;
+
+    /**
+     * Whether the explosion should set fire.
+     */
+    private final boolean setsFire;
+
+    /**
+     * Whether the explosion should break blocks.
+     */
+    private final boolean breaksBlocks;
+
+    /**
+     * Creates a new explosion event.
+     *
+     * @param location     the location of the explosion
+     * @param power        the power of the explosion
+     * @param setsFire     whether the explosion should set fire
+     * @param breaksBlocks whether the explosion should break blocks
+     */
+    public ExplosionEvent(final Variable<Location> location, final Variable<Number> power, final boolean setsFire, final boolean breaksBlocks) {
+        this.location = location;
+        this.power = power;
+        this.setsFire = setsFire;
+        this.breaksBlocks = breaksBlocks;
+    }
+
+    @Override
+    public void execute(@Nullable final Profile profile) throws QuestException {
+        final Location resolvedLocation = location.getValue(profile);
+        resolvedLocation.getWorld().createExplosion(resolvedLocation,
+                power.getValue(profile).floatValue(), setsFire, breaksBlocks);
+    }
+}

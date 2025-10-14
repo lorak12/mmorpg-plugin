@@ -1,0 +1,46 @@
+package org.nakii.mmorpg.quest.quest.variable.constant;
+
+import org.nakii.mmorpg.quest.api.instruction.Instruction;
+import org.nakii.mmorpg.quest.api.instruction.argument.Argument;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.variable.PlayerVariable;
+import org.nakii.mmorpg.quest.api.quest.variable.PlayerVariableFactory;
+import org.nakii.mmorpg.quest.api.quest.variable.PlayerlessVariable;
+import org.nakii.mmorpg.quest.api.quest.variable.PlayerlessVariableFactory;
+import org.nakii.mmorpg.quest.api.quest.variable.nullable.NullableVariableAdapter;
+import org.bukkit.configuration.ConfigurationSection;
+
+/**
+ * A factory for creating constant variables.
+ */
+public class ConstantVariableFactory implements PlayerVariableFactory, PlayerlessVariableFactory {
+
+    /**
+     * Create a new constant variable factory.
+     */
+    public ConstantVariableFactory() {
+    }
+
+    @Override
+    public PlayerVariable parsePlayer(final Instruction instruction) throws QuestException {
+        return parseConstantVariable(instruction);
+    }
+
+    @Override
+    public PlayerlessVariable parsePlayerless(final Instruction instruction) throws QuestException {
+        return parseConstantVariable(instruction);
+    }
+
+    private NullableVariableAdapter parseConstantVariable(final Instruction instruction) throws QuestException {
+        final ConfigurationSection section = instruction.getPackage().getConfig().getConfigurationSection("constants");
+        if (section == null) {
+            throw new QuestException("No 'constants' section found in the QuestPackage!");
+        }
+        final String constantTarget = instruction.next();
+        final String constant = section.getString(constantTarget);
+        if (constant == null) {
+            throw new QuestException("No constant with the name '" + constantTarget + "' found in the 'constants' section!");
+        }
+        return new NullableVariableAdapter(new ConstantVariable(instruction.get(constant, Argument.STRING)));
+    }
+}

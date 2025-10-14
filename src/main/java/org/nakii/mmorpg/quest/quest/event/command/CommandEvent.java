@@ -1,0 +1,60 @@
+package org.nakii.mmorpg.quest.quest.event.command;
+
+import org.nakii.mmorpg.quest.api.bukkit.command.SilentConsoleCommandSender;
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.profile.Profile;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.event.nullable.NullableEvent;
+import org.bukkit.Server;
+import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+
+/**
+ * Event that runs given commands in the server console.
+ */
+public class CommandEvent implements NullableEvent {
+
+    /**
+     * Command sender to run the commands as.
+     * <p>
+     * {@link SilentConsoleCommandSender} is used to keep console and log clean.
+     */
+    private final CommandSender silentSender;
+
+    /**
+     * Server to run the commands on.
+     */
+    private final Server server;
+
+    /**
+     * The commands to run.
+     */
+    private final List<Variable<String>> commands;
+
+    /**
+     * Creates a new CommandEvent.
+     *
+     * @param commands     the commands to run
+     * @param silentSender the command sender to run the commands as
+     * @param server       the server to run the commands on
+     */
+    public CommandEvent(final List<Variable<String>> commands, final CommandSender silentSender, final Server server) {
+        this.silentSender = silentSender;
+        this.server = server;
+        this.commands = commands;
+    }
+
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
+    @Override
+    public void execute(@Nullable final Profile profile) throws QuestException {
+        try {
+            for (final Variable<String> command : commands) {
+                server.dispatchCommand(silentSender, command.getValue(profile));
+            }
+        } catch (final RuntimeException exception) {
+            throw new QuestException("Unhandled exception executing command: " + exception.getMessage(), exception);
+        }
+    }
+}

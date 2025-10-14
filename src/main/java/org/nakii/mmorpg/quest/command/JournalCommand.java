@@ -1,0 +1,53 @@
+package org.nakii.mmorpg.quest.command;
+
+import org.nakii.mmorpg.quest.api.profile.ProfileProvider;
+import org.nakii.mmorpg.quest.data.PlayerDataStorage;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+/**
+ * Gives the player his journal.
+ */
+public class JournalCommand implements CommandExecutor {
+
+    /**
+     * The command name.
+     */
+    private static final String JOURNAL = "journal";
+
+    /**
+     * Storage for player data.
+     */
+    private final PlayerDataStorage dataStorage;
+
+    /**
+     * The profile provider instance.
+     */
+    private final ProfileProvider profileProvider;
+
+    /**
+     * Create a new executor for the /journal command.
+     *
+     * @param dataStorage     the storage providing player data
+     * @param profileProvider the profile provider instance
+     */
+    public JournalCommand(final PlayerDataStorage dataStorage, final ProfileProvider profileProvider) {
+        this.dataStorage = dataStorage;
+        this.profileProvider = profileProvider;
+    }
+
+    @Override
+    public boolean onCommand(final CommandSender sender, final Command cmd, final String label, final String[] args) {
+        if (JOURNAL.equalsIgnoreCase(cmd.getName())) {
+            // command sender must be a player, console can't have journal
+            if (sender instanceof Player) {
+                // giving the player his journal
+                dataStorage.get(profileProvider.getProfile((Player) sender)).getJournal().addToInv();
+            }
+            return true;
+        }
+        return false;
+    }
+}

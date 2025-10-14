@@ -1,0 +1,153 @@
+package org.nakii.mmorpg.quest.listener;
+
+import org.nakii.mmorpg.quest.api.Objective;
+import org.nakii.mmorpg.quest.api.config.ConfigAccessor;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLogger;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLoggerFactory;
+import org.nakii.mmorpg.quest.api.profile.OnlineProfile;
+import org.nakii.mmorpg.quest.api.profile.Profile;
+import org.nakii.mmorpg.quest.api.profile.ProfileProvider;
+import org.nakii.mmorpg.quest.config.PluginMessage;
+import org.nakii.mmorpg.quest.conversation.ConversationResumer;
+import org.nakii.mmorpg.quest.data.PlayerDataStorage;
+import org.nakii.mmorpg.quest.database.PlayerData;
+import org.nakii.mmorpg.quest.feature.journal.Journal;
+import org.nakii.mmorpg.quest.kernel.processor.quest.ObjectiveProcessor;
+import org.nakii.mmorpg.quest.quest.objective.resourcepack.ResourcepackObjective;
+import org.nakii.mmorpg.quest.web.updater.Updater;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerResourcePackStatusEvent;
+
+/**
+ * Listener which handles data loading/saving when players are joining/quitting.
+ */
+public class JoinQuitListener implements Listener {
+    /**
+     * The {@link BetonQuestLoggerFactory} to use for creating {@link BetonQuestLogger} instances.
+     */
+    private final BetonQuestLoggerFactory loggerFactory;
+
+    /**
+     * The plugin configuration file.
+     */
+    private final ConfigAccessor config;
+
+    /**
+     * Quest Type API.
+     */
+    private final ObjectiveProcessor questTypeApi;
+
+    /**
+     * Holds loaded PlayerData.
+     */
+    private final PlayerDataStorage playerDataStorage;
+
+    /**
+     * The {@link PluginMessage} instance.
+     */
+    private final PluginMessage pluginMessage;
+
+    /**
+     * The profile provider instance.
+     */
+    private final ProfileProvider profileProvider;
+
+    /**
+     * Updater to notify players.
+     */
+    private final Updater updater;
+
+    /**
+     * Creates new listener, which will handle the data loading/saving.
+     *
+     * @param loggerFactory     used for logger creation in ConversationResumer
+     * @param config            the plugin configuration file
+     * @param questTypeApi      the object to get player Objectives
+     * @param playerDataStorage the storage for un-/loading player data
+     * @param pluginMessage     the {@link PluginMessage} instance
+     * @param profileProvider   the profile provider instance
+     * @param updater           the updater to notify players
+     */
+    public JoinQuitListener(final BetonQuestLoggerFactory loggerFactory, final ConfigAccessor config,
+                            final ObjectiveProcessor questTypeApi, final PlayerDataStorage playerDataStorage,
+                            final PluginMessage pluginMessage, final ProfileProvider profileProvider, final Updater updater) {
+        this.loggerFactory = loggerFactory;
+        this.config = config;
+        this.questTypeApi = questTypeApi;
+        this.playerDataStorage = playerDataStorage;
+        this.pluginMessage = pluginMessage;
+        this.profileProvider = profileProvider;
+        this.updater = updater;
+    }
+
+    /**
+     * Loads the player data async before it joins.
+     *
+     * @param event the async event to listen
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void playerPreLogin(final AsyncPlayerPreLoginEvent event) {
+        if (event.getLoginResult() != Result.ALLOWED) {
+            return;
+        }
+        final Profile profile = profileProvider.getProfile(Bukkit.getOfflinePlayer(event.getUniqueId()));
+        playerDataStorage.init(profile);
+    }
+
+    /**
+     * Starts the player objectives and running conversation on join.
+     *
+     * @param event the join event
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerJoin(final PlayerJoinEvent event) {
+        final Player player = event.getPlayer();
+        final OnlineProfile onlineProfile = profileProvider.getProfile(player);
+        final PlayerData playerData = playerDataStorage.get(onlineProfile);
+        playerData.startObjectives();
+        questTypeApi.startAll(onlineProfile, playerDataStorage);
+        checkResourcepack(player, onlineProfile);
+
+        if (Journal.hasJournal(onlineProfile)) {
+            playerData.getJournal().update();
+        }
+        if (player.hasPermission("betonquest.admin")) {
+            updater.sendUpdateNotification(player);
+        }
+        if (playerData.getActiveConversation() != null) {
+            new ConversationResumer(loggerFactory, config, pluginMessage, onlineProfile, playerData.getActiveConversation());
+        }
+    }
+
+    private void checkResourcepack(final Player player, final OnlineProfile onlineProfile) {
+        final PlayerResourcePackStatusEvent.Status resourcePackStatus = player.getResourcePackStatus();
+        if (resourcePackStatus != null) {
+            questTypeApi.getActive(onlineProfile).stream()
+                    .filter(objective -> objective instanceof ResourcepackObjective)
+                    .map(objective -> (ResourcepackObjective) objective)
+                    .forEach(objective -> objective.processObjective(onlineProfile, resourcePackStatus));
+        }
+    }
+
+    /**
+     * Removes the PlayerData from storage when the player quits the server.
+     *
+     * @param event the quit event
+     */
+    @EventHandler
+    public void onPlayerQuit(final PlayerQuitEvent event) {
+        final OnlineProfile onlineProfile = profileProvider.getProfile(event.getPlayer());
+        for (final Objective objective : questTypeApi.getActive(onlineProfile)) {
+            objective.pauseObjectiveForPlayer(onlineProfile);
+        }
+        playerDataStorage.remove(onlineProfile);
+    }
+}

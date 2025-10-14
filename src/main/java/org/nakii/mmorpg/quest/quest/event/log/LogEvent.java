@@ -1,0 +1,47 @@
+package org.nakii.mmorpg.quest.quest.event.log;
+
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLogger;
+import org.nakii.mmorpg.quest.api.profile.Profile;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.event.nullable.NullableEvent;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Prints a simple message to the server log.
+ */
+public class LogEvent implements NullableEvent {
+
+    /**
+     * Message to log.
+     */
+    private final Variable<String> message;
+
+    /**
+     * Logger to use.
+     */
+    private final BetonQuestLogger logger;
+
+    /**
+     * Level to log the message at.
+     */
+    private final Variable<LogEventLevel> level;
+
+    /**
+     * Create a new {@link LogEvent}.
+     *
+     * @param logger  logger used for logging messages.
+     * @param level   level to log the message at.
+     * @param message message that should be printed to the server log.
+     */
+    public LogEvent(final BetonQuestLogger logger, final Variable<LogEventLevel> level, final Variable<String> message) {
+        this.logger = logger;
+        this.message = message;
+        this.level = level;
+    }
+
+    @Override
+    public void execute(@Nullable final Profile profile) throws QuestException {
+        level.getValue(profile).log(logger, message.getValue(profile));
+    }
+}

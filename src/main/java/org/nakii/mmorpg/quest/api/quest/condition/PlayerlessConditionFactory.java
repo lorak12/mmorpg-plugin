@@ -1,0 +1,21 @@
+package org.nakii.mmorpg.quest.api.quest.condition;
+
+import org.nakii.mmorpg.quest.api.instruction.Instruction;
+import org.nakii.mmorpg.quest.api.quest.PlayerlessQuestFactory;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+
+/**
+ * Factory to create a specific {@link PlayerlessCondition} from {@link Instruction}s.
+ */
+@FunctionalInterface
+public interface PlayerlessConditionFactory extends PlayerlessQuestFactory<PlayerlessCondition> {
+    /**
+     * Parses an instruction to create a {@link PlayerlessCondition}.
+     *
+     * @param instruction instruction to parse
+     * @return condition represented by the instruction
+     * @throws QuestException when the instruction cannot be parsed
+     */
+    @Override
+    PlayerlessCondition parsePlayerless(Instruction instruction) throws QuestException;
+}

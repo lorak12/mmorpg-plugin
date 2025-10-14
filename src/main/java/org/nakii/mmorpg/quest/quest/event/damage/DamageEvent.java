@@ -1,0 +1,31 @@
+package org.nakii.mmorpg.quest.quest.event.damage;
+
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.profile.OnlineProfile;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.event.online.OnlineEvent;
+
+/**
+ * The damage event. It damages the player.
+ */
+public class DamageEvent implements OnlineEvent {
+    /**
+     * Amount of damage to inflict.
+     */
+    private final Variable<Number> damage;
+
+    /**
+     * Create a damage event that inflicts the given amount of damage to the player.
+     *
+     * @param damage damage to inflict
+     */
+    public DamageEvent(final Variable<Number> damage) {
+        this.damage = damage;
+    }
+
+    @Override
+    public void execute(final OnlineProfile profile) throws QuestException {
+        final double calculatedDamage = Math.abs(damage.getValue(profile).doubleValue());
+        profile.getPlayer().damage(calculatedDamage);
+    }
+}

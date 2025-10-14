@@ -1,0 +1,82 @@
+package org.nakii.mmorpg.quest.compatibility.holograms.decentholograms;
+
+import eu.decentsoftware.holograms.api.DHAPI;
+import eu.decentsoftware.holograms.api.holograms.Hologram;
+import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.quest.QuestModule;
+import org.nakii.mmorpg.quest.api.BetonQuestApi;
+import org.nakii.mmorpg.quest.api.config.quest.QuestPackage;
+import org.nakii.mmorpg.quest.api.config.quest.QuestPackageManager;
+import org.nakii.mmorpg.quest.api.instruction.Instruction;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLogger;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.variable.VariableID;
+import org.nakii.mmorpg.quest.compatibility.HookException;
+import org.nakii.mmorpg.quest.compatibility.holograms.BetonHologram;
+import org.nakii.mmorpg.quest.compatibility.holograms.HologramIntegrator;
+import org.nakii.mmorpg.quest.compatibility.holograms.HologramProvider;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+
+import java.util.UUID;
+import java.util.regex.Matcher;
+
+/**
+ * Integrates with DecentHolograms.
+ */
+public class DecentHologramsIntegrator extends HologramIntegrator {
+    /**
+     * Custom {@link BetonQuestLogger} instance for this class.
+     */
+    private final BetonQuestLogger log;
+
+    /**
+     * The quest package manager to get quest packages from.
+     */
+    private final QuestPackageManager packManager;
+
+    /**
+     * Creates a new DecentHologramsIntegrator for DecentHolograms.
+     *
+     * @param packManager the quest package manager to get quest packages from
+     */
+    public DecentHologramsIntegrator(final QuestPackageManager packManager) {
+        super("DecentHolograms", "2.7.5");
+        this.packManager = packManager;
+        this.log = MMORPGCore.getInstance().getQuestModule().getLoggerFactory().create(getClass());
+    }
+
+    @Override
+    public BetonHologram createHologram(final Location location) {
+        final Hologram hologram = DHAPI.createHologram(UUID.randomUUID().toString(), location);
+        hologram.enable();
+        return new DecentHologramsHologram(hologram);
+    }
+
+    @Override
+    public void hook(final BetonQuestApi api) throws HookException {
+        super.hook(api);
+        if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            log.warn("Holograms from DecentHolograms will not be able to use BetonQuest variables in text lines "
+                    + "without PlaceholderAPI plugin! Install it to use holograms with variables!");
+        }
+    }
+
+    @Override
+    public String parseVariable(final QuestPackage pack, final String text) {
+        /* We must convert a normal BetonQuest variable such as "%pack.objective.kills.left%" to
+           "%betonquest_pack:objective.kills.left%" which is parsed by DecentHolograms as a PlaceholderAPI placeholder. */
+        final Matcher matcher = HologramProvider.VARIABLE_VALIDATOR.matcher(text);
+        return matcher.replaceAll(match -> {
+            final String group = match.group();
+            try {
+                final VariableID variable = new VariableID(packManager, pack, group);
+                final Instruction instruction = variable.getInstruction();
+                return "%betonquest_" + variable.getPackage().getQuestPath() + ":" + instruction + "%";
+            } catch (final QuestException exception) {
+                log.warn("Could not create variable '" + group + "' variable: " + exception.getMessage(), exception);
+            }
+            return group;
+        });
+    }
+}

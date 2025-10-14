@@ -1,0 +1,45 @@
+package org.nakii.mmorpg.quest.menu.betonquest;
+
+import org.nakii.mmorpg.quest.api.instruction.Instruction;
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLoggerFactory;
+import org.nakii.mmorpg.quest.api.quest.PrimaryServerThreadData;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.condition.PlayerCondition;
+import org.nakii.mmorpg.quest.api.quest.condition.PlayerConditionFactory;
+import org.nakii.mmorpg.quest.api.quest.condition.online.OnlineConditionAdapter;
+import org.nakii.mmorpg.quest.api.quest.condition.thread.PrimaryServerThreadPlayerCondition;
+import org.nakii.mmorpg.quest.menu.MenuID;
+
+/**
+ * Factory to create {@link MenuCondition}s from {@link Instruction}s.
+ */
+public class MenuConditionFactory implements PlayerConditionFactory {
+    /**
+     * Factory to create new class specific logger.
+     */
+    private final BetonQuestLoggerFactory loggerFactory;
+
+    /**
+     * Data used for primary server access.
+     */
+    private final PrimaryServerThreadData data;
+
+    /**
+     * Create a new factory for Menu Conditions.
+     *
+     * @param loggerFactory the factory to create new class specific logger
+     * @param data          the data used for primary server access
+     */
+    public MenuConditionFactory(final BetonQuestLoggerFactory loggerFactory, final PrimaryServerThreadData data) {
+        this.loggerFactory = loggerFactory;
+        this.data = data;
+    }
+
+    @Override
+    public PlayerCondition parsePlayer(final Instruction instruction) throws QuestException {
+        final Variable<MenuID> menuId = instruction.getValue("id", MenuID::new);
+        return new PrimaryServerThreadPlayerCondition(new OnlineConditionAdapter(new MenuCondition(menuId),
+                loggerFactory.create(MenuCondition.class), instruction.getPackage()), data);
+    }
+}

@@ -1,0 +1,127 @@
+package org.nakii.mmorpg.quest.compatibility.placeholderapi;
+
+import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLogger;
+import org.nakii.mmorpg.quest.api.profile.Profile;
+import org.nakii.mmorpg.quest.api.profile.ProfileProvider;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.kernel.processor.quest.VariableProcessor;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * The BetonQuest PAPI Placeholder.
+ */
+public class BetonQuestPlaceholder extends PlaceholderExpansion {
+    /**
+     * Custom {@link BetonQuestLogger} instance for this class.
+     */
+    private final BetonQuestLogger log;
+
+    /**
+     * The profile provider instance.
+     */
+    private final ProfileProvider profileProvider;
+
+    /**
+     * The variable processor to use for creating the placeholder variables.
+     */
+    private final VariableProcessor variableProcessor;
+
+    /**
+     * The combined authors.
+     */
+    private final String authors;
+
+    /**
+     * The version string.
+     */
+    private final String version;
+
+    /**
+     * Create a new BetonQuest PAPI Placeholder.
+     *
+     * @param log               the custom logger for this class
+     * @param profileProvider   the profile provider instance
+     * @param variableProcessor the processor to create new variables
+     * @param authors           the combined author string
+     * @param version           the version string
+     */
+    public BetonQuestPlaceholder(final BetonQuestLogger log, final ProfileProvider profileProvider, final VariableProcessor variableProcessor,
+                                 final String authors, final String version) {
+        super();
+        this.log = log;
+        this.profileProvider = profileProvider;
+        this.variableProcessor = variableProcessor;
+        this.authors = authors;
+        this.version = version;
+    }
+
+    /**
+     * Persist through reloads.
+     *
+     * @return true to persist through reloads
+     */
+    @Override
+    public boolean persist() {
+        return true;
+    }
+
+    /**
+     * We can always register.
+     *
+     * @return Always true since it's an internal class.
+     */
+    @Override
+    public boolean canRegister() {
+        return true;
+    }
+
+    /**
+     * Name of person who created the expansion.
+     *
+     * @return The name of the author as a String.
+     */
+    @Override
+    public String getAuthor() {
+        return authors;
+    }
+
+    /**
+     * The identifier for PlaceHolderAPI to link to this expansion.
+     *
+     * @return The identifier in {@code %<identifier>_<value>%} as String.
+     */
+    @Override
+    public String getIdentifier() {
+        return "betonquest";
+    }
+
+    /**
+     * Version of the expansion.
+     *
+     * @return The version as a String.
+     */
+    @Override
+    public String getVersion() {
+        return version;
+    }
+
+    /**
+     * A placeholder request has occurred and needs a value.
+     *
+     * @param player     A potentially null {@link org.bukkit.entity.Player Player}.
+     * @param identifier A String containing the identifier/value.
+     * @return possibly-null String of the requested identifier.
+     */
+    @Override
+    public String onPlaceholderRequest(@Nullable final Player player, final String identifier) {
+        final Profile profile = player == null ? null : profileProvider.getProfile(player);
+        try {
+            return variableProcessor.getValue(identifier, profile);
+        } catch (final QuestException e) {
+            log.warn("Could not parse through PAPI requested variable: " + identifier, e);
+            return "";
+        }
+    }
+}

@@ -1,0 +1,20 @@
+package org.nakii.mmorpg.quest.api.common.function;
+
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+
+/**
+ * A {@link java.util.concurrent.Callable} that may throw a {@link QuestException}.
+ *
+ * @param <R> the result type of the method call
+ */
+@FunctionalInterface
+public interface QuestCallable<R> {
+
+    /**
+     * Calls the method and gets the result.
+     *
+     * @return result of the check
+     * @throws QuestException when the method execution fails
+     */
+    R call() throws QuestException;
+}

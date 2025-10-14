@@ -1,0 +1,58 @@
+package org.nakii.mmorpg.quest.compatibility.worldguard.npc;
+
+import org.nakii.mmorpg.quest.api.feature.FeatureApi;
+import org.nakii.mmorpg.quest.api.instruction.Instruction;
+import org.nakii.mmorpg.quest.api.instruction.argument.Argument;
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.quest.PrimaryServerThreadData;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.condition.PlayerCondition;
+import org.nakii.mmorpg.quest.api.quest.condition.PlayerConditionFactory;
+import org.nakii.mmorpg.quest.api.quest.condition.PlayerlessCondition;
+import org.nakii.mmorpg.quest.api.quest.condition.PlayerlessConditionFactory;
+import org.nakii.mmorpg.quest.api.quest.condition.nullable.NullableConditionAdapter;
+import org.nakii.mmorpg.quest.api.quest.condition.thread.PrimaryServerThreadPlayerCondition;
+import org.nakii.mmorpg.quest.api.quest.condition.thread.PrimaryServerThreadPlayerlessCondition;
+import org.nakii.mmorpg.quest.api.quest.npc.NpcID;
+
+/**
+ * Factory to create {@link NpcRegionCondition}s from {@link Instruction}s.
+ */
+public class NpcRegionConditionFactory implements PlayerConditionFactory, PlayerlessConditionFactory {
+    /**
+     * Feature API.
+     */
+    private final FeatureApi featureApi;
+
+    /**
+     * Data used for primary server thread access.
+     */
+    private final PrimaryServerThreadData data;
+
+    /**
+     * Create a new factory for NPC Region Conditions.
+     *
+     * @param featureApi the Feature API
+     * @param data       the data for primary server thread access
+     */
+    public NpcRegionConditionFactory(final FeatureApi featureApi, final PrimaryServerThreadData data) {
+        this.featureApi = featureApi;
+        this.data = data;
+    }
+
+    @Override
+    public PlayerCondition parsePlayer(final Instruction instruction) throws QuestException {
+        return new PrimaryServerThreadPlayerCondition(parseInstruction(instruction), data);
+    }
+
+    @Override
+    public PlayerlessCondition parsePlayerless(final Instruction instruction) throws QuestException {
+        return new PrimaryServerThreadPlayerlessCondition(parseInstruction(instruction), data);
+    }
+
+    private NullableConditionAdapter parseInstruction(final Instruction instruction) throws QuestException {
+        final Variable<NpcID> npcId = instruction.get(NpcID::new);
+        final Variable<String> region = instruction.get(Argument.STRING);
+        return new NullableConditionAdapter(new NpcRegionCondition(featureApi, npcId, region));
+    }
+}

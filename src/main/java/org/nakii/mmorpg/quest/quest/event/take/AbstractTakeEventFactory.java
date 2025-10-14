@@ -1,0 +1,84 @@
+package org.nakii.mmorpg.quest.quest.event.take;
+
+import org.nakii.mmorpg.quest.api.instruction.Instruction;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLogger;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLoggerFactory;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.event.PlayerEventFactory;
+import org.nakii.mmorpg.quest.config.PluginMessage;
+import org.nakii.mmorpg.quest.quest.event.IngameNotificationSender;
+import org.nakii.mmorpg.quest.quest.event.NoNotificationSender;
+import org.nakii.mmorpg.quest.quest.event.NotificationLevel;
+import org.nakii.mmorpg.quest.quest.event.NotificationSender;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * Abstract factory for take events, to take items from the players inventory or backpack.
+ */
+public abstract class AbstractTakeEventFactory implements PlayerEventFactory {
+
+    /**
+     * Logger factory to create a logger for the events.
+     */
+    protected final BetonQuestLoggerFactory loggerFactory;
+
+    /**
+     * The {@link PluginMessage} instance.
+     */
+    private final PluginMessage pluginMessage;
+
+    /**
+     * Create the abstract take event factory.
+     *
+     * @param loggerFactory the logger factory to create a logger for the events
+     * @param pluginMessage the {@link PluginMessage} instance
+     */
+    public AbstractTakeEventFactory(final BetonQuestLoggerFactory loggerFactory, final PluginMessage pluginMessage) {
+        this.loggerFactory = loggerFactory;
+        this.pluginMessage = pluginMessage;
+    }
+
+    /**
+     * Get the check order for the take event.
+     *
+     * @param instruction the instruction to get the check order from
+     * @return the check order
+     * @throws QuestException if the check order is invalid
+     */
+    protected List<CheckType> getCheckOrder(final Instruction instruction) throws QuestException {
+        final String order = instruction.getValue("invOrder");
+        if (order == null) {
+            return Arrays.asList(CheckType.INVENTORY, CheckType.OFFHAND, CheckType.ARMOR, CheckType.BACKPACK);
+        } else {
+            final String[] enumNames = order.split(",");
+            final List<CheckType> checkOrder = new ArrayList<>();
+            for (final String s : enumNames) {
+                try {
+                    final CheckType checkType = CheckType.valueOf(s.toUpperCase(Locale.ROOT));
+                    checkOrder.add(checkType);
+                } catch (final IllegalArgumentException e) {
+                    throw new QuestException("There is no such check type: " + s, e);
+                }
+            }
+            return checkOrder;
+        }
+    }
+
+    /**
+     * Get the notification sender for the take event.
+     *
+     * @param instruction the instruction to get the notification sender from
+     * @param log         the logger to use
+     * @return the notification sender
+     */
+    protected NotificationSender getNotificationSender(final Instruction instruction, final BetonQuestLogger log) {
+        return instruction.hasArgument("notify")
+                ? new IngameNotificationSender(log, pluginMessage, instruction.getPackage(),
+                instruction.getID().getFull(), NotificationLevel.INFO, "items_taken")
+                : new NoNotificationSender();
+    }
+}

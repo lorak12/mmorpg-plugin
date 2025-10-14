@@ -1,0 +1,39 @@
+package org.nakii.mmorpg.quest.quest.event.point;
+
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.profile.Profile;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.event.nullable.NullableEvent;
+import org.nakii.mmorpg.quest.database.GlobalData;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Deletes a category from the global points.
+ */
+public class DeleteGlobalPointEvent implements NullableEvent {
+    /**
+     * The category to delete.
+     */
+    private final Variable<String> category;
+
+    /**
+     * The global data.
+     */
+    private final GlobalData globalData;
+
+    /**
+     * Creates a new DeleteGlobalPointEvent.
+     *
+     * @param globalData the global data
+     * @param category   the category to delete
+     */
+    public DeleteGlobalPointEvent(final GlobalData globalData, final Variable<String> category) {
+        this.category = category;
+        this.globalData = globalData;
+    }
+
+    @Override
+    public void execute(@Nullable final Profile profile) throws QuestException {
+        globalData.removePointsCategory(category.getValue(profile));
+    }
+}

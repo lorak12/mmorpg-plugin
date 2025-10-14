@@ -1,0 +1,114 @@
+package org.nakii.mmorpg.quest.menu.betonquest;
+
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.nakii.mmorpg.quest.api.Objective;
+import org.nakii.mmorpg.quest.api.instruction.Instruction;
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLogger;
+import org.nakii.mmorpg.quest.api.profile.Profile;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.menu.Menu;
+import org.nakii.mmorpg.quest.menu.MenuID;
+import org.nakii.mmorpg.quest.menu.RPGMenu;
+import org.nakii.mmorpg.quest.menu.event.MenuOpenEvent;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+
+/**
+ * Completed if menu with given id is opened.
+ */
+public class MenuObjective extends Objective implements Listener {
+    /**
+     * The key for the menu property.
+     */
+    private static final String MENU_PROPERTY = "menu";
+
+    /**
+     * Custom {@link BetonQuestLogger} instance for this class.
+     */
+    private final BetonQuestLogger log;
+
+    /**
+     * The RPGMenu instance.
+     */
+    private final RPGMenu rpgMenu;
+
+    /**
+     * The menu to open.
+     */
+    private final Variable<MenuID> menuID;
+
+    /**
+     * Construct a new Menu Objective from Instruction.
+     *
+     * @param instruction the instruction to get the id from
+     * @param log         the logger for this objective
+     * @param rpgMenu     the RPGMenu instance
+     * @param menuID      the menu id to open
+     * @throws QuestException if the menu id does not exist
+     */
+    public MenuObjective(final Instruction instruction, final BetonQuestLogger log, final RPGMenu rpgMenu, final Variable<MenuID> menuID) throws QuestException {
+        super(instruction);
+        this.log = log;
+        this.rpgMenu = rpgMenu;
+        this.menuID = menuID;
+    }
+
+    /**
+     * Completes the objective when the matching menu is opened.
+     *
+     * @param event the open menu event
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onMenuOpen(final MenuOpenEvent event) {
+        final Profile profile = event.getProfile();
+        if (!containsPlayer(profile)) {
+            return;
+        }
+        try {
+            if (!event.getMenu().equals(menuID.getValue(profile))) {
+                return;
+            }
+        } catch (final QuestException e) {
+            log.debug(instruction.getPackage(), "Could not get menu variable value in '" + instruction.getID() + "' objective:"
+                    + e.getMessage(), e);
+            return;
+        }
+        if (!checkConditions(profile)) {
+            return;
+        }
+        this.completeObjective(profile);
+    }
+
+    @Override
+    public String getDefaultDataInstruction() {
+        return "";
+    }
+
+    @Override
+    public String getProperty(final String name, final Profile profile) {
+        if (MENU_PROPERTY.equalsIgnoreCase(name)) {
+            final Menu menuData;
+            try {
+                menuData = rpgMenu.getMenu(menuID.getValue(profile));
+            } catch (final QuestException e) {
+                log.warn(instruction.getPackage(), "Error while getting menu property in '" + instruction.getID() + "' objective: "
+                        + e.getMessage(), e);
+                return "";
+            }
+            if (menuData == null) {
+                log.debug(instruction.getPackage(), "Error while getting menu property in '" + instruction.getID() + "' objective: "
+                        + "menu with id " + menuID + " isn't loaded");
+                return "";
+            }
+            try {
+                return LegacyComponentSerializer.legacySection().serialize(menuData.getTitle(profile));
+            } catch (final QuestException e) {
+                log.debug(instruction.getPackage(), "Error while getting menu property in '" + instruction.getID() + "' objective: "
+                        + e.getMessage(), e);
+            }
+        }
+        return "";
+    }
+}

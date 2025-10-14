@@ -1,0 +1,59 @@
+package org.nakii.mmorpg.quest.quest.event.point;
+
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.profile.OnlineProfile;
+import org.nakii.mmorpg.quest.api.profile.ProfileProvider;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.event.PlayerlessEvent;
+import org.nakii.mmorpg.quest.data.PlayerDataStorage;
+import org.nakii.mmorpg.quest.database.Saver;
+import org.nakii.mmorpg.quest.database.UpdateType;
+
+/**
+ * Deletes the points in the category from all online players and database entries.
+ */
+public class DeletePointPlayerlessEvent implements PlayerlessEvent {
+    /**
+     * Storage for player data.
+     */
+    private final PlayerDataStorage dataStorage;
+
+    /**
+     * Database saver to use for writing offline player data.
+     */
+    private final Saver saver;
+
+    /**
+     * The profile provider instance.
+     */
+    private final ProfileProvider profileProvider;
+
+    /**
+     * Point category to remove.
+     */
+    private final Variable<String> category;
+
+    /**
+     * Create a new Point remove event for every player, online and offline.
+     *
+     * @param dataStorage     the storage providing player data
+     * @param saver           the saver to use
+     * @param profileProvider the profile provider instance
+     * @param category        the category to remove
+     */
+    public DeletePointPlayerlessEvent(final PlayerDataStorage dataStorage, final Saver saver, final ProfileProvider profileProvider, final Variable<String> category) {
+        this.dataStorage = dataStorage;
+        this.saver = saver;
+        this.profileProvider = profileProvider;
+        this.category = category;
+    }
+
+    @Override
+    public void execute() throws QuestException {
+        final String category = this.category.getValue(null);
+        for (final OnlineProfile onlineProfile : profileProvider.getOnlineProfiles()) {
+            dataStorage.get(onlineProfile).removePointsCategory(category);
+        }
+        saver.add(new Saver.Record(UpdateType.REMOVE_ALL_POINTS, category));
+    }
+}

@@ -1,0 +1,111 @@
+package org.nakii.mmorpg.quest.schedule;
+
+import org.nakii.mmorpg.quest.QuestModule;
+import org.nakii.mmorpg.quest.api.bukkit.config.custom.unmodifiable.UnmodifiableConfigurationSection;
+import org.nakii.mmorpg.quest.api.config.quest.QuestPackage;
+import org.nakii.mmorpg.quest.api.config.quest.QuestPackageManager;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLogger;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.schedule.Schedule;
+import org.nakii.mmorpg.quest.api.schedule.ScheduleID;
+import org.nakii.mmorpg.quest.api.schedule.Scheduler;
+import org.nakii.mmorpg.quest.kernel.processor.SectionProcessor;
+import org.nakii.mmorpg.quest.kernel.registry.feature.ScheduleRegistry;
+import org.bukkit.configuration.ConfigurationSection;
+
+/**
+ * Class responsible for managing schedule types, their schedulers, as well as parsing schedules from config.
+ */
+public class EventScheduling extends SectionProcessor<ScheduleID, Void> {
+
+    /**
+     * Map that contains all types of schedulers,
+     * with keys being their names and values holding the scheduler and schedule class.
+     */
+    private final ScheduleRegistry scheduleTypes;
+
+    /**
+     * Creates a new instance of the event scheduling class.
+     *
+     * @param log           the logger that will be used for logging
+     * @param packManager   the quest package manager to get quest packages from
+     * @param scheduleTypes map containing the schedule types, provided by {@link QuestModule}
+     */
+    public EventScheduling(final BetonQuestLogger log, final QuestPackageManager packManager, final ScheduleRegistry scheduleTypes) {
+        super(log, packManager, "Schedules", "schedules");
+        this.scheduleTypes = scheduleTypes;
+    }
+
+    @Override
+    protected Void loadSection(final QuestPackage pack, final ConfigurationSection section) throws QuestException {
+        final ScheduleID scheduleID = getIdentifier(pack, section.getName());
+        final String type = section.getString("type");
+        if (type == null) {
+            throw new QuestException("Missing type instruction");
+        }
+        final ScheduleType<?, ?> scheduleType = scheduleTypes.getFactory(type);
+        if (scheduleType == null) {
+            throw new QuestException("Unknown schedule type: " + type);
+        }
+        try {
+            scheduleType.createAndScheduleNewInstance(packManager, scheduleID, new UnmodifiableConfigurationSection(section));
+        } catch (final IllegalArgumentException e) {
+            throw new QuestException(e);
+        }
+        log.debug(pack, "Parsed schedule '" + scheduleID + "'.");
+        return null;
+    }
+
+    /**
+     * Start all schedulers and activate all schedules.
+     */
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
+    public void startAll() {
+        log.debug("Starting schedulers...");
+        for (final ScheduleType<?, ?> type : scheduleTypes.values()) {
+            try {
+                type.scheduler.start();
+            } catch (final Exception e) {
+                log.error("Error while enabling " + type.scheduler + ": " + e.getMessage(), e);
+            }
+        }
+    }
+
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
+    @Override
+    public void clear() {
+        log.debug("Stopping schedulers...");
+        for (final ScheduleType<?, ?> type : scheduleTypes.values()) {
+            try {
+                type.scheduler.stop();
+            } catch (final Exception e) {
+                log.error("Error while stopping " + type.scheduler + ": " + e.getMessage(), e);
+            }
+        }
+        super.clear();
+    }
+
+    @Override
+    protected ScheduleID getIdentifier(final QuestPackage pack, final String identifier) throws QuestException {
+        return new ScheduleID(packManager, pack, identifier);
+    }
+
+    /**
+     * Helper class that holds all implementations needed for a specific schedule type.
+     *
+     * @param scheduleFactory factory of the schedule
+     * @param scheduler       instance of the scheduler
+     * @param <S>             type of the schedule.
+     */
+    public record ScheduleType<S extends Schedule, T>(ScheduleFactory<S> scheduleFactory, Scheduler<S, T> scheduler) {
+        /* default */ S newScheduleInstance(final QuestPackageManager packManager, final ScheduleID scheduleID, final ConfigurationSection scheduleConfig)
+                throws QuestException {
+            return scheduleFactory.createNewInstance(packManager, scheduleID, scheduleConfig);
+        }
+
+        /* default */ void createAndScheduleNewInstance(final QuestPackageManager packManager, final ScheduleID scheduleID, final ConfigurationSection scheduleConfig)
+                throws QuestException {
+            scheduler.addSchedule(newScheduleInstance(packManager, scheduleID, scheduleConfig));
+        }
+    }
+}

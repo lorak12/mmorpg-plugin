@@ -1,0 +1,110 @@
+package org.nakii.mmorpg.quest.compatibility.protocollib.conversation;
+
+import org.nakii.mmorpg.quest.api.common.component.FixedComponentLineWrapper;
+import org.nakii.mmorpg.quest.api.common.component.font.FontRegistry;
+import org.nakii.mmorpg.quest.api.config.ConfigAccessor;
+import org.nakii.mmorpg.quest.api.profile.OnlineProfile;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.text.TextParser;
+import org.nakii.mmorpg.quest.conversation.Conversation;
+import org.nakii.mmorpg.quest.conversation.ConversationColors;
+import org.nakii.mmorpg.quest.conversation.ConversationIO;
+import org.nakii.mmorpg.quest.conversation.ConversationIOFactory;
+import org.bukkit.plugin.Plugin;
+
+import java.util.*;
+
+/**
+ * Menu conversation output.
+ */
+public class MenuConvIOFactory implements ConversationIOFactory {
+    /**
+     * Plugin instance to run tasks.
+     */
+    private final Plugin plugin;
+
+    /**
+     * the text parser to parse the configuration text.
+     */
+    private final TextParser textParser;
+
+    /**
+     * The font registry to use in APIs that work with {@link net.kyori.adventure.text.Component}.
+     */
+    private final FontRegistry fontRegistry;
+
+    /**
+     * The colors used for the conversation.
+     */
+    private final ConversationColors colors;
+
+    /**
+     * The config accessor to the plugin's configuration.
+     */
+    private final ConfigAccessor config;
+
+    /**
+     * Create a new Menu conversation IO factory.
+     *
+     * @param plugin       the plugin instance to run tasks
+     * @param textParser   the text parser to parse the configuration text
+     * @param fontRegistry the font registry used for the conversation
+     * @param config       the config accessor to the plugin's configuration
+     * @param colors       the colors used for the conversation
+     */
+    public MenuConvIOFactory(final Plugin plugin, final TextParser textParser, final FontRegistry fontRegistry,
+                             final ConfigAccessor config, final ConversationColors colors) {
+        this.plugin = plugin;
+        this.textParser = textParser;
+        this.fontRegistry = fontRegistry;
+        this.config = config;
+        this.colors = colors;
+    }
+
+    @Override
+    public ConversationIO parse(final Conversation conversation, final OnlineProfile onlineProfile) throws QuestException {
+        final MenuConvIOSettings settings = MenuConvIOSettings.fromConfigurationSection(textParser, config.getConfigurationSection("conversation.io.menu"));
+        final FixedComponentLineWrapper componentLineWrapper = new FixedComponentLineWrapper(fontRegistry, settings.lineLength());
+        return new MenuConvIO(conversation, onlineProfile, colors, settings, componentLineWrapper, plugin, getControls(settings));
+    }
+
+    @SuppressWarnings("PMD.CyclomaticComplexity")
+    private Map<MenuConvIO.CONTROL, MenuConvIO.ACTION> getControls(final MenuConvIOSettings settings) throws QuestException {
+        final Map<MenuConvIO.CONTROL, MenuConvIO.ACTION> controls = new EnumMap<>(MenuConvIO.CONTROL.class);
+        try {
+            for (final MenuConvIO.CONTROL control : controls(settings.controlCancel())) {
+                if (!controls.containsKey(control)) {
+                    controls.put(control, MenuConvIO.ACTION.CANCEL);
+                }
+            }
+        } catch (final IllegalArgumentException e) {
+            throw new QuestException("Invalid data for 'control_cancel': " + settings.controlCancel(), e);
+        }
+        try {
+            for (final MenuConvIO.CONTROL control : controls(settings.controlSelect())) {
+
+                if (!controls.containsKey(control)) {
+                    controls.put(control, MenuConvIO.ACTION.SELECT);
+                }
+            }
+        } catch (final IllegalArgumentException e) {
+            throw new QuestException("Invalid data for 'control_select': " + settings.controlSelect(), e);
+        }
+        try {
+            for (final MenuConvIO.CONTROL control : controls(settings.controlMove())) {
+                if (!controls.containsKey(control)) {
+                    controls.put(control, MenuConvIO.ACTION.MOVE);
+                }
+            }
+        } catch (final IllegalArgumentException e) {
+            throw new QuestException("Invalid data for 'control_move': " + settings.controlMove(), e);
+        }
+        return controls;
+    }
+
+    private List<MenuConvIO.CONTROL> controls(final String string) {
+        return Arrays.stream(string.split(","))
+                .map(s -> s.toUpperCase(Locale.ROOT))
+                .map(MenuConvIO.CONTROL::valueOf).toList();
+    }
+}

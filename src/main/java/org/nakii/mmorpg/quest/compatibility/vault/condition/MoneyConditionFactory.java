@@ -1,0 +1,43 @@
+package org.nakii.mmorpg.quest.compatibility.vault.condition;
+
+import net.milkbowl.vault.economy.Economy;
+import org.nakii.mmorpg.quest.api.instruction.Instruction;
+import org.nakii.mmorpg.quest.api.instruction.argument.Argument;
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.quest.PrimaryServerThreadData;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.condition.PlayerCondition;
+import org.nakii.mmorpg.quest.api.quest.condition.PlayerConditionFactory;
+import org.nakii.mmorpg.quest.api.quest.condition.thread.PrimaryServerThreadPlayerCondition;
+
+/**
+ * Factory to create {@link MoneyCondition}s from {@link Instruction}s.
+ */
+public class MoneyConditionFactory implements PlayerConditionFactory {
+    /**
+     * Economy where the balance will be retrieved.
+     */
+    private final Economy economy;
+
+    /**
+     * Data used for primary server access.
+     */
+    private final PrimaryServerThreadData data;
+
+    /**
+     * Create a new Factory to create Vault Money Conditions.
+     *
+     * @param economy the economy where the balance will be checked
+     * @param data    the data used for primary server access
+     */
+    public MoneyConditionFactory(final Economy economy, final PrimaryServerThreadData data) {
+        this.economy = economy;
+        this.data = data;
+    }
+
+    @Override
+    public PlayerCondition parsePlayer(final Instruction instruction) throws QuestException {
+        final Variable<Number> amount = instruction.get(Argument.NUMBER_NOT_LESS_THAN_ONE);
+        return new PrimaryServerThreadPlayerCondition(new MoneyCondition(economy, amount), data);
+    }
+}

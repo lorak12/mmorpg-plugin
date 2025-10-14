@@ -1,0 +1,158 @@
+package org.nakii.mmorpg.quest.compatibility.effectlib;
+
+import de.slikey.effectlib.EffectManager;
+import org.nakii.mmorpg.quest.api.config.quest.QuestPackage;
+import org.nakii.mmorpg.quest.api.config.quest.QuestPackageManager;
+import org.nakii.mmorpg.quest.api.feature.FeatureApi;
+import org.nakii.mmorpg.quest.api.identifier.Identifier;
+import org.nakii.mmorpg.quest.api.instruction.argument.Argument;
+import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
+import org.nakii.mmorpg.quest.api.instruction.variable.VariableList;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLogger;
+import org.nakii.mmorpg.quest.api.logger.BetonQuestLoggerFactory;
+import org.nakii.mmorpg.quest.api.profile.ProfileProvider;
+import org.nakii.mmorpg.quest.api.quest.QuestException;
+import org.nakii.mmorpg.quest.api.quest.QuestTypeApi;
+import org.nakii.mmorpg.quest.api.quest.condition.ConditionID;
+import org.nakii.mmorpg.quest.api.quest.npc.NpcID;
+import org.nakii.mmorpg.quest.kernel.processor.SectionProcessor;
+import org.nakii.mmorpg.quest.kernel.processor.quest.VariableProcessor;
+import org.bukkit.Location;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+
+/**
+ * Displays a particle effect at the location of an NPC or a list of locations.
+ */
+public class EffectLibParticleManager extends SectionProcessor<EffectLibParticleManager.ParticleID, EffectLibRunnable> {
+
+    /**
+     * The {@link BetonQuestLoggerFactory} to use for creating {@link BetonQuestLogger} instances.
+     */
+    private final BetonQuestLoggerFactory loggerFactory;
+
+    /**
+     * The Quest Type API.
+     */
+    private final QuestTypeApi questTypeApi;
+
+    /**
+     * The Feature API.
+     */
+    private final FeatureApi featureApi;
+
+    /**
+     * The profile provider instance.
+     */
+    private final ProfileProvider profileProvider;
+
+    /**
+     * The variable processor to create new variables.
+     */
+    private final VariableProcessor variableProcessor;
+
+    /**
+     * Effect Manager starting and controlling particles.
+     */
+    private final EffectManager manager;
+
+    /**
+     * Plugin instance to start a new task.
+     */
+    private final Plugin plugin;
+
+    /**
+     * Loads the particle configuration and starts the effects.
+     *
+     * @param log               the custom logger for this class
+     * @param loggerFactory     the logger factory to create new custom loggers
+     * @param packManager       the quest package manager to get quest packages from
+     * @param questTypeApi      the Quest Type API
+     * @param featureApi        the Feature API
+     * @param profileProvider   the profile provider instance
+     * @param variableProcessor the variable processor to create new variables
+     * @param manager           the effect manager starting and controlling particles
+     * @param plugin            the plugin to start new tasks with
+     */
+    public EffectLibParticleManager(final BetonQuestLogger log, final BetonQuestLoggerFactory loggerFactory,
+                                    final QuestPackageManager packManager, final QuestTypeApi questTypeApi, final FeatureApi featureApi,
+                                    final ProfileProvider profileProvider, final VariableProcessor variableProcessor,
+                                    final EffectManager manager, final Plugin plugin) {
+        super(log, packManager, "Effect", "effectlib");
+        this.loggerFactory = loggerFactory;
+        this.questTypeApi = questTypeApi;
+        this.featureApi = featureApi;
+        this.profileProvider = profileProvider;
+        this.variableProcessor = variableProcessor;
+        this.manager = manager;
+        this.plugin = plugin;
+    }
+
+    @Override
+    protected EffectLibRunnable loadSection(final QuestPackage pack, final ConfigurationSection settings) throws QuestException {
+        final String effectClass = settings.getString("class");
+        if (effectClass == null) {
+            throw new QuestException("No effect 'class' given.");
+        }
+
+        final int interval = settings.getInt("interval", 100);
+        if (interval <= 0) {
+            throw new QuestException("Effect interval must be bigger than 0.");
+        }
+
+        final int conditionsCheckInterval = settings.getInt("checkinterval", 100);
+        if (conditionsCheckInterval <= 0) {
+            throw new QuestException("Check interval must be bigger than 0.");
+        }
+
+        final Variable<List<Location>> locations = load(pack, settings, "locations", Argument.LOCATION);
+        final Variable<List<NpcID>> npcs = load(pack, settings, "npcs", value -> new NpcID(packManager, pack, value));
+        final Variable<List<ConditionID>> conditions = load(pack, settings, "conditions", value -> new ConditionID(packManager, pack, value));
+
+        final EffectConfiguration effect = new EffectConfiguration(effectClass, locations, npcs, conditions, settings, conditionsCheckInterval);
+        final EffectLibRunnable particleRunnable = new EffectLibRunnable(loggerFactory.create(EffectLibRunnable.class),
+                questTypeApi, featureApi, profileProvider, manager, effect);
+
+        particleRunnable.runTaskTimer(plugin, 1, interval);
+        return particleRunnable;
+    }
+
+    @Override
+    public void clear() {
+        for (final EffectLibRunnable activeParticle : values.values()) {
+            activeParticle.cancel();
+        }
+        super.clear();
+    }
+
+    private <T> Variable<List<T>> load(final QuestPackage pack, final ConfigurationSection settings,
+                                       final String entryName, final Argument<T> argument) throws QuestException {
+        return new VariableList<>(variableProcessor, pack, settings.getString(entryName, ""), argument);
+    }
+
+    @Override
+    protected ParticleID getIdentifier(final QuestPackage pack, final String identifier) throws QuestException {
+        return new ParticleID(packManager, pack, identifier);
+    }
+
+    /**
+     * Internal identifier/key for a Particle.
+     */
+    protected static class ParticleID extends Identifier {
+
+        /**
+         * Creates a new ID.
+         *
+         * @param packManager the quest package manager to get quest packages from
+         * @param pack        the package the ID is in
+         * @param identifier  the id instruction string
+         * @throws QuestException if the ID could not be parsed
+         */
+        protected ParticleID(final QuestPackageManager packManager, @Nullable final QuestPackage pack, final String identifier) throws QuestException {
+            super(packManager, pack, identifier);
+        }
+    }
+}
