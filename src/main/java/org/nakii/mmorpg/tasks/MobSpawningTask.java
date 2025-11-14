@@ -16,13 +16,15 @@ import java.util.Random;
 
 public class MobSpawningTask extends BukkitRunnable {
 
+    private final MMORPGCore plugin;
     private final WorldManager worldManager;
     private final MobManager mobManager;
     private final Random random = new Random();
 
-    public MobSpawningTask(MMORPGCore plugin) {
-        this.worldManager = plugin.getWorldManager();
-        this.mobManager = plugin.getMobManager();
+    public MobSpawningTask(MMORPGCore plugin,WorldManager worldManager, MobManager mobManager) {
+        this.plugin = plugin;
+        this.worldManager = worldManager;
+        this.mobManager = mobManager;
     }
 
     @Override
@@ -78,7 +80,7 @@ public class MobSpawningTask extends BukkitRunnable {
                 public void run() {
                     mobManager.spawnMob(mobId, spawnLocation, null);
                 }
-            }.runTask(MMORPGCore.getInstance());
+            }.runTask(plugin);
         }
     }
 

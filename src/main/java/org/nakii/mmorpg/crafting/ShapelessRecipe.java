@@ -3,6 +3,7 @@ package org.nakii.mmorpg.crafting;
 import org.bukkit.inventory.ItemStack;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.managers.ItemManager;
+import org.nakii.mmorpg.managers.RequirementManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,18 +15,19 @@ public class ShapelessRecipe extends CustomRecipe {
 
 
     private final List<Ingredient> ingredients;
+    private final ItemManager itemManager;
 
-    public ShapelessRecipe(String resultItemId, int resultAmount, List<String> requirementStrings, double carpentryXp, List<String> ingredientStrings) {
-        super(resultItemId, resultAmount, requirementStrings, carpentryXp);
+    public ShapelessRecipe(String resultItemId, int resultAmount, List<String> requirementStrings, double carpentryXp, List<String> ingredientStrings, ItemManager itemManager, RequirementManager requirementManager) {
+        super(resultItemId, resultAmount, requirementStrings, carpentryXp, requirementManager);
         this.ingredients = ingredientStrings.stream()
                 .map(Ingredient::fromString)
                 .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toList());
+        this.itemManager = itemManager;
     }
 
     @Override
     public boolean matches(ItemStack[] grid) {
-        ItemManager itemManager = MMORPGCore.getInstance().getItemManager();
 
         // 1. Create a mutable list of all non-null items in the crafting grid.
         List<ItemStack> gridItems = new ArrayList<>();
@@ -66,7 +68,6 @@ public class ShapelessRecipe extends CustomRecipe {
 
     @Override
     public void consumeIngredients(ItemStack[] grid) {
-        ItemManager itemManager = MMORPGCore.getInstance().getItemManager();
 
         // 1. Create a mutable map of how much of each ingredient we still need to consume.
         Map<String, Integer> requiredToConsume = new HashMap<>();

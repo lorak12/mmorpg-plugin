@@ -23,6 +23,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import org.nakii.mmorpg.enchantment.ApplicableType;
+import org.nakii.mmorpg.util.FormattingUtils;
+import org.nakii.mmorpg.util.Keys;
 
 import java.util.stream.Collectors;
 
@@ -31,17 +33,10 @@ public class EnchantmentManager {
     private final MMORPGCore plugin;
     private final Map<String, CustomEnchantment> enchantmentRegistry = new HashMap<>();
     private final Gson gson;
-    private final NamespacedKey ENCHANTS_KEY;
-
-    private static final Component LORE_MARKER = Component.text("").decoration(TextDecoration.ITALIC, false);
-
 
     public EnchantmentManager(MMORPGCore plugin) {
         this.plugin = plugin;
-
         this.gson = new Gson();
-        this.ENCHANTS_KEY = new NamespacedKey(plugin, "custom_enchants");
-
         loadEnchantments();
     }
 
@@ -97,7 +92,7 @@ public class EnchantmentManager {
 
     public Map<String, Integer> getEnchantments(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return new HashMap<>();
-        String json = item.getItemMeta().getPersistentDataContainer().get(ENCHANTS_KEY, PersistentDataType.STRING);
+        String json = item.getItemMeta().getPersistentDataContainer().get(Keys.CUSTOM_ENCHANTS, PersistentDataType.STRING);
         if (json == null) return new HashMap<>();
         Type type = new TypeToken<Map<String, Integer>>(){}.getType();
         return gson.fromJson(json, type);
@@ -107,18 +102,15 @@ public class EnchantmentManager {
         if (item == null || item.getType().isAir()) return;
         ItemMeta meta = item.getItemMeta();
         String json = gson.toJson(enchantments);
-        meta.getPersistentDataContainer().set(ENCHANTS_KEY, PersistentDataType.STRING, json);
+        meta.getPersistentDataContainer().set(Keys.CUSTOM_ENCHANTS, PersistentDataType.STRING, json);
         item.setItemMeta(meta);
-        updateItemLoreWithEnchants(item); // This will now correctly format the lore
+
+        // Update the glint based on whether there are enchantments
+        updateGlint(item);
     }
 
-    // We need to slightly modify updateItemLoreWithEnchants to use this new method.
-    // This will prevent us from having two separate places that generate the same lore.
-    private void updateItemLoreWithEnchants(ItemStack item) {
+    private void updateGlint(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return;
-        // This method is now only responsible for adding/removing the glint.
-        // The ItemLoreGenerator is the sole controller of the visible lore.
-
         ItemMeta meta = item.getItemMeta();
         Map<String, Integer> enchants = getEnchantments(item);
 
@@ -133,9 +125,6 @@ public class EnchantmentManager {
             }
         }
         item.setItemMeta(meta);
-
-        // We now call the global lore update to make the visual change.
-        MMORPGCore.getInstance().getItemLoreGenerator().updateLore(item, null);
     }
 
     /**
@@ -162,19 +151,6 @@ public class EnchantmentManager {
                 .collect(Collectors.toList());
     }
 
-    private String toRoman(int number) {
-        if (number < 1 || number > 10) return String.valueOf(number);
-        String[] numerals = {"X", "IX", "V", "IV", "I"};
-        int[] values = {10, 9, 5, 4, 1};
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < values.length; i++) {
-            while (number >= values[i]) {
-                number -= values[i];
-                result.append(numerals[i]);
-            }
-        }
-        return result.toString();
-    }
 
     /**
      * --- THIS IS THE UPDATED METHOD ---
@@ -196,9 +172,9 @@ public class EnchantmentManager {
         for (String enchantId : sortedEnchantIds) {
             CustomEnchantment enchant = getEnchantment(enchantId);
             if (enchant != null) {
-                String enchantText = enchant.getDisplayName() + " " + toRoman(enchants.get(enchantId));
+                String enchantText = enchant.getDisplayName() + " " + FormattingUtils.toRoman(enchants.get(enchantId));
 
-                // --- NEW LOGIC: Check requirements ---
+                //TODO: --- NEW LOGIC: Check requirements ---
                 // Here you would check if the player meets the skill requirement for the enchant.
                 // For now, let's just show an example by making it red if they don't.
                 boolean meetsReq = true; // Placeholder for SkillManager check

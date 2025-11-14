@@ -11,8 +11,8 @@ public class TripleStrikeEffect implements EnchantmentEffect {
     private final CombatTracker combatTracker;
     private static final int MAX_COMBO_HITS = 3;
 
-    public TripleStrikeEffect() {
-        this.combatTracker = MMORPGCore.getInstance().getCombatTracker();
+    public TripleStrikeEffect(CombatTracker combatTracker) {
+        this.combatTracker = combatTracker;
     }
 
     @Override

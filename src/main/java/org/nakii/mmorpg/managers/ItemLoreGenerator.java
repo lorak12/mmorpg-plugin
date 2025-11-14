@@ -17,6 +17,7 @@ import org.nakii.mmorpg.item.Rarity;
 import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.requirements.Requirement;
 import org.nakii.mmorpg.util.ChatUtils;
+import org.nakii.mmorpg.util.Keys;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -27,6 +28,9 @@ import java.util.Map;
 public class ItemLoreGenerator {
 
     private final MMORPGCore plugin;
+    private final EnchantmentManager enchantmentManager;
+    private final ItemManager itemManager;
+    private final RequirementManager requirementManager;
     private final Gson gson = new Gson();
     private final Type statMapType = new TypeToken<Map<String, Double>>(){}.getType();
 
@@ -37,8 +41,11 @@ public class ItemLoreGenerator {
             Stat.MINING_SPEED, Stat.MINING_FORTUNE
     );
 
-    public ItemLoreGenerator(MMORPGCore plugin) {
+    public ItemLoreGenerator(MMORPGCore plugin, EnchantmentManager enchantmentManager, ItemManager itemManager, RequirementManager requirementManager) {
         this.plugin = plugin;
+        this.enchantmentManager = enchantmentManager;
+        this.itemManager = itemManager;
+        this.requirementManager = requirementManager;
     }
 
     public void updateLore(ItemStack item, @Nullable Player viewer) {
@@ -46,18 +53,18 @@ public class ItemLoreGenerator {
         ItemMeta meta = item.getItemMeta();
         var data = meta.getPersistentDataContainer();
 
-        String itemId = data.get(ItemManager.ITEM_ID_KEY, PersistentDataType.STRING);
+        String itemId = data.get(Keys.ITEM_ID, PersistentDataType.STRING);
         if (itemId == null) return;
 
-        CustomItemTemplate template = plugin.getItemManager().getTemplate(itemId);
+        CustomItemTemplate template = itemManager.getTemplate(itemId);
         if (template == null) return;
 
         Rarity rarity = template.getRarity();
         List<Component> lore = new ArrayList<>();
 
         // --- 1. Get All Stat Sources ---
-        Map<Stat, Double> baseStats = readStatsFromNBT(data, ItemManager.BASE_STATS_KEY);
-        Map<Stat, Double> reforgeStats = readStatsFromNBT(data, ItemManager.REFORGE_STATS_KEY);
+        Map<Stat, Double> baseStats = readStatsFromNBT(data, Keys.BASE_STATS);
+        Map<Stat, Double> reforgeStats = readStatsFromNBT(data, Keys.REFORGE_STATS);
         Map<Stat, Double> totalStats = new EnumMap<>(Stat.class);
         baseStats.forEach((stat, value) -> totalStats.merge(stat, value, Double::sum));
         reforgeStats.forEach((stat, value) -> totalStats.merge(stat, value, Double::sum));
@@ -93,7 +100,7 @@ public class ItemLoreGenerator {
         if (hasStatBlock) lore.add(Component.empty());
 
         // --- 4. Enchantment Block ---
-        String enchantLine = plugin.getEnchantmentManager().getFormattedEnchantLine(item, viewer);
+        String enchantLine = enchantmentManager.getFormattedEnchantLine(item, viewer);
         if (enchantLine != null && !enchantLine.isEmpty()) {
             lore.add(ChatUtils.format(enchantLine));
             lore.add(Component.empty());
@@ -129,14 +136,14 @@ public class ItemLoreGenerator {
             List<String> reqStrings = template.getRequirements();
             for (String reqString : reqStrings) {
                 Requirement req = Requirement.fromString(reqString);
-                if (req != null && !req.meets(viewer)) {
+                if (req != null && !requirementManager.meetsAll(viewer, reqStrings)) {
                     meetsAllReqs = false;
                     lore.add(ChatUtils.format("<red>Requires " + reqString.replace(":", " ") + "</red>"));
                 }
             }
         }
 
-        String reforgeId = data.get(ItemManager.REFORGE_ID_KEY, PersistentDataType.STRING);
+        String reforgeId = data.get(Keys.REFORGE_ID, PersistentDataType.STRING);
         if (reforgeId == null && template.hasFlag("REFORGABLE")) {
             lore.add(ChatUtils.format("<dark_gray>This item can be reforged.</dark_gray>"));
         }

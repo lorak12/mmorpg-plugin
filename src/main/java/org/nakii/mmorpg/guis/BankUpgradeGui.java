@@ -9,6 +9,8 @@ import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.economy.PlayerEconomy;
 import org.nakii.mmorpg.managers.BankManager;
+import org.nakii.mmorpg.managers.EconomyManager;
+import org.nakii.mmorpg.managers.WorldTimeManager;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -18,9 +20,15 @@ import java.util.Set;
 public class BankUpgradeGui extends AbstractGui {
 
     private final NumberFormat formatter = NumberFormat.getInstance();
+    private final BankManager bankManager;
+    private final EconomyManager economyManager;
+    private final WorldTimeManager worldTimeManager;
 
-    public BankUpgradeGui(MMORPGCore plugin, Player player) {
+    public BankUpgradeGui(MMORPGCore plugin, Player player, BankManager bankManager, EconomyManager economyManager, WorldTimeManager worldTimeManager) {
         super(plugin, player);
+        this.bankManager = bankManager;
+        this.economyManager = economyManager;
+        this.worldTimeManager = worldTimeManager;
     }
 
     @Override
@@ -43,8 +51,7 @@ public class BankUpgradeGui extends AbstractGui {
         inventory.setItem(31, createItem(Material.ARROW, "<green>Go Back</green>"));
 
         // --- Dynamically generate an icon for each tier ---
-        BankManager bankManager = plugin.getBankManager();
-        PlayerEconomy economy = plugin.getEconomyManager().getEconomy(player);
+        PlayerEconomy economy = economyManager.getEconomy(player);
 
         // We get the tiers in the order they are defined in the config.
         Set<String> tierIds = bankManager.getBankConfig().getConfigurationSection("tiers").getKeys(false);
@@ -127,19 +134,19 @@ public class BankUpgradeGui extends AbstractGui {
         int slot = event.getSlot();
 
         if (slot == 31) { // Back button
-            new BankGui(plugin, player).open();
+            new BankGui(plugin, player, worldTimeManager, economyManager, bankManager).open();
             return;
         }
 
         // --- Handle clicking on an upgrade icon ---
-        Set<String> tierIds = plugin.getBankManager().getBankConfig().getConfigurationSection("tiers").getKeys(false);
+        Set<String> tierIds = bankManager.getBankConfig().getConfigurationSection("tiers").getKeys(false);
         int[] slots = {10, 11, 12, 13, 14, 15, 16};
         int i = 0;
         for (String tierId : tierIds) {
             if (i >= slots.length) break;
             if (slot == slots[i]) {
                 // Player clicked this tier, attempt to upgrade.
-                plugin.getBankManager().attemptUpgrade(player, tierId);
+                bankManager.attemptUpgrade(player, tierId);
                 // Refresh the GUI to show the new status
                 populateItems();
                 return;

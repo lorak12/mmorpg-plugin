@@ -6,13 +6,14 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.managers.GUIManager;
 
 public class SkillsCommand implements CommandExecutor {
 
-    private final MMORPGCore plugin;
+    private final GUIManager guiManager;
 
-    public SkillsCommand(MMORPGCore plugin) {
-        this.plugin = plugin;
+    public SkillsCommand( GUIManager guiManager) {
+        this.guiManager = guiManager;
     }
 
     @Override
@@ -23,7 +24,7 @@ public class SkillsCommand implements CommandExecutor {
         }
 
         // The command's only job is to open the GUI.
-        plugin.getGuiManager().openSkillsGUI(player);
+        guiManager.openSkillsGUI(player);
 
         return true;
     }

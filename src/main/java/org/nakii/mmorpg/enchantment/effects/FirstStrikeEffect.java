@@ -7,11 +7,10 @@ import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.managers.CombatTracker;
 
 public class FirstStrikeEffect implements EnchantmentEffect {
-
     private final CombatTracker combatTracker;
 
-    public FirstStrikeEffect() {
-        this.combatTracker = MMORPGCore.getInstance().getCombatTracker();
+    public FirstStrikeEffect(CombatTracker combatTracker) {
+        this.combatTracker = combatTracker;
     }
 
     @Override

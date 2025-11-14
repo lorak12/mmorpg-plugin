@@ -1,6 +1,7 @@
 package org.nakii.mmorpg.quest.item;
 
 import org.jetbrains.annotations.Nullable;
+import org.nakii.mmorpg.quest.QuestAPIBridge; // <-- IMPORT THE BRIDGE
 import org.nakii.mmorpg.quest.api.instruction.Instruction;
 import org.nakii.mmorpg.quest.api.kernel.TypeFactory;
 import org.nakii.mmorpg.quest.api.profile.Profile;
@@ -15,7 +16,9 @@ public class MmorpgItemFactory implements TypeFactory<QuestItemWrapper> {
         }
 
         final String itemId = instruction.next();
-        return new ShallowWrapper(new MmorpgQuestItem(itemId));
+
+        // Use the static getters from the bridge to access the managers
+        return new ShallowWrapper(new MmorpgQuestItem(itemId, QuestAPIBridge.getItemManager(), QuestAPIBridge.getItemLoreGenerator()));
     }
 
     private record ShallowWrapper(QuestItem questItem) implements QuestItemWrapper {

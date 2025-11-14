@@ -21,6 +21,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.nakii.mmorpg.zone.BlockNode;
 import org.nakii.mmorpg.zone.ZoneBounds;
+import org.nakii.mmorpg.zone.ZoneLoader;
 
 /**
  * Manages all custom worlds ("islands") for the server.
@@ -31,11 +32,11 @@ public class WorldManager {
 
     private final MMORPGCore plugin;
     private final Map<String, CustomWorld> loadedWorlds = new HashMap<>();
-    private final ZoneManager zoneParser; // The refactored ZoneManager is now a parser utility
+    private final ZoneLoader zoneParser; // The refactored ZoneManager is now a parser utility
 
     public WorldManager(MMORPGCore plugin) {
         this.plugin = plugin;
-        this.zoneParser = new ZoneManager(plugin); // We reuse the old ZoneManager for its parsing logic
+        this.zoneParser = new ZoneLoader(plugin); // We reuse the old ZoneManager for its parsing logic
     }
 
     /**

@@ -10,6 +10,10 @@ public class PlayerStateManager {
 
     private final ConcurrentHashMap<UUID, PlayerState> playerStates = new ConcurrentHashMap<>();
 
+    public PlayerStateManager() {
+        // No dependencies
+    }
+
     public void addPlayer(Player player) {
         playerStates.put(player.getUniqueId(), new PlayerState());
     }
@@ -19,7 +23,6 @@ public class PlayerStateManager {
     }
 
     public PlayerState getState(Player player) {
-        // This is a safeguard against race conditions or reloads.
         return playerStates.computeIfAbsent(player.getUniqueId(), uuid -> new PlayerState());
     }
 }

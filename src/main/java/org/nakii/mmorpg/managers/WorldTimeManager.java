@@ -25,13 +25,16 @@ public class WorldTimeManager {
     public static final int PLUGIN_MONTHS_PER_YEAR = 12;
     public static final int PLUGIN_DAYS_PER_YEAR = PLUGIN_MONTHS_PER_YEAR * PLUGIN_DAYS_PER_MONTH;
 
-    public WorldTimeManager(MMORPGCore plugin) {
+    private final DatabaseManager databaseManager;
+
+    public WorldTimeManager(MMORPGCore plugin, DatabaseManager databaseManager) {
         this.plugin = plugin;
+        this.databaseManager = databaseManager;
     }
 
     public void loadTime() {
         try {
-            this.totalPluginSecondsElapsed = plugin.getDatabaseManager().loadWorldTime();
+            this.totalPluginSecondsElapsed = databaseManager.loadWorldTime();
             plugin.getLogger().info("World time loaded successfully (" + totalPluginSecondsElapsed + "s elapsed).");
         } catch (SQLException e) {
             this.totalPluginSecondsElapsed = 0; // Default to 0 on failure
@@ -42,7 +45,7 @@ public class WorldTimeManager {
 
     public void saveTime() {
         try {
-            plugin.getDatabaseManager().saveWorldTime(this.totalPluginSecondsElapsed);
+            databaseManager.saveWorldTime(this.totalPluginSecondsElapsed);
             plugin.getLogger().info("World time saved successfully.");
         } catch (SQLException e) {
             plugin.getLogger().severe("Could not save world time to database!");

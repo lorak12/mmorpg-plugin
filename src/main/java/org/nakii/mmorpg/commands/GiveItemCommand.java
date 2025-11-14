@@ -10,6 +10,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.managers.ItemLoreGenerator;
+import org.nakii.mmorpg.managers.ItemManager;
 import org.nakii.mmorpg.util.ChatUtils;
 
 import java.util.ArrayList;
@@ -20,9 +22,13 @@ import java.util.stream.Collectors;
 public class GiveItemCommand implements CommandExecutor, TabCompleter {
 
     private final MMORPGCore plugin;
+    private final ItemManager itemManager;
+    private final ItemLoreGenerator itemLoreGenerator;
 
-    public GiveItemCommand(MMORPGCore plugin) {
+    public GiveItemCommand(MMORPGCore plugin, ItemManager itemManager, ItemLoreGenerator itemLoreGenerator) {
         this.plugin = plugin;
+        this.itemManager = itemManager;
+        this.itemLoreGenerator = itemLoreGenerator;
     }
 
     @Override
@@ -67,7 +73,7 @@ public class GiveItemCommand implements CommandExecutor, TabCompleter {
         }
 
         // 1. Create the item with its NBT data
-        ItemStack item = plugin.getItemManager().createItemStack(itemId);
+        ItemStack item = itemManager.createItemStack(itemId);
         if (item == null) {
             sender.sendMessage(ChatUtils.format("<red>Item ID '" + itemId + "' not found!</red>"));
             return true;
@@ -75,7 +81,8 @@ public class GiveItemCommand implements CommandExecutor, TabCompleter {
         item.setAmount(amount);
 
         // 2. Generate and apply the visual lore
-        plugin.getItemLoreGenerator().updateLore(item, ((Player) sender).getPlayer());
+        Player viewer = (sender instanceof Player) ? (Player) sender : target;
+        itemLoreGenerator.updateLore(item, viewer);
 
         // 3. Give the fully formed item to the player
         target.getInventory().addItem(item);
@@ -88,7 +95,7 @@ public class GiveItemCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
             // Suggest item names
-            List<String> itemNames = new ArrayList<>(plugin.getItemManager().getCustomItems().keySet());
+            List<String> itemNames = new ArrayList<>(itemManager.getCustomItems().keySet());
             return StringUtil.copyPartialMatches(args[0], itemNames, new ArrayList<>());
         }
         if (args.length == 3) {

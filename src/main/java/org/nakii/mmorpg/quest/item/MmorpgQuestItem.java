@@ -5,6 +5,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.item.CustomItemTemplate;
+import org.nakii.mmorpg.managers.ItemLoreGenerator;
 import org.nakii.mmorpg.managers.ItemManager;
 import org.nakii.mmorpg.quest.api.profile.Profile;
 
@@ -14,14 +15,17 @@ import java.util.Objects;
 public class MmorpgQuestItem implements QuestItem {
 
     private final String mmorpgItemId;
+    private final ItemManager itemManager;
+    private final ItemLoreGenerator itemLoreGenerator;
 
-    public MmorpgQuestItem(String mmorpgItemId) {
+    public MmorpgQuestItem(String mmorpgItemId, ItemManager itemManager, ItemLoreGenerator itemLoreGenerator) {
         this.mmorpgItemId = mmorpgItemId.toUpperCase();
+        this.itemManager = itemManager;
+        this.itemLoreGenerator = itemLoreGenerator;
     }
 
     @Override
     public ItemStack generate(int stackSize, @Nullable Profile profile) {
-        ItemManager itemManager = MMORPGCore.getInstance().getItemManager();
 
         // 1. Create the base item using your existing system
         ItemStack item = itemManager.createItemStack(mmorpgItemId);
@@ -30,7 +34,7 @@ public class MmorpgQuestItem implements QuestItem {
         }
 
         // 2. Generate the visual lore
-        MMORPGCore.getInstance().getItemLoreGenerator().updateLore(item, null);
+        itemLoreGenerator.updateLore(item, null);
 
         // 3. Set the requested amount
         item.setAmount(stackSize);
@@ -47,13 +51,13 @@ public class MmorpgQuestItem implements QuestItem {
         if (item == null || item.getType().isAir()) {
             return false;
         }
-        String itemIdFromStack = MMORPGCore.getInstance().getItemManager().getItemId(item);
+        String itemIdFromStack = itemManager.getItemId(item);
         return mmorpgItemId.equalsIgnoreCase(itemIdFromStack);
     }
 
     @Override
     public Component getName() {
-        CustomItemTemplate template = MMORPGCore.getInstance().getItemManager().getTemplate(mmorpgItemId);
+        CustomItemTemplate template = itemManager.getTemplate(mmorpgItemId);
         if (template != null) {
             return MMORPGCore.getInstance().getMiniMessage().deserialize(template.getDisplayName());
         }

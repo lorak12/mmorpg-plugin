@@ -22,8 +22,15 @@ public class ScoreboardManager {
 
     private final Map<UUID, ScoreboardProvider> activeProviders = new HashMap<>();
 
-    public ScoreboardManager(MMORPGCore plugin) {
+    private final WorldTimeManager timeManager;
+    private final EconomyManager economyManager;
+    private final WorldManager worldManager;
+
+    public ScoreboardManager(MMORPGCore plugin, WorldTimeManager timeManager, EconomyManager economyManager, WorldManager worldManager) {
         this.plugin = plugin;
+        this.timeManager = timeManager;
+        this.economyManager = economyManager;
+        this.worldManager = worldManager;
     }
 
     private final MiniMessage miniMessage = MMORPGCore.getInstance().getMiniMessage();
@@ -64,9 +71,6 @@ public class ScoreboardManager {
         // --- Static Information ---
         lines.add(" "); // Empty line
 
-        // Date & Time (from WorldTimeManager)
-        WorldTimeManager timeManager = plugin.getWorldTimeManager();
-
         // 1. Get Date components
         String seasonPrefix = timeManager.getSeasonPrefix();
         WorldTimeManager.Season currentSeason = timeManager.getSeason();
@@ -98,8 +102,8 @@ public class ScoreboardManager {
         lines.add(timeLine);
 
         // Location (from ZoneManager)
-        CustomWorld world = plugin.getWorldManager().getCustomWorld(player.getWorld().getName());
-        Zone zone = plugin.getWorldManager().getZoneForLocation(player.getLocation());
+        CustomWorld world = worldManager.getCustomWorld(player.getWorld().getName());
+        Zone zone = worldManager.getZoneForLocation(player.getLocation());
 
         Component locationComponent;
         if (zone != null) {
@@ -118,7 +122,7 @@ public class ScoreboardManager {
 
 
         // Economy (from EconomyManager)
-        double purse = plugin.getEconomyManager().getEconomy(player).getPurse();
+        double purse = economyManager.getEconomy(player).getPurse();
         lines.add("<white>Purse: <gold>" + formatter.format(Math.floor(purse)) + "</gold>");
         lines.add("   "); // Empty line
 

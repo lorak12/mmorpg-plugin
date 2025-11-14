@@ -28,7 +28,7 @@ public class ItemDropper {
 
         // Mark the item with the pristine NBT tag
         itemStack.editMeta(meta -> {
-            meta.getPersistentDataContainer().set(ItemManager.PRISTINE_KEY, PersistentDataType.BYTE, (byte) 1);
+            meta.getPersistentDataContainer().set(Keys.PRISTINE_ITEM, PersistentDataType.BYTE, (byte) 1);
         });
 
         // Spawn the item entity

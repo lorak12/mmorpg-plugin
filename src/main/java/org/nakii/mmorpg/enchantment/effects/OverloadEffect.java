@@ -8,12 +8,10 @@ import org.nakii.mmorpg.managers.StatsManager;
 
 public class OverloadEffect implements EnchantmentEffect {
 
-    // --- THE FIX ---
     private final StatsManager statsManager;
 
-    public OverloadEffect() {
-        // Get the instance of the StatsManager when the class is created.
-        this.statsManager = MMORPGCore.getInstance().getStatsManager();
+    public OverloadEffect(StatsManager statsManager) {
+        this.statsManager = statsManager;
     }
 
     @Override

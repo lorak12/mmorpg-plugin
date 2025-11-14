@@ -14,8 +14,8 @@ public class VenomousEffect implements EnchantmentEffect {
     private static final int DURATION_TICKS = 5 * 20;
     private final DebuffManager debuffManager;
 
-    public VenomousEffect() {
-        this.debuffManager = MMORPGCore.getInstance().getDebuffManager();
+    public VenomousEffect(DebuffManager debuffManager) {
+        this.debuffManager = debuffManager;
     }
 
     @Override

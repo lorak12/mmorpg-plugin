@@ -1,14 +1,12 @@
-package org.nakii.mmorpg.managers;
+package org.nakii.mmorpg.zone;
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.nakii.mmorpg.MMORPGCore;
-import org.nakii.mmorpg.zone.*;
 
 import javax.annotation.Nullable;
 import java.awt.geom.Point2D;
@@ -16,27 +14,15 @@ import java.io.File;
 import java.util.*;
 import java.util.logging.Level;
 
-/**
- * REFACTORED: This class is no longer a global manager.
- * Its purpose is now to act as a utility for parsing a zones.yml file
- * and returning a list of Zone objects. It is now stateless.
- */
-public class ZoneManager {
+public class ZoneLoader {
 
     private final MMORPGCore plugin;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
-    public ZoneManager(MMORPGCore plugin) {
+    public ZoneLoader(MMORPGCore plugin) {
         this.plugin = plugin;
     }
 
-    /**
-     * NEW: Parses a single zones.yml file and returns a list of the zones defined within it.
-     * This method is called by the WorldManager for each custom world.
-     *
-     * @param zoneFile The zones.yml file to parse.
-     * @return A List of Zone objects. Returns an empty list if the file doesn't exist or is invalid.
-     */
     public List<Zone> loadZonesFromFile(File zoneFile, World worldContext) {
         List<Zone> zones = new ArrayList<>();
         if (!zoneFile.exists()) {
@@ -53,8 +39,7 @@ public class ZoneManager {
             try {
                 ConfigurationSection zoneConfig = zonesSection.getConfigurationSection(zoneId);
                 if (zoneConfig != null) {
-                    // --- PASS WORLD CONTEXT DOWN ---
-                    Zone zone = parseZone(zoneId, zoneConfig, null, worldContext);
+                    Zone zone = parseZone(zoneId, zoneConfig, worldContext);
                     if (zone != null) {
                         zones.add(zone);
                     }
@@ -66,19 +51,12 @@ public class ZoneManager {
         return zones;
     }
 
-    // --- All private parsing logic below remains the same, as it is still needed ---
-
-    private Zone parseZone(String id, ConfigurationSection config, @Nullable Zone parent, World worldContext) {
+    private Zone parseZone(String id, ConfigurationSection config, World worldContext) {
         var displayName = miniMessage.deserialize(config.getString("display-name", "<red>Unnamed Zone"));
         String icon = config.getString("icon", "❓");
         ZoneBounds bounds = parseBounds(config.getConfigurationSection("bounds"));
-        ConfigurationSection flagsSection = config.getConfigurationSection("flags");
-        ZoneFlags flags = parseFlags(flagsSection, worldContext);
-
-        // We now parse the warp-point and pass it to the constructor.
+        ZoneFlags flags = parseFlags(config.getConfigurationSection("flags"), worldContext);
         Location warpPoint = parseLocation(worldContext, config.getString("warp-point"));
-
-        // This now correctly calls the constructor with all 6 required arguments.
         return new Zone(id, displayName, icon, bounds, flags, warpPoint);
     }
 
@@ -117,13 +95,11 @@ public class ZoneManager {
             );
         }
         BlockBreakingFlags blockBreakingFlags = parseBlockBreakingFlags(config.getConfigurationSection("block-breaking"));
-        // --- PASS WORLD CONTEXT DOWN ---
         MobSpawningFlags mobSpawningFlags = parseMobSpawningFlags(config.getConfigurationSection("mob-spawning"), worldContext);
         return new ZoneFlags(entryReqs, climate, Collections.emptyMap(), null, blockBreakingFlags, mobSpawningFlags);
     }
 
     private BlockBreakingFlags parseBlockBreakingFlags(ConfigurationSection config) {
-        // This method's implementation remains unchanged from your original file
         if (config == null) return null;
         boolean unlistedUnbreakable = config.getBoolean("unlisted-blocks-unbreakable", false);
         Map<String, BlockNode> definitions = new HashMap<>();
@@ -181,7 +157,6 @@ public class ZoneManager {
                     double x = Double.parseDouble(parts[0].trim());
                     double y = Double.parseDouble(parts[1].trim());
                     double z = Double.parseDouble(parts[2].trim());
-                    // --- THE FIX: Use the passed-in worldContext ---
                     spawnerPoints.add(new Location(worldContext, x, y, z));
                 } catch (NumberFormatException e) {
                     plugin.getLogger().warning("Invalid spawner-point format: '" + pointStr + "' in world " + worldContext.getName());

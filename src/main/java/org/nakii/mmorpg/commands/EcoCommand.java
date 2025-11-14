@@ -22,9 +22,10 @@ public class EcoCommand implements CommandExecutor, TabCompleter {
 
     private final EconomyManager economyManager;
 
-    public EcoCommand(MMORPGCore plugin) {
-        this.economyManager = plugin.getEconomyManager();
+    public EcoCommand(EconomyManager economyManager) {
+        this.economyManager = economyManager;
     }
+
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {

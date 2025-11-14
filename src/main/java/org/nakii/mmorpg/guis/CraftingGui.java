@@ -8,6 +8,8 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.crafting.CustomRecipe;
+import org.nakii.mmorpg.managers.ItemLoreGenerator;
+import org.nakii.mmorpg.managers.ItemManager;
 import org.nakii.mmorpg.managers.RecipeManager;
 
 import java.util.List;
@@ -21,8 +23,15 @@ public class CraftingGui extends AbstractGui {
 
     private RecipeManager.RecipeMatch currentMatch = null;
 
-    public CraftingGui(MMORPGCore plugin, Player player) {
+    private final RecipeManager recipeManager;
+    private final ItemManager itemManager;
+    private final ItemLoreGenerator itemLoreGenerator;
+
+    public CraftingGui(MMORPGCore plugin, Player player, RecipeManager recipeManager, ItemManager itemManager, ItemLoreGenerator itemLoreGenerator) {
         super(plugin, player);
+        this.recipeManager = recipeManager;
+        this.itemManager = itemManager;
+        this.itemLoreGenerator = itemLoreGenerator;
     }
 
     @Override
@@ -74,13 +83,13 @@ public class CraftingGui extends AbstractGui {
         }
 
         // 4. Calculate and display the result based on the current grid.
-        this.currentMatch = plugin.getRecipeManager().findMatch(currentGrid);
+        this.currentMatch = recipeManager.findMatch(currentGrid);
         if (this.currentMatch != null) {
             CustomRecipe recipe = this.currentMatch.recipe();
             if (recipe.hasRequirements(player)) {
-                ItemStack resultItem = plugin.getItemManager().createItemStack(recipe.getResultItemId());
+                ItemStack resultItem = itemManager.createItemStack(recipe.getResultItemId());
                 resultItem.setAmount(recipe.getResultAmount());
-                plugin.getItemLoreGenerator().updateLore(resultItem, player);
+                itemLoreGenerator.updateLore(resultItem, player);
                 inventory.setItem(RESULT_SLOT, resultItem);
             } else {
                 inventory.setItem(RESULT_SLOT, createItem(Material.BARRIER, "<red>Requirements not met!</red>"));

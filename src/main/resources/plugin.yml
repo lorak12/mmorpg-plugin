@@ -33,10 +33,6 @@ commands:
     description: Applies a custom enchantment to an item or book.
     usage: /<command> <player> <enchant> <level> [item]
     permission: mmorpg.command.enchant
-  openhex:
-    description: Opens The Hex GUI for enchantment removal.
-    usage: /<command>
-    permission: mmorpg.command.openhex
   slayer:
     description: Opens the Slayer quest menu.
     permission: mmorpg.command.slayer

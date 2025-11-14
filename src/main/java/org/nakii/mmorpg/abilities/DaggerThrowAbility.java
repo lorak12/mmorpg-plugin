@@ -12,14 +12,17 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.managers.DamageManager;
 
 public class DaggerThrowAbility implements Ability {
 
     private final MMORPGCore plugin;
     private static final double BASE_DAMAGE = 200;
+    private final DamageManager damageManager;
 
-    public DaggerThrowAbility(MMORPGCore plugin) {
+    public DaggerThrowAbility(MMORPGCore plugin, DamageManager damageManager) {
         this.plugin = plugin;
+        this.damageManager = damageManager;
     }
 
     @Override
@@ -76,7 +79,7 @@ public class DaggerThrowAbility implements Ability {
 
                     // --- HIT! ---
                     // Call the new centralized method to handle damage calculation and event firing
-                    plugin.getDamageManager().dealAbilityDamage(entity, BASE_DAMAGE, player);
+                    damageManager.dealAbilityDamage(entity, BASE_DAMAGE, player);
 
                     // Visual/Audio feedback
                     entity.getWorld().playSound(entity.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.0f, 1.0f);

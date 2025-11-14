@@ -25,9 +25,11 @@ public class AnvilGui extends AbstractGui {
 
     private record CombinationResult(ItemStack item, int cost) {}
     private CombinationResult currentResult = null;
+    private final EnchantmentManager enchantmentManager;
 
-    public AnvilGui(MMORPGCore plugin, Player player) {
+    public AnvilGui(MMORPGCore plugin, Player player, EnchantmentManager enchantmentManager) {
         super(plugin, player);
+        this.enchantmentManager = enchantmentManager;
     }
 
     @Override
@@ -178,7 +180,7 @@ public class AnvilGui extends AbstractGui {
 
     private CombinationResult calculateCombination(ItemStack base, ItemStack sacrifice) {
         // This calculation logic is correct and remains unchanged.
-        EnchantmentManager em = plugin.getEnchantmentManager();
+        EnchantmentManager em = enchantmentManager;
         Map<String, Integer> baseEnchants = new HashMap<>(em.getEnchantments(base));
         Map<String, Integer> sacrificeEnchants = em.getEnchantments(sacrifice);
         int totalLevelsAdded = 0;

@@ -20,9 +20,9 @@ public class WorldAdminCommand implements CommandExecutor {
     private final WorldManager worldManager;
     private static final List<String> SUB_COMMANDS = List.of("populate", "teleport", "setflag");
 
-    public WorldAdminCommand(MMORPGCore plugin) {
+    public WorldAdminCommand(MMORPGCore plugin, WorldManager worldManager) {
         this.plugin = plugin;
-        this.worldManager = plugin.getWorldManager();
+        this.worldManager = worldManager;
     }
 
     @Override

@@ -14,6 +14,7 @@ import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.managers.EnchantmentManager;
 import org.nakii.mmorpg.util.ChatUtils;
+import org.nakii.mmorpg.util.FormattingUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,9 +26,9 @@ public class EnchantCommand implements CommandExecutor, TabCompleter {
     private final MMORPGCore plugin;
     private final EnchantmentManager enchantmentManager;
 
-    public EnchantCommand(MMORPGCore plugin) {
+    public EnchantCommand(MMORPGCore plugin, EnchantmentManager enchantmentManager) {
         this.plugin = plugin;
-        this.enchantmentManager = plugin.getEnchantmentManager();
+        this.enchantmentManager = enchantmentManager;
     }
 
     @Override
@@ -86,7 +87,7 @@ public class EnchantCommand implements CommandExecutor, TabCompleter {
             target.sendMessage(ChatUtils.format("<yellow>Your inventory was full, so the enchanted item was dropped at your feet.</yellow>"));
         }
 
-        sender.sendMessage(ChatUtils.format("<green>Successfully gave " + target.getName() + " an item with " + enchantment.getDisplayName() + " " + toRoman(level) + ".</green>"));
+        sender.sendMessage(ChatUtils.format("<green>Successfully gave " + target.getName() + " an item with " + enchantment.getDisplayName() + " " + FormattingUtils.toRoman(level) + ".</green>"));
         return true;
     }
 
@@ -122,11 +123,5 @@ public class EnchantCommand implements CommandExecutor, TabCompleter {
         return completions;
     }
 
-    private String toRoman(int number) {
-        if (number < 1 || number > 39) return String.valueOf(number);
-        String[] r = {"X", "IX", "V", "IV", "I"}; int[] v = {10, 9, 5, 4, 1};
-        StringBuilder sb = new StringBuilder();
-        for(int i=0; i<v.length; i++) { while(number >= v[i]) { number -= v[i]; sb.append(r[i]); } }
-        return sb.toString();
-    }
+
 }

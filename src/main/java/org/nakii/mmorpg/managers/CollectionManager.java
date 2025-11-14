@@ -11,6 +11,7 @@ import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.collection.PlayerCollectionData;
 import org.nakii.mmorpg.skills.Skill;
 import org.nakii.mmorpg.util.ChatUtils;
+import org.nakii.mmorpg.util.FormattingUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -24,13 +25,16 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CollectionManager {
 
     private final MMORPGCore plugin;
+    private final RewardManager rewardManager;
+    private final SkillManager skillManager;
     private final Map<UUID, PlayerCollectionData> playerDataCache = new ConcurrentHashMap<>();
     private final Map<String, YamlConfiguration> collectionConfigs = new HashMap<>();
-
     private final Map<Material, String> materialToCollectionIdMap = new HashMap<>();
 
-    public CollectionManager(MMORPGCore plugin) {
+    public CollectionManager(MMORPGCore plugin, RewardManager rewardManager, SkillManager skillManager) {
         this.plugin = plugin;
+        this.rewardManager = rewardManager;
+        this.skillManager = skillManager;
         loadCollections();
     }
 
@@ -87,14 +91,14 @@ public class CollectionManager {
         int skillXp = config.getInt("tiers." + tierKey + ".skill-xp", 0);
 
         // --- 1. Grant Rewards using the RewardManager ---
-        List<Component> grantedRewards = plugin.getRewardManager().grantRewards(player, rewardStrings);
+        List<Component> grantedRewards = rewardManager.grantRewards(player, rewardStrings);
 
         // --- 2. Grant the tier-specific skill XP ---
         if (skillXp > 0) {
             // Skill XP for unlocking the tier is separate from SKILL_XP rewards
             try {
                 String category = config.getString("category", "FARMING");
-                plugin.getSkillManager().addXp(player, Skill.valueOf(category.toUpperCase()), skillXp);
+                skillManager.addXp(player, Skill.valueOf(category.toUpperCase()), skillXp);
             } catch (IllegalArgumentException ignored) {}
         }
 
@@ -103,14 +107,14 @@ public class CollectionManager {
         Title.Times times = Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(750));
         Title title = Title.title(
                 plugin.getMiniMessage().deserialize(collectionName + " Collection"),
-                plugin.getMiniMessage().deserialize("<yellow>Level " + toRoman(Integer.parseInt(tierKey)) + " Unlocked!")
+                plugin.getMiniMessage().deserialize("<yellow>Level " + FormattingUtils.toRoman(Integer.parseInt(tierKey)) + " Unlocked!")
         );
         player.showTitle(title);
 
         // Detailed chat message
         player.sendMessage(ChatUtils.format("<dark_gray>-----------------------------------"));
         player.sendMessage(ChatUtils.format("  <white>COLLECTION LEVEL UP!"));
-        player.sendMessage(ChatUtils.format("  " + collectionName + " <white>has reached level <yellow>" + toRoman(Integer.parseInt(tierKey)) + "</yellow>!"));
+        player.sendMessage(ChatUtils.format("  " + collectionName + " <white>has reached level <yellow>" + FormattingUtils.toRoman(Integer.parseInt(tierKey)) + "</yellow>!"));
         player.sendMessage(ChatUtils.format(" "));
         player.sendMessage(ChatUtils.format("  <white>Rewards:"));
 
@@ -212,17 +216,5 @@ public class CollectionManager {
         return unlockedTier;
     }
 
-    private String toRoman(int number) {
-        if (number < 1 || number > 39) return String.valueOf(number);
-        String[] r = {"X", "IX", "V", "IV", "I"};
-        int[] v = {10, 9, 5, 4, 1};
-        StringBuilder sb = new StringBuilder();
-        for(int i=0; i<v.length; i++) {
-            while(number >= v[i]) {
-                number -= v[i];
-                sb.append(r[i]);
-            }
-        }
-        return sb.toString();
-    }
+
 }

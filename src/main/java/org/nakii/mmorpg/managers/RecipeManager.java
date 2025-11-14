@@ -18,9 +18,13 @@ public class RecipeManager {
 
     private final MMORPGCore plugin;
     private final List<CustomRecipe> customRecipes = new ArrayList<>();
+    private final ItemManager itemManager;
+    private final RequirementManager requirementManager;
 
-    public RecipeManager(MMORPGCore plugin) {
+    public RecipeManager(MMORPGCore plugin, ItemManager itemManager, RequirementManager requirementManager) {
         this.plugin = plugin;
+        this.itemManager = itemManager;
+        this.requirementManager = requirementManager;
         loadRecipes();
     }
 
@@ -61,10 +65,10 @@ public class RecipeManager {
                                 ingredients.put(ingKey, ingredientsSection.getString(ingKey));
                             }
                         }
-                        recipe = new ShapedRecipe(resultId, amount, requirements, xp, shape, ingredients);
+                        recipe = new ShapedRecipe(resultId, amount, requirements, xp, shape, ingredients, itemManager, requirementManager);
                     } else if (type.equals("SHAPELESS")) {
                         List<String> ingredients = recipeSection.getStringList("ingredients");
-                        recipe = new ShapelessRecipe(resultId, amount, requirements, xp, ingredients);
+                        recipe = new ShapelessRecipe(resultId, amount, requirements, xp, ingredients, itemManager, requirementManager);
                     }
 
                     if (recipe != null) {

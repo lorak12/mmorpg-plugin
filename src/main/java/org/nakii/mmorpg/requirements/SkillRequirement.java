@@ -1,7 +1,5 @@
 package org.nakii.mmorpg.requirements;
 
-import org.bukkit.entity.Player;
-import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.skills.Skill;
 
 public class SkillRequirement implements Requirement {
@@ -14,9 +12,11 @@ public class SkillRequirement implements Requirement {
         this.requiredLevel = level;
     }
 
-    @Override
-    public boolean meets(Player player) {
-        int playerLevel = MMORPGCore.getInstance().getSkillManager().getLevel(player, requiredSkill);
-        return playerLevel >= requiredLevel;
+    public Skill getRequiredSkill() {
+        return requiredSkill;
+    }
+
+    public int getRequiredLevel() {
+        return requiredLevel;
     }
 }

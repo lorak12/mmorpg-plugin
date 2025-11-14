@@ -13,6 +13,7 @@ import org.nakii.mmorpg.managers.AbilityManager;
 import org.nakii.mmorpg.managers.CooldownManager;
 import org.nakii.mmorpg.managers.ItemManager;
 import org.nakii.mmorpg.managers.PlayerManager;
+import org.nakii.mmorpg.util.Keys;
 
 import java.util.concurrent.TimeUnit;
 
@@ -24,12 +25,12 @@ public class AbilityListener implements Listener {
     private final PlayerManager playerManager;
     private final CooldownManager cooldownManager;
 
-    public AbilityListener(MMORPGCore plugin) {
+    public AbilityListener(MMORPGCore plugin, ItemManager itemManager, AbilityManager abilityManager, PlayerManager playerManager, CooldownManager cooldownManager) {
         this.plugin = plugin;
-        this.itemManager = plugin.getItemManager();
-        this.abilityManager = plugin.getAbilityManager();
-        this.playerManager = plugin.getPlayerManager();
-        this.cooldownManager = plugin.getCooldownManager();
+        this.itemManager = itemManager;
+        this.abilityManager = abilityManager;
+        this.playerManager = playerManager;
+        this.cooldownManager = cooldownManager;
     }
 
     @EventHandler
@@ -46,7 +47,7 @@ public class AbilityListener implements Listener {
         }
 
         // The item must be one of our custom items with an ability
-        String abilityKey = item.getItemMeta().getPersistentDataContainer().get(ItemManager.ABILITY_KEY, PersistentDataType.STRING);
+        String abilityKey = item.getItemMeta().getPersistentDataContainer().get(Keys.ABILITY_KEY, PersistentDataType.STRING);
         if (abilityKey == null) {
             return;
         }

@@ -11,8 +11,8 @@ public class LethalityEffect implements EnchantmentEffect {
     private static final int MAX_STACKS = 4;
     private final DebuffManager debuffManager;
 
-    public LethalityEffect() {
-        this.debuffManager = MMORPGCore.getInstance().getDebuffManager();
+    public LethalityEffect(DebuffManager debuffManager) {
+        this.debuffManager = debuffManager;
     }
 
     @Override

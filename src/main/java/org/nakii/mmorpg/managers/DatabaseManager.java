@@ -23,9 +23,9 @@ public class DatabaseManager {
 
     private final MMORPGCore plugin;
     private Connection connection;
-
     private final Gson gson = new Gson();
 
+    // The SlayerManager dependency has been removed to break the circular dependency.
     public DatabaseManager(MMORPGCore plugin) {
         this.plugin = plugin;
     }
@@ -192,10 +192,8 @@ public class DatabaseManager {
                 Type historyType = new TypeToken<LinkedList<Transaction>>(){}.getType();
                 List<Transaction> history = gson.fromJson(historyJson, historyType);
 
-                // --- THE FIX: Call the constructor with the UUID first ---
                 return new PlayerEconomy(uuid, purse, bank, tier, unlocked, history);
             } else {
-                // --- THE FIX: Call the new player constructor with the UUID ---
                 return new PlayerEconomy(uuid); // This is a new player
             }
         }
@@ -209,7 +207,7 @@ public class DatabaseManager {
             slayer_type TEXT NOT NULL,
             level INTEGER NOT NULL DEFAULT 0,
             experience INTEGER NOT NULL DEFAULT 0,
-            highest_tier_defeated INTEGER NOT NULL DEFAULT 0, -- ADD THIS LINE
+            highest_tier_defeated INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY (uuid, slayer_type)
         );
         """;
@@ -220,7 +218,7 @@ public class DatabaseManager {
 
     public PlayerSlayerData loadPlayerSlayerData(Player player) throws SQLException {
         PlayerSlayerData data = new PlayerSlayerData();
-        String sql = "SELECT slayer_type, level, experience, highest_tier_defeated FROM player_slayers WHERE uuid = ?;"; // ADD COLUMN
+        String sql = "SELECT slayer_type, level, experience, highest_tier_defeated FROM player_slayers WHERE uuid = ?;";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, player.getUniqueId().toString());
             ResultSet rs = pstmt.executeQuery();
@@ -228,21 +226,23 @@ public class DatabaseManager {
                 String slayerType = rs.getString("slayer_type");
                 data.setLevel(slayerType, rs.getInt("level"));
                 data.setXp(slayerType, rs.getInt("experience"));
-                data.setHighestTierDefeated(slayerType, rs.getInt("highest_tier_defeated")); // ADD THIS LINE
+                data.setHighestTierDefeated(slayerType, rs.getInt("highest_tier_defeated"));
             }
         }
         return data;
     }
 
+    // This method no longer needs SlayerManager. It iterates over the data it is given.
     public void savePlayerSlayerData(Player player, PlayerSlayerData data) throws SQLException {
-        String sql = "INSERT OR REPLACE INTO player_slayers (uuid, slayer_type, level, experience, highest_tier_defeated) VALUES (?, ?, ?, ?, ?);"; // ADD COLUMN
+        String sql = "INSERT OR REPLACE INTO player_slayers (uuid, slayer_type, level, experience, highest_tier_defeated) VALUES (?, ?, ?, ?, ?);";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            for (String slayerType : plugin.getSlayerManager().getSlayerConfig().getKeys(false)) {
+            // Iterate over the keys in the data object, not the config file.
+            for (String slayerType : data.getSlayerXpMap().keySet()) {
                 pstmt.setString(1, player.getUniqueId().toString());
                 pstmt.setString(2, slayerType.toUpperCase());
                 pstmt.setInt(3, data.getLevel(slayerType));
                 pstmt.setInt(4, data.getXp(slayerType));
-                pstmt.setInt(5, data.getHighestTierDefeated(slayerType)); // ADD THIS LINE
+                pstmt.setInt(5, data.getHighestTierDefeated(slayerType));
                 pstmt.addBatch();
             }
             pstmt.executeBatch();
@@ -264,11 +264,6 @@ public class DatabaseManager {
         }
     }
 
-    /**
-     * Saves a player's active slayer quest to the database.
-     * @param uuid The player's UUID.
-     * @param quest The ActiveSlayerQuest to save.
-     */
     public void saveActiveSlayerQuest(UUID uuid, ActiveSlayerQuest quest) throws SQLException {
         String sql = "INSERT OR REPLACE INTO active_quests (uuid, quest_type, tier, xp_to_spawn, current_xp) VALUES (?, ?, ?, ?, ?);";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
@@ -281,11 +276,6 @@ public class DatabaseManager {
         }
     }
 
-    /**
-     * Loads a player's active slayer quest from the database.
-     * @param uuid The player's UUID.
-     * @return An Optional containing the ActiveSlayerQuest if one exists, otherwise an empty Optional.
-     */
     public Optional<ActiveSlayerQuest> loadActiveSlayerQuest(UUID uuid) throws SQLException {
         String sql = "SELECT quest_type, tier, xp_to_spawn, current_xp FROM active_quests WHERE uuid = ?;";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
@@ -298,18 +288,13 @@ public class DatabaseManager {
                 double currentXp = rs.getDouble("current_xp");
 
                 ActiveSlayerQuest quest = new ActiveSlayerQuest(type, tier, xpToSpawn);
-                quest.setCurrentXp(currentXp); // We need a setter for this
-
+                quest.setCurrentXp(currentXp);
                 return Optional.of(quest);
             }
         }
         return Optional.empty();
     }
 
-    /**
-     * Deletes a player's active slayer quest from the database.
-     * @param uuid The player's UUID.
-     */
     public void deleteActiveSlayerQuest(UUID uuid) throws SQLException {
         String sql = "DELETE FROM active_quests WHERE uuid = ?;";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
@@ -318,8 +303,7 @@ public class DatabaseManager {
         }
     }
 
-    // Colection part
-    // --- ADD THIS NEW TABLE CREATION METHOD ---
+    // --- Player Collections Data ---
     private void createPlayerCollectionsTable() throws SQLException {
         String sql = """
         CREATE TABLE IF NOT EXISTS player_collections (
@@ -334,7 +318,6 @@ public class DatabaseManager {
         }
     }
 
-    // --- ADD THESE THREE NEW METHODS ---
     public PlayerCollectionData loadPlayerCollectionData(Player player) throws SQLException {
         PlayerCollectionData data = new PlayerCollectionData();
         String sql = "SELECT collection_id, amount FROM player_collections WHERE uuid = ?;";
@@ -351,7 +334,6 @@ public class DatabaseManager {
     public void savePlayerCollectionData(Player player, PlayerCollectionData data) throws SQLException {
         String sql = "INSERT OR REPLACE INTO player_collections (uuid, collection_id, amount) VALUES (?, ?, ?);";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            // We iterate through the player's known collections to save them.
             for (Map.Entry<String, Integer> entry : data.getCollectionProgressMap().entrySet()) {
                 pstmt.setString(1, player.getUniqueId().toString());
                 pstmt.setString(2, entry.getKey());
@@ -362,7 +344,7 @@ public class DatabaseManager {
         }
     }
 
-    // Stats from eg. Slayer rewards, collections etc.
+    // --- Player Bonus Stats ---
     private void createPlayerBonusStatsTable() throws SQLException {
         String sql = """
         CREATE TABLE IF NOT EXISTS player_bonus_stats (
@@ -406,13 +388,7 @@ public class DatabaseManager {
         }
     }
 
-    // ========================================================== //
-    // ---               NEW QUEST DATA SECTION               --- //
-    // ========================================================== //
-
-    /**
-     * Creates the table to store serialized player quest data.
-     */
+    // --- Player Quest Data ---
     private void createPlayerQuestDataTable() throws SQLException {
         String sql = """
         CREATE TABLE IF NOT EXISTS player_quest_data (
@@ -425,11 +401,6 @@ public class DatabaseManager {
         }
     }
 
-    /**
-     * Loads a player's entire quest data as a single JSON string.
-     * @param uuid The UUID of the player to load.
-     * @return The JSON string of the player's quest data, or null if not found.
-     */
     public String loadPlayerQuestData(UUID uuid) throws SQLException {
         String sql = "SELECT quest_data FROM player_quest_data WHERE uuid = ?;";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
@@ -439,15 +410,9 @@ public class DatabaseManager {
                 return rs.getString("quest_data");
             }
         }
-        return null; // Return null if no data is found for the player
+        return null;
     }
 
-    /**
-     * Saves a player's entire quest data as a single JSON string.
-     * This will create a new entry or replace an existing one.
-     * @param uuid The UUID of the player to save.
-     * @param jsonData The JSON string representing the player's full quest data.
-     */
     public void savePlayerQuestData(UUID uuid, String jsonData) throws SQLException {
         String sql = "INSERT OR REPLACE INTO player_quest_data (uuid, quest_data) VALUES (?, ?);";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {

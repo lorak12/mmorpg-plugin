@@ -15,9 +15,11 @@ public class RegenerationManager {
 
     private final MMORPGCore plugin;
     private final ConcurrentHashMap<Location, BukkitTask> activeRegenTasks = new ConcurrentHashMap<>();
+    private final WorldManager worldManager;
 
-    public RegenerationManager(MMORPGCore plugin) {
+    public RegenerationManager(MMORPGCore plugin, WorldManager worldManager) {
         this.plugin = plugin;
+        this.worldManager = worldManager;
     }
 
     public void startRegeneration(Block block, BlockNode targetNode) {
@@ -33,7 +35,7 @@ public class RegenerationManager {
                 activeRegenTasks.remove(block.getLocation()); // Remove task from map once it runs
 
                 // Get the current zone for the block's location using the new WorldManager.
-                Zone zone = plugin.getWorldManager().getZoneForLocation(block.getLocation());
+                Zone zone = worldManager.getZoneForLocation(block.getLocation());
                 if (zone == null || zone.getFlags().blockBreakingFlags() == null) {
                     // If the block is no longer in a valid regen zone, do nothing.
                     return;

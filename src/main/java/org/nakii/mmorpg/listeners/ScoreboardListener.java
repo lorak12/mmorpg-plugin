@@ -17,8 +17,8 @@ public class ScoreboardListener implements Listener {
 
     private final ScoreboardManager scoreboardManager;
 
-    public ScoreboardListener(MMORPGCore plugin) {
-        this.scoreboardManager = plugin.getScoreboardManager();
+    public ScoreboardListener(ScoreboardManager scoreboardManager) {
+        this.scoreboardManager = scoreboardManager;
     }
 
     @EventHandler

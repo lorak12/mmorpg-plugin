@@ -7,6 +7,7 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.managers.ItemManager;
+import org.nakii.mmorpg.util.Keys;
 
 /**
  * Manages the lifecycle of "pristine" items to prevent collection exploits.
@@ -22,11 +23,11 @@ public class PristineItemListener implements Listener {
         ItemStack itemStack = event.getItem().getItemStack();
         if (itemStack.hasItemMeta()) {
             // Check if the item has the pristine tag
-            if (itemStack.getItemMeta().getPersistentDataContainer().has(ItemManager.PRISTINE_KEY, PersistentDataType.BYTE)) {
+            if (itemStack.getItemMeta().getPersistentDataContainer().has(Keys.PRISTINE_ITEM, PersistentDataType.BYTE)) {
                 // It's pristine. We must now "consume" the tag by removing it.
                 // We edit the meta of the stack *before* it enters the player's inventory.
                 itemStack.editMeta(meta -> {
-                    meta.getPersistentDataContainer().remove(ItemManager.PRISTINE_KEY);
+                    meta.getPersistentDataContainer().remove(Keys.PRISTINE_ITEM);
                 });
             }
         }

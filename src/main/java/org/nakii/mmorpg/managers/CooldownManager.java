@@ -7,8 +7,11 @@ import java.util.concurrent.TimeUnit;
 
 public class CooldownManager {
 
-    // Player UUID -> (Ability Key -> Cooldown Expiry Timestamp)
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
+
+    public CooldownManager() {
+        // No dependencies needed
+    }
 
     public void setCooldown(UUID playerId, String abilityKey, int seconds) {
         if (seconds <= 0) return;

@@ -5,6 +5,7 @@ import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.Nullable;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.managers.MobManager;
+import org.nakii.mmorpg.quest.QuestAPIBridge;
 import org.nakii.mmorpg.quest.api.instruction.argument.Argument;
 import org.nakii.mmorpg.quest.api.quest.QuestException;
 
@@ -52,7 +53,7 @@ public final class QuestMobType {
      */
     public boolean matches(LivingEntity entity) {
         if (isCustom()) {
-            String entityId = MMORPGCore.getInstance().getMobManager().getMobId(entity);
+            String entityId = QuestAPIBridge.getMobManager().getMobId(entity);
             return customId.equalsIgnoreCase(entityId);
         } else {
             return entity.getType() == vanillaType;
@@ -69,7 +70,7 @@ public final class QuestMobType {
     public static class MobTypeArgument implements Argument<QuestMobType> {
         public static final MobTypeArgument MOB_TYPE = new MobTypeArgument();
 
-        private final MobManager mobManager = MMORPGCore.getInstance().getMobManager();
+        private final MobManager mobManager = QuestAPIBridge.getMobManager();
 
         @Override
         public QuestMobType apply(String input) throws QuestException {

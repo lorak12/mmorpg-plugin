@@ -7,16 +7,19 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.managers.SkillManager;
+import org.nakii.mmorpg.managers.WorldManager;
 import org.nakii.mmorpg.skills.Skill;
 import org.nakii.mmorpg.zone.Zone;
 
 public class ForagingListener implements Listener {
 
-    private final MMORPGCore plugin;
+    private final SkillManager skillManager;
+    private final WorldManager worldManager;
 
-    public ForagingListener(MMORPGCore plugin) {
-        this.plugin = plugin;
+    public ForagingListener(SkillManager skillManager, WorldManager worldManager) {
+        this.skillManager = skillManager;
+        this.worldManager = worldManager;
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -24,17 +27,14 @@ public class ForagingListener implements Listener {
         Player player = event.getPlayer();
         Block block = event.getBlock();
 
-        // We get the zone from the new WorldManager.
-        // The logic is to prevent giving vanilla XP if the block is in a custom zone,
-        // which might have its own XP rules defined in a BlockNode.
-        Zone zone = plugin.getWorldManager().getZoneForLocation(player.getLocation());
+        Zone zone = worldManager.getZoneForLocation(player.getLocation());
         if (player.getGameMode() == GameMode.CREATIVE || zone != null) {
             return;
         }
 
         String materialName = block.getType().name();
         if (materialName.endsWith("_LOG")) {
-            plugin.getSkillManager().addXpForAction(player, Skill.FORAGING, materialName);
+            skillManager.addXpForAction(player, Skill.FORAGING, materialName);
         }
     }
 }

@@ -3,6 +3,7 @@ package org.nakii.mmorpg.tasks;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -25,122 +26,110 @@ import java.util.UUID;
 
 public class ClimateTask extends BukkitRunnable {
 
+    private final MMORPGCore plugin;
     private final WorldManager worldManager;
     private final PlayerStateManager stateManager;
     private final StatsManager statsManager;
-    private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final Set<UUID> debuggingPlayers = Collections.synchronizedSet(new HashSet<>());
 
-    // ===== CONFIGURABLE CONSTANTS =====
-    private static final double HEAT_PER_TICK = 1.0;
-    private static final double COLD_PER_TICK = 1.0;
-    private static final double NATURAL_DECREASE = 1.5;
-    private static final int DAMAGE_THRESHOLD = 10;          // From which cold level dmg starts
-    private static final double DAMAGE_SCALING = 3.5;       // Base scaling factor for dmg
-    private static final int FREEZE_TICKS = 60;             // Duration of freezing animation
-    private static final int SLOWNESS_DURATION = 60;        // Slowness duration in ticks
-    private static final int SLOWNESS_AMPLIFIER = 2;        // Slowness level (0 = lvl1)
-    private static final int FIRE_TICKS = 60;               // Fire ticks (burning effect)
-    private static final int WEAKNESS_DURATION = 60;        // Weakness duration in ticks
-    private static final int WEAKNESS_AMPLIFIER = 1;        // Weakness level (0 = lvl1)
-    // ==================================
+    // --- CONFIGURABLE VALUES ---
+    private final double heatPerTick;
+    private final double coldPerTick;
+    private final double naturalDecrease;
+    private final int damageThreshold;
+    private final double damageScaling;
+    private final int freezeTicks;
+    private final int slownessDuration;
+    private final int slownessAmplifier;
+    private final int fireTicks;
+    private final int weaknessDuration;
+    private final int weaknessAmplifier;
 
+    public ClimateTask(MMORPGCore plugin, WorldManager worldManager, PlayerStateManager stateManager, StatsManager statsManager) {
+        this.plugin = plugin;
+        this.worldManager = worldManager;
+        this.stateManager = stateManager;
+        this.statsManager = statsManager;
 
-    public ClimateTask(MMORPGCore plugin) {
-        this.worldManager = plugin.getWorldManager();
-        this.stateManager = plugin.getPlayerStateManager();
-        this.statsManager = plugin.getStatsManager();
+        // Load values from config
+        FileConfiguration config = plugin.getConfig();
+        this.heatPerTick = config.getDouble("climate.heat-per-tick", 1.0);
+        this.coldPerTick = config.getDouble("climate.cold-per-tick", 1.0);
+        this.naturalDecrease = config.getDouble("climate.natural-decrease", 1.5);
+        this.damageThreshold = config.getInt("climate.damage-threshold", 10);
+        this.damageScaling = config.getDouble("climate.damage-scaling", 3.5);
+        this.freezeTicks = config.getInt("climate.freeze-ticks", 60);
+        this.slownessDuration = config.getInt("climate.slowness-duration", 60);
+        this.slownessAmplifier = config.getInt("climate.slowness-amplifier", 2);
+        this.fireTicks = config.getInt("climate.fire-ticks", 60);
+        this.weaknessDuration = config.getInt("climate.weakness-duration", 60);
+        this.weaknessAmplifier = config.getInt("climate.weakness-amplifier", 1);
     }
 
     @Override
     public void run() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            // --- CORE CHANGE: Get the zone directly from the WorldManager ---
             Zone zone = worldManager.getZoneForLocation(player.getLocation());
             PlayerState state = stateManager.getState(player);
-            Climate climate = (zone != null && zone.getFlags().climate() != null)
-                    ? zone.getFlags().climate()
-                    : null;
+            Climate climate = (zone != null && zone.getFlags().climate() != null) ? zone.getFlags().climate() : null;
 
             if (climate == null || "NEUTRAL".equalsIgnoreCase(climate.type())) {
-                // Player is in a neutral zone, decrease both heat and cold levels.
-                state.addHeat(-NATURAL_DECREASE);
-                state.addCold(-NATURAL_DECREASE);
-
+                state.addHeat(-naturalDecrease);
+                state.addCold(-naturalDecrease);
             } else if ("HOT".equalsIgnoreCase(climate.type())) {
-                // Decrease any residual cold.
-                state.addCold(-NATURAL_DECREASE);
-
+                state.addCold(-naturalDecrease);
                 double heatResistance = statsManager.getStats(player).getStat(Stat.HEAT_RESISTANCE);
                 if (heatResistance < climate.requiredResistance()) {
-                    state.addHeat(HEAT_PER_TICK);
-                    // Set player on fire for visual effect, damage is vanilla.
-                    if (state.getHeatLevel() >= DAMAGE_THRESHOLD) {
-                        new BukkitRunnable() {
-                            @Override
-                            public void run() {
-                                if (!player.isOnline()) return;
-                                if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
-
-                                // exponential damage scaling
-                                double rawDamage = Math.pow(state.getHeatLevel(), 2) * DAMAGE_SCALING;
-                                int calculatedDamage = (int) Math.round(rawDamage);
-
-                                player.damage(calculatedDamage);
-                                player.setFireTicks(FIRE_TICKS);
-                                player.addPotionEffect(new PotionEffect(
-                                        PotionEffectType.WEAKNESS,
-                                        WEAKNESS_DURATION,
-                                        WEAKNESS_AMPLIFIER
-                                ));
-                            }
-                        }.runTask(MMORPGCore.getInstance());
+                    state.addHeat(heatPerTick);
+                    if (state.getHeatLevel() >= damageThreshold) {
+                        applyHotEffects(player, state);
                     }
                 } else {
-                    // Player has enough resistance, they cool down.
-                    state.addHeat(-NATURAL_DECREASE);
+                    state.addHeat(-naturalDecrease);
                 }
-
             } else if ("COLD".equalsIgnoreCase(climate.type())) {
-                // Decrease any residual heat.
-                state.addHeat(-NATURAL_DECREASE);
-
+                state.addHeat(-naturalDecrease);
                 double coldResistance = statsManager.getStats(player).getStat(Stat.COLD_RESISTANCE);
                 if (coldResistance < climate.requiredResistance()) {
-                    state.addCold(COLD_PER_TICK);
-                    // If cold level is over the threshold, apply scaling damage.
-                    if (state.getColdLevel() >= DAMAGE_THRESHOLD) {
-                        new BukkitRunnable() {
-                            @Override
-                            public void run() {
-                                if (!player.isOnline()) return;
-                                if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
-
-                                // exponential damage scaling
-                                double rawDamage = Math.pow(state.getColdLevel(), 2) * DAMAGE_SCALING;
-                                int calculatedDamage = (int) Math.round(rawDamage);
-
-                                player.damage(calculatedDamage);
-                                player.setFreezeTicks(FREEZE_TICKS);
-                                player.addPotionEffect(new PotionEffect(
-                                        PotionEffectType.SLOWNESS,
-                                        SLOWNESS_DURATION,
-                                        SLOWNESS_AMPLIFIER
-                                ));
-                            }
-                        }.runTask(MMORPGCore.getInstance());
+                    state.addCold(coldPerTick);
+                    if (state.getColdLevel() >= damageThreshold) {
+                        applyColdEffects(player, state);
                     }
                 } else {
-                    // Player has enough resistance, they warm up.
-                    state.addCold(-NATURAL_DECREASE);
+                    state.addCold(-naturalDecrease);
                 }
             }
 
-            // If the player is debugging, send them the action bar update.
             if (debuggingPlayers.contains(player.getUniqueId())) {
                 sendDebugInfo(player, state);
             }
         }
+    }
+
+    private void applyHotEffects(Player player, PlayerState state) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!player.isOnline() || player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
+                double rawDamage = Math.pow(state.getHeatLevel(), 2) * damageScaling;
+                player.damage(Math.round(rawDamage));
+                player.setFireTicks(fireTicks);
+                player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, weaknessDuration, weaknessAmplifier));
+            }
+        }.runTask(plugin);
+    }
+
+    private void applyColdEffects(Player player, PlayerState state) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!player.isOnline() || player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
+                double rawDamage = Math.pow(state.getColdLevel(), 2) * damageScaling;
+                player.damage(Math.round(rawDamage));
+                player.setFreezeTicks(freezeTicks);
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, slownessDuration, slownessAmplifier));
+            }
+        }.runTask(plugin);
     }
 
     private void sendDebugInfo(Player player, PlayerState state) {

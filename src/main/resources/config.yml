@@ -147,3 +147,29 @@ hook:
   train_carts: false
   fancynpcs: false
   znpcsplus: false
+# =================================================== #
+#                  CLIMATE SETTINGS                   #
+# =================================================== #
+# Configuration for the environmental climate system.
+climate:
+  # How many points of heat/cold are gained per tick (1/20th of a second) in a relevant zone.
+  heat-per-tick: 1.0
+  cold-per-tick: 1.0
+  # How many points are naturally lost per tick in a neutral zone or with resistance.
+  natural-decrease: 1.5
+  # The heat/cold level at which damage and negative effects begin.
+  damage-threshold: 10
+  # The base multiplier for climate damage. Damage scales exponentially.
+  damage-scaling: 3.5
+  # Duration of the on-screen freeze effect in ticks.
+  freeze-ticks: 60
+  # Duration of the Slowness effect from cold in ticks.
+  slowness-duration: 60
+  # Amplifier for Slowness (0 = Slowness I, 1 = Slowness II, etc.).
+  slowness-amplifier: 2
+  # Duration of the fire effect from heat in ticks.
+  fire-ticks: 60
+  # Duration of the Weakness effect from heat in ticks.
+  weakness-duration: 60
+  # Amplifier for Weakness (0 = Weakness I, 1 = Weakness II, etc.).
+  weakness-amplifier: 1

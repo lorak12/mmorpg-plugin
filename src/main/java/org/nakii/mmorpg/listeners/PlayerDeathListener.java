@@ -18,22 +18,22 @@ import java.text.NumberFormat;
 public class PlayerDeathListener implements Listener {
 
     private final EconomyManager economyManager;
+    private final MMORPGCore plugin;
 
-    public PlayerDeathListener(MMORPGCore plugin) {
-        this.economyManager = plugin.getEconomyManager();
+    public PlayerDeathListener(MMORPGCore plugin, EconomyManager economyManager) {
+        this.plugin = plugin;
+        this.economyManager = economyManager;
     }
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
         PlayerEconomy economy = economyManager.getEconomy(player);
-
         double currentPurse = economy.getPurse();
         double coinsLost = Math.floor(currentPurse / 2.0);
 
         if (coinsLost > 0) {
-            economy.setPurse(currentPurse - coinsLost);
-            // Format the number with commas for readability
+            economy.removePurse(coinsLost); // Use removePurse to ensure events are fired
             String formattedCoinsLost = NumberFormat.getInstance().format(coinsLost);
             player.sendMessage(ChatUtils.format("<red>You died and lost <gold>" + formattedCoinsLost + " coins</gold>!</red>"));
         }
@@ -42,15 +42,19 @@ public class PlayerDeathListener implements Listener {
     @EventHandler
     public void onPlayerRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
-        // ... (your existing state reset) ...
-
-        // Re-apply mining effects
         new BukkitRunnable() {
             @Override
             public void run() {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, Integer.MAX_VALUE, 1, false, false, false));
-                player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, Integer.MAX_VALUE, 1, false, false, false));
+                //TODO: These effects are now managed by PlayerMovementTracker,
+                // but we can re-apply here as a backup.
+                // A better solution would be to call a method in a central player state manager.
+                if (!player.hasPotionEffect(PotionEffectType.MINING_FATIGUE)) {
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, PotionEffect.INFINITE_DURATION, 4, false, false, false));
+                }
+                if (!player.hasPotionEffect(PotionEffectType.HASTE)) {
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, PotionEffect.INFINITE_DURATION, 2, false, false, false));
+                }
             }
-        }.runTaskLater(MMORPGCore.getInstance(), 1L); // Apply on the next tick to be safe
+        }.runTaskLater(plugin, 1L);
     }
 }

@@ -5,18 +5,13 @@ import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.BlockPosition;
 import com.comphenix.protocol.wrappers.EnumWrappers;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.listeners.BlockBreakListener;
 import org.nakii.mmorpg.managers.StatsManager;
 import org.nakii.mmorpg.managers.WorldManager;
-import org.nakii.mmorpg.managers.ZoneManager;
 import org.nakii.mmorpg.player.PlayerStats;
 import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.zone.BlockBreakingFlags;
@@ -32,17 +27,16 @@ public class CustomMiningPacketListener extends PacketAdapter {
 
     private final MMORPGCore plugin;
     private final Map<UUID, BukkitRunnable> activeMiningTasks = new HashMap<>();
-
     private final WorldManager worldManager;
     private final StatsManager statsManager;
     private final BlockBreakListener blockBreakListener;
 
-    public CustomMiningPacketListener(MMORPGCore plugin) {
+    public CustomMiningPacketListener(MMORPGCore plugin, BlockBreakListener blockBreakListener, WorldManager worldManager, StatsManager statsManager) {
         super(plugin, PacketType.Play.Client.BLOCK_DIG);
         this.plugin = plugin;
-        this.blockBreakListener = plugin.getBlockBreakListener();
-        this.worldManager = plugin.getWorldManager(); // <-- Use WorldManager
-        this.statsManager = plugin.getStatsManager(); // <-- Use StatsManager
+        this.blockBreakListener = blockBreakListener;
+        this.worldManager = worldManager;
+        this.statsManager = statsManager;
     }
 
     @Override
@@ -56,7 +50,6 @@ public class CustomMiningPacketListener extends PacketAdapter {
                 if (!player.isOnline()) return;
 
                 if (digType == EnumWrappers.PlayerDigType.START_DESTROY_BLOCK) {
-                    // --- FIX #2: CANCEL THE PACKET TO PREVENT FLICKERING ---
                     // By cancelling the "start" packet, we prevent the client from
                     // ever starting its own breaking animation. Only our packets will be shown.
                     event.setCancelled(true);

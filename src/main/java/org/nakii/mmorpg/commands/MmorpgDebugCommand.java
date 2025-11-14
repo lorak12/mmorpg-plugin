@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.managers.WorldManager;
+import org.nakii.mmorpg.tasks.ClimateTask;
 import org.nakii.mmorpg.world.CustomWorld;
 import org.nakii.mmorpg.zone.Zone;
 
@@ -18,11 +19,13 @@ import java.util.Arrays;
 public class MmorpgDebugCommand implements CommandExecutor {
 
     private final MMORPGCore plugin;
+    private final ClimateTask climateTask;
     private final WorldManager worldManager;
 
-    public MmorpgDebugCommand(MMORPGCore plugin) {
+    public MmorpgDebugCommand(MMORPGCore plugin, ClimateTask climateTask, WorldManager worldManager) {
         this.plugin = plugin;
-        this.worldManager = plugin.getWorldManager();
+        this.climateTask = climateTask;
+        this.worldManager = worldManager;
     }
 
     @Override
@@ -108,7 +111,7 @@ public class MmorpgDebugCommand implements CommandExecutor {
 
     private void toggleClimateDebug(Player player) {
         // This assumes your ClimateTask has a 'toggleDebug(player)' method that returns a boolean
-        boolean isDebugging = plugin.getClimateTask().toggleDebug(player);
+        boolean isDebugging = climateTask.toggleDebug(player);
         if (isDebugging) {
             player.sendMessage(Component.text("Climate debug enabled. You will receive climate updates in chat.", NamedTextColor.GREEN));
         } else {

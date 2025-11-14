@@ -3,19 +3,13 @@ package org.nakii.mmorpg.requirements;
 import org.bukkit.entity.Player;
 
 /**
- * An interface representing a single condition a player must meet to use an item.
+ * A marker interface representing a single condition a player must meet.
+ * The logic for checking the requirement is handled by the RequirementManager.
  */
-@FunctionalInterface
 public interface Requirement {
-    /**
-     * Checks if the player meets this requirement.
-     * @param player The player to check.
-     * @return True if the player meets the requirement, false otherwise.
-     */
-    boolean meets(Player player);
 
     /**
-     * A static factory method to parse a requirement string into a Requirement object.
+     * A static factory method to parse a requirement string into a Requirement data object.
      * @param requirementString The string from the YAML config (e.g., "SKILL:COMBAT:20").
      * @return A Requirement object, or null if the string is invalid.
      */
@@ -25,13 +19,17 @@ public interface Requirement {
 
         String type = parts[0].toUpperCase();
         String context = parts[1].toUpperCase();
-        int value = Integer.parseInt(parts[2]);
+        int value;
+        try {
+            value = Integer.parseInt(parts[2]);
+        } catch (NumberFormatException e) {
+            return null; // Invalid number format
+        }
 
         return switch (type) {
             case "SKILL" -> new SkillRequirement(context, value);
             case "SLAYER" -> new SlayerRequirement(context, value);
             case "COLLECTION" -> new CollectionRequirement(context, value);
-
             default -> null;
         };
     }

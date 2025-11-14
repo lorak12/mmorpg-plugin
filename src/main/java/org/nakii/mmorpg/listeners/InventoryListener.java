@@ -10,21 +10,23 @@ import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.managers.StatsManager;
 
 public class InventoryListener implements Listener {
 
     private final MMORPGCore plugin;
+    private final StatsManager statsManager;
 
-    public InventoryListener(MMORPGCore plugin) {
+    public InventoryListener(MMORPGCore plugin, StatsManager statsManager) {
         this.plugin = plugin;
+        this.statsManager = statsManager;
     }
 
     private void scheduleStatRecalculation(Player player) {
-        // We delay by one tick to ensure the event has fully processed
         new BukkitRunnable() {
             @Override
             public void run() {
-                plugin.getStatsManager().recalculateStats(player);
+                statsManager.recalculateStats(player);
             }
         }.runTaskLater(plugin, 1L);
     }

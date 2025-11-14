@@ -17,10 +17,11 @@ public class EconomyManager implements Listener { // <-- Implement Listener
     private final MMORPGCore plugin;
     private final Map<UUID, PlayerEconomy> economyData = new HashMap<>();
 
-    public EconomyManager(MMORPGCore plugin) {
+    private final DatabaseManager databaseManager;
+
+    public EconomyManager(MMORPGCore plugin, DatabaseManager databaseManager) {
         this.plugin = plugin;
-        // Register this manager itself as a listener
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        this.databaseManager = databaseManager;
     }
 
     /**
@@ -33,7 +34,7 @@ public class EconomyManager implements Listener { // <-- Implement Listener
         Player player = event.getPlayer();
         if (economyData.containsKey(player.getUniqueId())) {
             try {
-                plugin.getDatabaseManager().savePlayerEconomy(player.getUniqueId(), getEconomy(player));
+                databaseManager.savePlayerEconomy(player.getUniqueId(), getEconomy(player));
             } catch (SQLException e) {
                 plugin.getLogger().severe("CRITICAL: Failed to save economy data for " + player.getName() + " after balance change!");
                 e.printStackTrace();
@@ -43,7 +44,7 @@ public class EconomyManager implements Listener { // <-- Implement Listener
 
     public void loadPlayer(Player player) {
         try {
-            PlayerEconomy data = plugin.getDatabaseManager().loadPlayerEconomy(player.getUniqueId());
+            PlayerEconomy data = databaseManager.loadPlayerEconomy(player.getUniqueId());
             economyData.put(player.getUniqueId(), data);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -56,7 +57,7 @@ public class EconomyManager implements Listener { // <-- Implement Listener
         // should have already saved the most recent change.
         if (economyData.containsKey(player.getUniqueId())) {
             try {
-                plugin.getDatabaseManager().savePlayerEconomy(player.getUniqueId(), getEconomy(player));
+                databaseManager.savePlayerEconomy(player.getUniqueId(), getEconomy(player));
             } catch (SQLException e) {
                 e.printStackTrace();
             }

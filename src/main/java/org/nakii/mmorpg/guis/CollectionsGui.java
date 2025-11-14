@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.collection.PlayerCollectionData;
 import org.nakii.mmorpg.managers.CollectionManager;
+import org.nakii.mmorpg.util.FormattingUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,16 +21,19 @@ public class CollectionsGui extends AbstractGui {
     private CollectionMenu currentMenu = CollectionMenu.MAIN_MENU;
     private String selectedCategory = null;
     private String selectedCollectionId = null;
+    private final CollectionManager collectionManager;
 
-    public CollectionsGui(MMORPGCore plugin, Player player) {
+    public CollectionsGui(MMORPGCore plugin, Player player, CollectionManager collectionManager) {
         super(plugin, player);
+        this.collectionManager = collectionManager;
     }
 
-    public CollectionsGui(MMORPGCore plugin, Player player, CollectionMenu menu, String category, String collectionId) {
+    public CollectionsGui(MMORPGCore plugin, Player player,CollectionManager collectionManager, CollectionMenu menu, String category, String collectionId) {
         super(plugin, player);
         this.currentMenu = menu;
         this.selectedCategory = category;
         this.selectedCollectionId = collectionId;
+        this.collectionManager = collectionManager;
     }
 
     @Override
@@ -37,7 +41,7 @@ public class CollectionsGui extends AbstractGui {
         return switch (currentMenu) {
             case MAIN_MENU -> "Collections";
             case CATEGORY_VIEW -> selectedCategory.charAt(0) + selectedCategory.substring(1).toLowerCase() + " Collections";
-            case COLLECTION_VIEW -> plugin.getCollectionManager().getCollectionConfig(selectedCollectionId).getString("display-name", "Collection");
+            case COLLECTION_VIEW -> collectionManager.getCollectionConfig(selectedCollectionId).getString("display-name", "Collection");
         };
     }
 
@@ -63,8 +67,8 @@ public class CollectionsGui extends AbstractGui {
     }
 
     private void drawCategoryView() {
-        PlayerCollectionData data = plugin.getCollectionManager().getData(player);
-        List<Map.Entry<String, YamlConfiguration>> collections = plugin.getCollectionManager().getCollectionsByCategory(selectedCategory);
+        PlayerCollectionData data = collectionManager.getData(player);
+        List<Map.Entry<String, YamlConfiguration>> collections = collectionManager.getCollectionsByCategory(selectedCategory);
 
         int[] slots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34};
         for (int i = 0; i < collections.size() && i < slots.length; i++) {
@@ -87,7 +91,7 @@ public class CollectionsGui extends AbstractGui {
     }
 
     private void drawCollectionView() {
-        CollectionManager cm = plugin.getCollectionManager();
+        CollectionManager cm = collectionManager;
         PlayerCollectionData data = cm.getData(player);
         YamlConfiguration config = cm.getCollectionConfig(selectedCollectionId);
         if (config == null) return;
@@ -108,14 +112,14 @@ public class CollectionsGui extends AbstractGui {
             boolean unlocked = playerAmount >= required;
 
             Material mat = unlocked ? Material.GREEN_STAINED_GLASS_PANE : Material.RED_STAINED_GLASS_PANE;
-            String displayName = (unlocked ? "<green>" : "<red>") + "Tier " + toRoman(tier) + "</green>";
+            String displayName = (unlocked ? "<green>" : "<red>") + "Tier " + FormattingUtils.toRoman(tier) + "</green>";
 
             List<String> lore = new ArrayList<>();
             lore.add("<gray>Rewards:");
             tierConfig.getStringList("rewards").forEach(r -> lore.add("<gold>• <gray>" + r.replace("_", " ")));
             lore.add(" ");
             lore.add("<gray>Progress: <yellow>" + String.format("%,d", playerAmount) + " / " + String.format("%,d", required) + "</yellow>");
-            lore.add(generateProgressBar(playerAmount, required));
+            lore.add(FormattingUtils.generateProgressBar(playerAmount, required));
 
             inventory.setItem(slots[i], createItem(mat, displayName, lore));
         }
@@ -166,7 +170,7 @@ public class CollectionsGui extends AbstractGui {
     }
 
     private void handleCategoryViewClick(int slot) {
-        List<Map.Entry<String, YamlConfiguration>> collections = plugin.getCollectionManager().getCollectionsByCategory(selectedCategory);
+        List<Map.Entry<String, YamlConfiguration>> collections = collectionManager.getCollectionsByCategory(selectedCategory);
         int[] slots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34};
         for (int i = 0; i < collections.size() && i < slots.length; i++) {
             if (slot == slots[i]) {
@@ -184,22 +188,8 @@ public class CollectionsGui extends AbstractGui {
         new BukkitRunnable() {
             @Override
             public void run() {
-                new CollectionsGui(plugin, player, currentMenu, selectedCategory, selectedCollectionId).open();
+                new CollectionsGui(plugin, player, collectionManager, currentMenu, selectedCategory, selectedCollectionId).open();
             }
         }.runTaskLater(plugin, 1L);
-    }
-
-    private String generateProgressBar(int current, int max) {
-        if (max <= 0) return "<dark_gray>-----------------</dark_gray>";
-        float percent = Math.min(1.0f, (float) current / max);
-        int greenChars = (int) (17 * percent);
-        int grayChars = 17 - greenChars;
-        return "<green>" + "-".repeat(greenChars) + "</green><dark_gray>" + "-".repeat(grayChars) + "</dark_gray>";
-    }
-
-    private String toRoman(int num) {
-        if (num < 1 || num > 10) return String.valueOf(num);
-        String[] roman = {"", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"};
-        return roman[num];
     }
 }

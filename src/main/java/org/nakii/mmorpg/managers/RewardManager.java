@@ -20,10 +20,18 @@ import java.util.List;
 public class RewardManager {
 
     private final MMORPGCore plugin;
+    private final SkillManager skillManager;
+    private final ItemManager itemManager;
+    private final StatsManager statsManager;
+    private final EconomyManager economyManager;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
-    public RewardManager(MMORPGCore plugin) {
+    public RewardManager(MMORPGCore plugin, SkillManager skillManager, ItemManager itemManager, StatsManager statsManager, EconomyManager economyManager) {
         this.plugin = plugin;
+        this.skillManager = skillManager;
+        this.itemManager = itemManager;
+        this.statsManager = statsManager;
+        this.economyManager = economyManager;
     }
 
     /**
@@ -50,7 +58,7 @@ public class RewardManager {
                         try {
                             Skill skill = Skill.valueOf(parts[1].toUpperCase());
                             int amount = Integer.parseInt(parts[2]);
-                            plugin.getSkillManager().addXp(player, skill, amount);
+                            skillManager.addXp(player, skill, amount);
                             // Format the message for the chat
                             grantedRewards.add(miniMessage.deserialize("<gray>+ <aqua>" + String.format("%,d", amount) + " " + skill.name() + " XP</aqua>"));
                         } catch (IllegalArgumentException e) {
@@ -72,7 +80,7 @@ public class RewardManager {
                         try {
                             Stat stat = Stat.valueOf(context.toUpperCase());
                             double amount = Double.parseDouble(parts[2]);
-                            plugin.getStatsManager().addPermanentBonus(player, stat, amount);
+                            statsManager.addPermanentBonus(player, stat, amount);
                             // You would need a method in your Stat enum to get its symbol
                             grantedRewards.add(miniMessage.deserialize("<gray>+ <red>" + stat.getSymbol() + amount + " " + stat.getDisplayName() + "</red>"));
                         } catch (IllegalArgumentException e) {
@@ -84,9 +92,9 @@ public class RewardManager {
                 case "ITEM_GIVE":
                     if (parts.length >= 3) {
                         int amount = Integer.parseInt(parts[2]);
-                        ItemStack item = plugin.getItemManager().createItemStack(context);
+                        ItemStack item = itemManager.createItemStack(context);
                         if (item == null) {
-                            item = plugin.getItemManager().createDefaultItemStack(Material.matchMaterial(context));
+                            item = itemManager.createVanillaItemStack(Material.matchMaterial(context));
                         }
 
                         if (item != null) {
@@ -105,7 +113,7 @@ public class RewardManager {
                 case "COINS":
                     try {
                         int amount = Integer.parseInt(context);
-                        plugin.getEconomyManager().getEconomy(player).addPurse(amount);
+                        economyManager.getEconomy(player).addPurse(amount);
                         grantedRewards.add(miniMessage.deserialize("<gray>+ <gold>" + String.format("%,d", amount) + " Coins</gold>"));
                     } catch (NumberFormatException ignored) {}
                     break;

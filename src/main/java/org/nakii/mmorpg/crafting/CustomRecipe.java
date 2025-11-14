@@ -2,6 +2,7 @@ package org.nakii.mmorpg.crafting;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.nakii.mmorpg.managers.RequirementManager;
 import org.nakii.mmorpg.requirements.Requirement;
 
 import java.util.List;
@@ -14,17 +15,16 @@ public abstract class CustomRecipe {
 
     protected final String resultItemId;
     protected final int resultAmount;
-    protected final List<Requirement> requirements;
+    protected final List<String> requirements;
     protected final double carpentryXp;
+    protected final RequirementManager requirementManager;
 
-    public CustomRecipe(String resultItemId, int resultAmount, List<String> requirementStrings, double carpentryXp) {
+    public CustomRecipe(String resultItemId, int resultAmount, List<String> requirementStrings, double carpentryXp, RequirementManager requirementManager) {
         this.resultItemId = resultItemId;
         this.resultAmount = resultAmount;
         this.carpentryXp = carpentryXp;
-        this.requirements = requirementStrings.stream()
-                .map(Requirement::fromString)
-                .filter(java.util.Objects::nonNull)
-                .collect(Collectors.toList());
+        this.requirements = requirementStrings;
+        this.requirementManager = requirementManager;
     }
 
     /**
@@ -40,12 +40,7 @@ public abstract class CustomRecipe {
      * @return True if the player meets all requirements.
      */
     public boolean hasRequirements(Player player) {
-        for (Requirement req : requirements) {
-            if (!req.meets(player)) {
-                return false;
-            }
-        }
-        return true;
+        return requirementManager.meetsAll(player, requirements);
     }
 
     /**
@@ -57,7 +52,7 @@ public abstract class CustomRecipe {
     // Getters
     public String getResultItemId() { return resultItemId; }
     public int getResultAmount() { return resultAmount; }
-    public List<Requirement> getRequirements() { return requirements; }
+    public List<String> getRequirements() { return requirements; }
     public double getCarpentryXp() { return carpentryXp; }
 
 }

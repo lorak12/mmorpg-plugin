@@ -14,9 +14,11 @@ import org.nakii.mmorpg.guis.SkillsGui;
 public class GUIManager {
 
     private final MMORPGCore plugin;
+    private final SkillManager skillManager;
 
-    public GUIManager(MMORPGCore plugin) {
+    public GUIManager(MMORPGCore plugin, SkillManager skillManager) {
         this.plugin = plugin;
+        this.skillManager = skillManager;
     }
 
     /**
@@ -24,6 +26,6 @@ public class GUIManager {
      * @param player The player to open the GUI for.
      */
     public void openSkillsGUI(Player player) {
-        new SkillsGui(plugin, player).open();
+        new SkillsGui(plugin, player, skillManager).open();
     }
 }

@@ -13,6 +13,10 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.managers.ItemManager;
+import org.nakii.mmorpg.managers.MobManager;
+import org.nakii.mmorpg.managers.RecipeManager;
+import org.nakii.mmorpg.managers.WorldManager;
 import org.nakii.mmorpg.util.ChatUtils;
 
 import java.util.Arrays;
@@ -22,13 +26,21 @@ import java.util.List;
 public class MmorpgCommand implements CommandExecutor, TabCompleter {
 
     private final MMORPGCore plugin;
+    private final ItemManager itemManager;
+    private final MobManager mobManager;
+    private final RecipeManager recipeManager;
+    private final WorldManager worldManager;
 
     /**
      * The command now accepts the ZoneWandListener instance directly.
      * This is a clean and reliable way to get access to it.
      */
-    public MmorpgCommand(MMORPGCore plugin) {
+    public MmorpgCommand(MMORPGCore plugin, ItemManager itemManager, MobManager mobManager, RecipeManager recipeManager, WorldManager worldManager) {
         this.plugin = plugin;
+        this.itemManager = itemManager;
+        this.mobManager = mobManager;
+        this.recipeManager = recipeManager;
+        this.worldManager = worldManager;
     }
 
     @Override
@@ -62,11 +74,10 @@ public class MmorpgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(ChatUtils.format("<red>You do not have permission."));
             return;
         }
-        plugin.getItemManager().loadItems();
-        plugin.getMobManager().loadMobs();
-        plugin.getRecipeManager().loadRecipes();
-        plugin.getWorldManager().loadWorlds();
-        // reload other managers...
+        itemManager.loadItems();
+        mobManager.loadMobs();
+        recipeManager.loadRecipes();
+        worldManager.loadWorlds();
         sender.sendMessage(ChatUtils.format("<green>MMORPGCore configs reloaded successfully.</green>"));
     }
 

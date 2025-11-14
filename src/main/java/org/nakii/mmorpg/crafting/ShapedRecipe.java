@@ -3,6 +3,7 @@ package org.nakii.mmorpg.crafting;
 import org.bukkit.inventory.ItemStack;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.managers.ItemManager;
+import org.nakii.mmorpg.managers.RequirementManager;
 
 import java.util.HashMap;
 import java.util.List;
@@ -14,16 +15,18 @@ public class ShapedRecipe extends CustomRecipe {
     private final String[] shape;
     private final int recipeWidth;
     private final int recipeHeight;
+    private final ItemManager itemManager;
 
 
-    public ShapedRecipe(String resultItemId, int resultAmount, List<String> requirementStrings, double carpentryXp, List<String> shape, Map<String, String> ingredients) {
-        super(resultItemId, resultAmount, requirementStrings, carpentryXp);
+    public ShapedRecipe(String resultItemId, int resultAmount, List<String> requirementStrings, double carpentryXp, List<String> shape, Map<String, String> ingredients, ItemManager itemManager, RequirementManager requirementManager) {
+        super(resultItemId, resultAmount, requirementStrings, carpentryXp, requirementManager);
         this.shape = shape.toArray(new String[0]);
         this.recipeHeight = this.shape.length;
         this.recipeWidth = (this.recipeHeight > 0) ? this.shape[0].length() : 0;
 
         this.ingredientMap = new HashMap<>();
         ingredients.forEach((key, value) -> this.ingredientMap.put(key.charAt(0), Ingredient.fromString(value)));
+        this.itemManager = itemManager;
     }
 
     @Override
@@ -40,7 +43,6 @@ public class ShapedRecipe extends CustomRecipe {
     }
 
     private boolean checkMatch(ItemStack[] grid, int rowOffset, int colOffset) {
-        ItemManager itemManager = MMORPGCore.getInstance().getItemManager();
 
         for (int r = 0; r < 3; r++) {
             for (int c = 0; c < 3; c++) {

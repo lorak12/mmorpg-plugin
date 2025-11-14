@@ -8,8 +8,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.managers.SkillManager;
 import org.nakii.mmorpg.skills.PlayerSkillData;
 import org.nakii.mmorpg.skills.Skill;
+import org.nakii.mmorpg.util.FormattingUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +21,7 @@ public class SkillsGui extends AbstractGui {
     private enum View { OVERVIEW, DETAIL }
     private View currentView = View.OVERVIEW;
     private Skill selectedSkill = null;
+    private final SkillManager skillManager;
 
     // --- USING YOUR EXACT SNAKE PATH ---
     private static final int[] SNAKE_PATH = {
@@ -26,12 +29,14 @@ public class SkillsGui extends AbstractGui {
     };
     // Note: This path has 20 slots. Page 1 = Lvl 1-20, Page 2 = 21-40, Page 3 = 41-60.
 
-    public SkillsGui(MMORPGCore plugin, Player player) {
+    public SkillsGui(MMORPGCore plugin, Player player, SkillManager skillManager) {
         super(plugin, player);
+        this.skillManager = skillManager;
     }
 
-    public SkillsGui(MMORPGCore plugin, Player player, Skill selectedSkill) {
+    public SkillsGui(MMORPGCore plugin, Player player, SkillManager skillManager, Skill selectedSkill) {
         super(plugin, player);
+        this.skillManager = skillManager;
         this.selectedSkill = selectedSkill;
         this.currentView = View.DETAIL;
     }
@@ -39,7 +44,7 @@ public class SkillsGui extends AbstractGui {
     @Override
     public @NotNull String getTitle() {
         if (currentView == View.DETAIL && selectedSkill != null) {
-            String skillName = plugin.getSkillManager().getSkillsConfig().getString(selectedSkill.name() + ".display-name", "Skill");
+            String skillName = skillManager.getSkillsConfig().getString(selectedSkill.name() + ".display-name", "Skill");
             return skillName;
         }
         return "Your Skills";
@@ -80,8 +85,8 @@ public class SkillsGui extends AbstractGui {
     }
 
     private void drawDetailView() {
-        int playerLevel = plugin.getSkillManager().getLevel(player, selectedSkill);
-        ConfigurationSection skillConfig = plugin.getSkillManager().getSkillsConfig().getConfigurationSection(selectedSkill.name());
+        int playerLevel = skillManager.getLevel(player, selectedSkill);
+        ConfigurationSection skillConfig = skillManager.getSkillsConfig().getConfigurationSection(selectedSkill.name());
         int maxLevel = skillConfig.getInt("max-level", 60);
 
         this.maxItemsPerPage = SNAKE_PATH.length;
@@ -112,7 +117,7 @@ public class SkillsGui extends AbstractGui {
 
             List<String> lore = new ArrayList<>();
             lore.add("<white>Rewards:");
-            int coins = plugin.getSkillManager().getLevelsConfig().getInt("levels." + currentLevel + ".coins", 0);
+            int coins = skillManager.getLevelsConfig().getInt("levels." + currentLevel + ".coins", 0);
             if (coins > 0) lore.add("<gold>+ " + String.format("%,d", coins) + " Coins</gold>");
 
             ConfigurationSection rewardsPerLevel = skillConfig.getConfigurationSection("rewards-per-level");
@@ -130,8 +135,8 @@ public class SkillsGui extends AbstractGui {
     }
 
     private void drawOverview() {
-        PlayerSkillData data = plugin.getSkillManager().getPlayerData(player);
-        ConfigurationSection skillsConfig = plugin.getSkillManager().getSkillsConfig();
+        PlayerSkillData data = skillManager.getPlayerData(player);
+        ConfigurationSection skillsConfig = skillManager.getSkillsConfig();
 
         int[] slots = {10, 11, 12, 13, 14, 15, 16, 19};
         Skill[] skillOrder = {Skill.FARMING, Skill.MINING, Skill.COMBAT, Skill.FORAGING, Skill.FISHING, Skill.ENCHANTING, Skill.ALCHEMY, Skill.CARPENTRY};
@@ -152,12 +157,12 @@ public class SkillsGui extends AbstractGui {
             lore.add(" ");
 
             if (level < maxLevel) {
-                double xpForCurrentLevel = plugin.getSkillManager().getCumulativeXpForLevel(level);
-                double xpForNextLevel = plugin.getSkillManager().getCumulativeXpForLevel(level + 1);
+                double xpForCurrentLevel = skillManager.getCumulativeXpForLevel(level);
+                double xpForNextLevel = skillManager.getCumulativeXpForLevel(level + 1);
                 double progressInLevel = currentTotalXp - xpForCurrentLevel;
                 double neededForLevel = xpForNextLevel - xpForCurrentLevel;
                 lore.add("<white>Progress to Level " + (level + 1) + ": <yellow>" + String.format("%.1f%%", (progressInLevel / neededForLevel) * 100) + "</yellow>");
-                lore.add(generateProgressBar(progressInLevel, neededForLevel) + " <gray>" + String.format("%,.0f", progressInLevel) + "/" + String.format("%,.0f", neededForLevel));
+                lore.add(FormattingUtils.generateProgressBar(progressInLevel, neededForLevel) + " <gray>" + String.format("%,.0f", progressInLevel) + "/" + String.format("%,.0f", neededForLevel));
             } else {
                 lore.add("<gold>MAX LEVEL</gold>");
             }
@@ -213,17 +218,9 @@ public class SkillsGui extends AbstractGui {
         new BukkitRunnable() {
             @Override
             public void run() {
-                new SkillsGui(plugin, player, selectedSkill).open();
+                new SkillsGui(plugin, player, skillManager, selectedSkill).open();
             }
         }.runTaskLater(plugin, 1L);
-    }
-
-    private String generateProgressBar(double current, double max) {
-        if (max <= 0) return "<dark_gray>-----------------</dark_gray>";
-        double percent = Math.min(1.0f, (float) current / max);
-        int greenChars = (int) (17 * percent);
-        int grayChars = 17 - greenChars;
-        return "<green>" + "-".repeat(greenChars) + "</green><dark_gray>" + "-".repeat(grayChars) + "</dark_gray>";
     }
 
     private String formatRewardString(String rewardString) {

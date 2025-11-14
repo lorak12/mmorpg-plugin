@@ -18,10 +18,10 @@ public class TravelManager {
     private final WorldManager worldManager;
     private final RequirementManager requirementManager;
 
-    public TravelManager(MMORPGCore plugin) {
+    public TravelManager(MMORPGCore plugin, WorldManager worldManager, RequirementManager requirementManager) {
         this.plugin = plugin;
-        this.worldManager = plugin.getWorldManager();
-        this.requirementManager = plugin.getRequirementManager();
+        this.worldManager = worldManager;
+        this.requirementManager = requirementManager;
     }
 
     /**

@@ -8,11 +8,10 @@ import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.managers.DoTManager;
 
 public class FireAspectEffect implements EnchantmentEffect {
-
     private final DoTManager dotManager;
 
-    public FireAspectEffect() {
-        this.dotManager = MMORPGCore.getInstance().getDoTManager();
+    public FireAspectEffect(DoTManager dotManager) {
+        this.dotManager = dotManager;
     }
 
     @Override

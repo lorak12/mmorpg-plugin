@@ -3,6 +3,7 @@ package org.nakii.mmorpg.quest.quest.event.spawn;
 import net.kyori.adventure.text.Component;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.managers.MobManager;
+import org.nakii.mmorpg.quest.QuestAPIBridge;
 import org.nakii.mmorpg.quest.QuestModule;
 import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
 import org.nakii.mmorpg.quest.api.profile.Profile;
@@ -84,7 +85,7 @@ public class SpawnMobEvent implements NullableEvent {
         for (int i = 0; i < numberOfMob; i++) {
             Mob mob;
             if (mobType.isCustom()) {
-                MobManager mobManager = MMORPGCore.getInstance().getMobManager();
+                MobManager mobManager = QuestAPIBridge.getMobManager();
                 mob = (Mob) mobManager.spawnMob(mobType.getCustomId(), location, null);
                 if (mob == null) {
                     throw new QuestException("Failed to spawn custom mob with ID: " + mobType.getCustomId());

@@ -23,9 +23,9 @@ public class TravelCommand implements CommandExecutor, TabCompleter {
     private final TravelManager travelManager;
     private final WorldManager worldManager;
 
-    public TravelCommand(MMORPGCore plugin) {
-        this.travelManager = plugin.getTravelManager();
-        this.worldManager = plugin.getWorldManager();
+    public TravelCommand(TravelManager travelManager, WorldManager worldManager) {
+        this.travelManager = travelManager;
+        this.worldManager = worldManager;
     }
 
     @Override

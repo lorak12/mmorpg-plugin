@@ -2,7 +2,6 @@ package org.nakii.mmorpg.managers;
 
 import com.google.gson.Gson;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -14,9 +13,9 @@ import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.item.CustomItemTemplate;
 import org.nakii.mmorpg.item.Rarity;
 import org.nakii.mmorpg.util.ChatUtils;
+import org.nakii.mmorpg.util.Keys;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,23 +25,8 @@ public class ItemManager {
 
     private final MMORPGCore plugin;
     private final Map<String, CustomItemTemplate> itemRegistry = new HashMap<>();
-    private final Gson gson = new Gson();
-
-    // --- NBT (Persistent Data) Keys ---
-    public static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(MMORPGCore.getInstance(), "item_id");
-    public static final NamespacedKey RARITY_KEY = new NamespacedKey(MMORPGCore.getInstance(), "rarity");
-    public static final NamespacedKey BASE_STATS_KEY = new NamespacedKey(MMORPGCore.getInstance(), "base_stats");
-    public static final NamespacedKey REQUIREMENTS_KEY = new NamespacedKey(MMORPGCore.getInstance(), "requirements");
-    public static final NamespacedKey ARMOR_SET_ID_KEY = new NamespacedKey(MMORPGCore.getInstance(), "armor_set_id");
-    public static final NamespacedKey ARMOR_SET_STATS_KEY = new NamespacedKey(MMORPGCore.getInstance(), "armor_set_stats");
-    public static final NamespacedKey REFORGE_ID_KEY = new NamespacedKey(MMORPGCore.getInstance(), "reforge_id");
-    public static final NamespacedKey REFORGE_STATS_KEY = new NamespacedKey(MMORPGCore.getInstance(), "reforge_stats");
-    public static final NamespacedKey PRISTINE_KEY = new NamespacedKey(MMORPGCore.getInstance(), "pristine_item");
-    public static final NamespacedKey ABILITY_KEY = new NamespacedKey(MMORPGCore.getInstance(), "ability_key");
-    public static final NamespacedKey PASSIVE_EFFECT_KEY = new NamespacedKey(MMORPGCore.getInstance(), "passive_effect_key");
-
-
     private final Map<Material, Rarity> defaultRarities = new HashMap<>();
+    private final Gson gson = new Gson();
 
     public ItemManager(MMORPGCore plugin) {
         this.plugin = plugin;
@@ -64,7 +48,7 @@ public class ItemManager {
     private void loadItemsFromDirectory(File directory) {
         for (File file : directory.listFiles()) {
             if (file.isDirectory()) {
-                loadItemsFromDirectory(file); // Recursively load from subfolders
+                loadItemsFromDirectory(file);
             } else if (file.getName().endsWith(".yml")) {
                 var config = YamlConfiguration.loadConfiguration(file);
                 for (String key : config.getKeys(false)) {
@@ -85,70 +69,54 @@ public class ItemManager {
         return itemRegistry.get(itemId.toUpperCase());
     }
 
-    /**
-     * Creates a custom ItemStack from a template, writing all necessary data to its NBT.
-     * This method does NOT generate the visual lore.
-     */
     public ItemStack createItemStack(String itemId) {
         CustomItemTemplate template = getTemplate(itemId);
         if (template == null) {
-            // Handle requests for vanilla items
             try {
-                return createDefaultItemStack(Material.valueOf(itemId.toUpperCase()));
+                return createVanillaItemStack(Material.valueOf(itemId.toUpperCase()));
             } catch (IllegalArgumentException e) {
                 plugin.getLogger().warning("Could not create item: Unknown item ID or material '" + itemId + "'.");
                 return null;
             }
         }
 
-        // --- Create item from CustomItemTemplate ---
         ItemStack item = new ItemStack(template.getMaterial());
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
 
         PersistentDataContainer data = meta.getPersistentDataContainer();
-
-        // Core Identifiers
-        data.set(ITEM_ID_KEY, PersistentDataType.STRING, template.getId());
-        data.set(RARITY_KEY, PersistentDataType.STRING, template.getRarity().name());
+        data.set(Keys.ITEM_ID, PersistentDataType.STRING, template.getId());
+        data.set(Keys.RARITY, PersistentDataType.STRING, template.getRarity().name());
         meta.setUnbreakable(template.isUnbreakable());
 
-        // --- Apply Custom Model Data ---
         if (template.getCustomModelData() > 0) {
             meta.setCustomModelData(template.getCustomModelData());
         }
 
-
-        // Leather Armor Color
         if (meta instanceof LeatherArmorMeta leatherMeta && template.getLeatherColor() != null) {
             leatherMeta.setColor(template.getLeatherColor());
         }
 
-        // Stats (serialize the map to a JSON string for easy storage)
         if (!template.getStats().isEmpty()) {
             Map<String, Double> stringStats = template.getStats().entrySet().stream()
                     .collect(Collectors.toMap(e -> e.getKey().name(), Map.Entry::getValue));
-            data.set(BASE_STATS_KEY, PersistentDataType.STRING, gson.toJson(stringStats));
+            data.set(Keys.BASE_STATS, PersistentDataType.STRING, gson.toJson(stringStats));
         }
 
-        // Requirements
         List<String> requirements = template.getRequirements();
         if (!requirements.isEmpty()) {
-            data.set(REQUIREMENTS_KEY, PersistentDataType.STRING, gson.toJson(requirements));
+            data.set(Keys.REQUIREMENTS, PersistentDataType.STRING, gson.toJson(requirements));
         }
 
-        // Armor Set Info
         template.getArmorSetInfo().ifPresent(armorSetInfo -> {
-            data.set(ARMOR_SET_ID_KEY, PersistentDataType.STRING, armorSetInfo.id());
-
+            data.set(Keys.ARMOR_SET_ID, PersistentDataType.STRING, armorSetInfo.id());
             Map<String, Double> bonusStats = armorSetInfo.fullSetStats().entrySet().stream()
                     .collect(Collectors.toMap(e -> e.getKey().name(), Map.Entry::getValue));
-            data.set(ARMOR_SET_STATS_KEY, PersistentDataType.STRING, gson.toJson(bonusStats));
+            data.set(Keys.ARMOR_SET_STATS, PersistentDataType.STRING, gson.toJson(bonusStats));
         });
 
-        // --- NEW: Save Ability Key to NBT for quick lookup ---
         template.getAbilityInfo().ifPresent(abilityInfo -> {
-            data.set(ABILITY_KEY, PersistentDataType.STRING, abilityInfo.key());
+            data.set(Keys.ABILITY_KEY, PersistentDataType.STRING, abilityInfo.key());
         });
 
         item.setItemMeta(meta);
@@ -157,10 +125,10 @@ public class ItemManager {
 
     public String getItemId(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return null;
-        return item.getItemMeta().getPersistentDataContainer().get(ITEM_ID_KEY, PersistentDataType.STRING);
+        return item.getItemMeta().getPersistentDataContainer().get(Keys.ITEM_ID, PersistentDataType.STRING);
     }
 
-    public Map<String, CustomItemTemplate> getCustomItems(){
+    public Map<String, CustomItemTemplate> getCustomItems() {
         return itemRegistry;
     }
 
@@ -182,49 +150,25 @@ public class ItemManager {
         plugin.getLogger().info("Loaded " + defaultRarities.size() + " default item rarities.");
     }
 
-    /**
-     * Creates a formatted ItemStack for a vanilla material, applying default rarity and lore.
-     * @param material The vanilla material to create an item for.
-     * @return A formatted ItemStack, or null if the material is invalid.
-     */
-    public ItemStack createDefaultItemStack(Material material) {
+    public ItemStack createVanillaItemStack(Material material) {
         if (material == null || material.isAir()) {
             return null;
         }
-
-        // Get the rarity from our new map, defaulting to COMMON if not specified.
         Rarity rarity = defaultRarities.getOrDefault(material, Rarity.COMMON);
-
-        // Format the name nicely (e.g., ROTTEN_FLESH -> Rotten Flesh)
-        String name = formatMaterialName(material);
-
-        // This uses your existing ItemBuilder or manual meta creation.
         ItemStack item = new ItemStack(material);
         item.editMeta(meta -> {
-            // Apply the rarity color to the name
-            meta.displayName(ChatUtils.format(rarity.getColorTag() + name));
-
-            // Apply the standard collection lore
-            List<String> lore = new ArrayList<>();
-            lore.add("<dark_gray>Collection item</dark_gray>");
-            lore.add(" ");
-            lore.add(rarity.getDisplayTag()); // e.g., "<white><b>COMMON</b></white>"
-
-            meta.lore(ChatUtils.formatList(lore));
+            meta.getPersistentDataContainer().set(Keys.RARITY, PersistentDataType.STRING, rarity.name());
+            meta.customName(ChatUtils.format(formatMaterialName(material)));
         });
-
         return item;
     }
 
-    private String formatMaterialName(Material material) {
+    public String formatMaterialName(Material material) {
         String name = material.name().replace('_', ' ');
-        // Basic title case formatting
         String[] words = name.toLowerCase().split(" ");
         for (int i = 0; i < words.length; i++) {
             words[i] = words[i].substring(0, 1).toUpperCase() + words[i].substring(1);
         }
         return String.join(" ", words);
     }
-
-
 }

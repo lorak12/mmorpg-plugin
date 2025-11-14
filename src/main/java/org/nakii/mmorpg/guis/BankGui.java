@@ -25,6 +25,7 @@ import org.nakii.mmorpg.economy.PlayerEconomy;
 import org.nakii.mmorpg.economy.Transaction;
 import org.nakii.mmorpg.events.PluginTimeUpdateEvent;
 import org.nakii.mmorpg.managers.BankManager;
+import org.nakii.mmorpg.managers.EconomyManager;
 import org.nakii.mmorpg.managers.WorldTimeManager;
 import org.nakii.mmorpg.util.ChatUtils;
 
@@ -43,38 +44,15 @@ public class BankGui extends AbstractGui {
     private ViewState currentState = ViewState.MAIN;
     private final DecimalFormat formatter = new DecimalFormat("#,###");
 
-    // --- Temporary sign state for "Specific Amount" input ---
-    private static final Block pendingSignBlock = null;
-    private static final BlockData previousBlockData = null;
-    private static final ViewState pendingSignType = null;
-    private static final UUID pendingSignPlayer = null;
+    private final WorldTimeManager timeManager;
+    private final EconomyManager economyManager;
+    private final BankManager bankManager;
 
-    // --- THIS IS THE NEW DYNAMIC TIME LOGIC ---
-    WorldTimeManager timeManager = plugin.getWorldTimeManager();
-
-    // Calculate total days until the next season ends.
-    int currentDayOfYear = (timeManager.getCurrentMonthOfYear() - 1) * WorldTimeManager.PLUGIN_DAYS_PER_MONTH + timeManager.getCurrentDayOfMonth();
-    int currentSeasonIndex = (timeManager.getCurrentMonthOfYear() - 1) / WorldTimeManager.PLUGIN_MONTHS_PER_SEASON;
-    int lastDayOfCurrentSeason = (currentSeasonIndex + 1) * WorldTimeManager.PLUGIN_MONTHS_PER_SEASON * WorldTimeManager.PLUGIN_DAYS_PER_MONTH;
-
-    int daysLeft = lastDayOfCurrentSeason - currentDayOfYear;
-
-    // Convert remaining days and current time into a total "plugin seconds left" value
-    long secondsLeftInDay = WorldTimeManager.PLUGIN_SECONDS_PER_DAY -
-            (((long) timeManager.getCurrentHour() * WorldTimeManager.PLUGIN_MINUTES_PER_HOUR) + timeManager.getCurrentMinute());
-
-    long totalSecondsLeft = ((long) daysLeft * WorldTimeManager.PLUGIN_SECONDS_PER_DAY) + secondsLeftInDay;
-
-    // Convert total plugin seconds into real-life hours and minutes for display
-    long realMinutesLeft = (totalSecondsLeft / 60); // 1 plugin minute = 1 real second -> 60 plugin minutes = 1 real minute
-    long realHoursLeft = realMinutesLeft / 60;
-    long realMinutesLeftFormatted = realMinutesLeft % 60;
-
-    String interestTime = String.format("%dh %dm", realHoursLeft, realMinutesLeftFormatted);
-
-
-    public BankGui(MMORPGCore plugin, Player player) {
+    public BankGui(MMORPGCore plugin, Player player, WorldTimeManager timeManager, EconomyManager economyManager, BankManager bankManager) {
         super(plugin, player);
+        this.timeManager = timeManager;
+        this.economyManager = economyManager;
+        this.bankManager = bankManager;
     }
 
     @Override
@@ -88,12 +66,11 @@ public class BankGui extends AbstractGui {
 
     @Override
     public int getSize() {
-        return 36; // 4 rows
+        return 36;
     }
 
     @Override
     public void populateItems() {
-        // Redraw the GUI based on the current state
         switch (currentState) {
             case DEPOSIT -> drawDepositMenu();
             case WITHDRAW -> drawWithdrawMenu();
@@ -102,13 +79,24 @@ public class BankGui extends AbstractGui {
     }
 
     private void drawMainMenu() {
+        // --- FIX: All time-related calculations are now moved inside this method ---
+        int currentDayOfYear = (timeManager.getCurrentMonthOfYear() - 1) * WorldTimeManager.PLUGIN_DAYS_PER_MONTH + timeManager.getCurrentDayOfMonth();
+        int currentSeasonIndex = (timeManager.getCurrentMonthOfYear() - 1) / WorldTimeManager.PLUGIN_MONTHS_PER_SEASON;
+        int lastDayOfCurrentSeason = (currentSeasonIndex + 1) * WorldTimeManager.PLUGIN_MONTHS_PER_SEASON * WorldTimeManager.PLUGIN_DAYS_PER_MONTH;
+        int daysLeft = lastDayOfCurrentSeason - currentDayOfYear;
+        long secondsLeftInDay = WorldTimeManager.PLUGIN_SECONDS_PER_DAY - (((long) timeManager.getCurrentHour() * WorldTimeManager.PLUGIN_MINUTES_PER_HOUR) + timeManager.getCurrentMinute());
+        long totalSecondsLeft = ((long) daysLeft * WorldTimeManager.PLUGIN_SECONDS_PER_DAY) + secondsLeftInDay;
+        long realMinutesLeft = (totalSecondsLeft / 60);
+        long realHoursLeft = realMinutesLeft / 60;
+        long realMinutesLeftFormatted = realMinutesLeft % 60;
+        String interestTime = String.format("%dh %dm", realHoursLeft, realMinutesLeftFormatted);
+
         // --- Frame ---
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < getSize(); i++) { inventory.setItem(i, filler); }
 
         // --- Buttons ---
-        PlayerEconomy economy = plugin.getEconomyManager().getEconomy(player);
-        BankManager bankManager = plugin.getBankManager();
+        PlayerEconomy economy = economyManager.getEconomy(player);
         ConfigurationSection tierConfig = bankManager.getBankConfig().getConfigurationSection("tiers." + economy.getAccountTier());
 
         String balanceFormatted = formatter.format(Math.floor(economy.getBank()));
@@ -117,19 +105,16 @@ public class BankGui extends AbstractGui {
             balanceLimitFormatted = formatter.format(tierConfig.getDouble("max-balance"));
         }
 
-        // C - Deposit Button with updated time
         inventory.setItem(11, createItem(Material.CHEST, "<green>Deposit Coins</green>",
                 List.of("<gray>Current balance: <gold>" + balanceFormatted + "</gold>",
-                        "<gray>Interest in: <yellow>" + interestTime + "</yellow>", // <-- DYNAMIC VALUE
+                        "<gray>Interest in: <yellow>" + interestTime + "</yellow>",
                         " ",
                         "<yellow>Click to make a deposit!</yellow>")));
 
-        // D - Withdraw
         inventory.setItem(13, createItem(Material.DROPPER, "<green>Withdraw Coins</green>",
                 List.of("<gray>Current balance: <gold>" + balanceFormatted + "</gold>", " ",
                         "<yellow>Click to withdraw coins!</yellow>")));
 
-        // M - Transaction History
         List<String> historyLore = new ArrayList<>();
         historyLore.add("<gray>Your last 10 transactions.");
         historyLore.add(" ");
@@ -141,7 +126,6 @@ public class BankGui extends AbstractGui {
         }
         inventory.setItem(15, createItem(Material.MAP, "<green>Recent Transactions</green>", historyLore));
 
-        // R - Information Button with updated time
         inventory.setItem(32, createItem(Material.REDSTONE_TORCH, "<red><b>Information</b></red>",
                 List.of(
                         "<gray>Balance Limit: <gold>" + balanceLimitFormatted + "</gold>",
@@ -149,20 +133,18 @@ public class BankGui extends AbstractGui {
                         "<gray>The banker rewards you with interest",
                         "<gray>for coins in your bank balance.",
                         " ",
-                        "<gray>Interest in: <yellow>" + interestTime + "</yellow>" // <-- DYNAMIC VALUE
+                        "<gray>Interest in: <yellow>" + interestTime + "</yellow>"
                 )
         ));
 
-        // U - Upgrade Menu (conditional)
         if (economy.hasUnlockedUpgrades()) {
             inventory.setItem(35, createItem(Material.GOLD_BLOCK, "<gold><b>Bank Upgrades</b></gold>",
-                    List.of("<gray>Current account: <green>" + (tierConfig != null ? tierConfig.getString("name") : "Unknown") + "</green>", // <-- FIX for Bug #4
-                            "<gray>Bank limit: <gold>" + balanceLimitFormatted + "</gold>", // <-- FIX for Bug #4
+                    List.of("<gray>Current account: <green>" + (tierConfig != null ? tierConfig.getString("name") : "Unknown") + "</green>",
+                            "<gray>Bank limit: <gold>" + balanceLimitFormatted + "</gold>",
                             " ",
                             "<yellow>Click to view upgrades!</yellow>")));
         }
 
-        // X - Close
         inventory.setItem(31, createItem(Material.BARRIER, "<red><b>Close</b></red>"));
     }
 
@@ -170,23 +152,19 @@ public class BankGui extends AbstractGui {
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < getSize(); i++) { inventory.setItem(i, filler); }
 
-        PlayerEconomy economy = plugin.getEconomyManager().getEconomy(player);
+        PlayerEconomy economy = economyManager.getEconomy(player);
 
-        // C - Deposit All
         inventory.setItem(11, createItem(Material.CHEST, "<green>Deposit entire purse</green>",
                 List.of("<gray>Amount to deposit: <gold>" + formatter.format(economy.getPurse()) + "</gold>",
                         "<yellow>Click to deposit!</yellow>")));
 
-        // D - Deposit Half
         inventory.setItem(13, createItem(Material.CHEST, "<green>Deposit half your purse</green>",
                 List.of("<gray>Amount to deposit: <gold>" + formatter.format(economy.getPurse() / 2) + "</gold>",
                         "<yellow>Click to deposit!</yellow>")));
 
-        // W - Specific Amount
         inventory.setItem(15, createItem(Material.OAK_SIGN, "<green>Specific Amount</green>",
                 List.of("<gray>Click to specify an amount", "<gray>to deposit.</gray>")));
 
-        // B - Back Button
         inventory.setItem(31, createItem(Material.ARROW, "<green>Go Back</green>"));
     }
 
@@ -194,23 +172,19 @@ public class BankGui extends AbstractGui {
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < getSize(); i++) { inventory.setItem(i, filler); }
 
-        PlayerEconomy economy = plugin.getEconomyManager().getEconomy(player);
+        PlayerEconomy economy = economyManager.getEconomy(player);
 
-        // C - Withdraw All
         inventory.setItem(11, createItem(Material.DROPPER, "<green>Withdraw entire bank balance</green>",
                 List.of("<gray>Amount to withdraw: <gold>" + formatter.format(economy.getBank()) + "</gold>",
                         "<yellow>Click to withdraw!</yellow>")));
 
-        // D - Withdraw Half
         inventory.setItem(13, createItem(Material.DROPPER, "<green>Withdraw half your bank balance</green>",
                 List.of("<gray>Amount to withdraw: <gold>" + formatter.format(economy.getBank() / 2) + "</gold>",
                         "<yellow>Click to withdraw!</yellow>")));
 
-        // W - Specific Amount
         inventory.setItem(15, createItem(Material.OAK_SIGN, "<green>Specific Amount</green>",
                 List.of("<gray>Click to specify an amount", "<gray>to withdraw.</gray>")));
 
-        // B - Back Button
         inventory.setItem(31, createItem(Material.ARROW, "<green>Go Back</green>"));
     }
 
@@ -226,17 +200,17 @@ public class BankGui extends AbstractGui {
 
     private void handleMainClick(InventoryClickEvent event) {
         switch (event.getSlot()) {
-            case 11 -> { // Deposit
+            case 11 -> {
                 currentState = ViewState.DEPOSIT;
                 open();
             }
-            case 13 -> { // Withdraw
+            case 13 -> {
                 currentState = ViewState.WITHDRAW;
                 open();
             }
-            case 35 -> { // New Upgrade Slot
-                if (plugin.getEconomyManager().getEconomy(player).hasUnlockedUpgrades()) {
-                    new BankUpgradeGui(plugin, player).open();
+            case 35 -> {
+                if (economyManager.getEconomy(player).hasUnlockedUpgrades()) {
+                    new BankUpgradeGui(plugin, player, bankManager, economyManager, timeManager).open();
                 }
             }
             case 31 -> player.closeInventory();
@@ -244,18 +218,18 @@ public class BankGui extends AbstractGui {
     }
 
     private void handleDepositClick(InventoryClickEvent event) {
-        PlayerEconomy economy = plugin.getEconomyManager().getEconomy(player);
+        PlayerEconomy economy = economyManager.getEconomy(player);
         double amountToDeposit = 0;
 
         switch (event.getSlot()) {
-            case 11 -> amountToDeposit = economy.getPurse(); // Deposit All
-            case 13 -> amountToDeposit = economy.getPurse() / 2; // Deposit Half
-            case 15 -> { // Specific Amount
-                player.closeInventory(); // Close the GUI before showing the dialog
+            case 11 -> amountToDeposit = economy.getPurse();
+            case 13 -> amountToDeposit = economy.getPurse() / 2;
+            case 15 -> {
+                player.closeInventory();
                 openAmountDialog(true);
                 return;
             }
-            case 31 -> { // Back
+            case 31 -> {
                 currentState = ViewState.MAIN;
                 open();
                 return;
@@ -271,23 +245,22 @@ public class BankGui extends AbstractGui {
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
             }
         }
-        // After any transaction, refresh the deposit menu to show the new purse balance
         populateItems();
     }
 
     private void handleWithdrawClick(InventoryClickEvent event) {
-        PlayerEconomy economy = plugin.getEconomyManager().getEconomy(player);
+        PlayerEconomy economy = economyManager.getEconomy(player);
         double amountToWithdraw = 0;
 
         switch (event.getSlot()) {
-            case 11 -> amountToWithdraw = economy.getBank(); // Withdraw All
-            case 13 -> amountToWithdraw = economy.getBank() / 2; // Withdraw Half
-            case 15 -> { // Specific Amount
+            case 11 -> amountToWithdraw = economy.getBank();
+            case 13 -> amountToWithdraw = economy.getBank() / 2;
+            case 15 -> {
                 player.closeInventory();
                 openAmountDialog(false);
                 return;
             }
-            case 31 -> { // Back
+            case 31 -> {
                 currentState = ViewState.MAIN;
                 open();
                 return;
@@ -303,11 +276,9 @@ public class BankGui extends AbstractGui {
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
             }
         }
-        // After any transaction, refresh the withdraw menu to show the new bank balance
         populateItems();
     }
 
-    // Helper to format time for transaction history
     private String formatDuration(long millis) {
         long seconds = TimeUnit.MILLISECONDS.toSeconds(millis);
         if (seconds < 60) return seconds + "s";
@@ -395,7 +366,7 @@ public class BankGui extends AbstractGui {
     // -- existing helpers (unchanged) --
 
     private void handleDeposit(Player player, long amount) {
-        PlayerEconomy economy = plugin.getEconomyManager().getEconomy(player);
+        PlayerEconomy economy = economyManager.getEconomy(player);
         if (economy.deposit(amount)) {
             player.sendMessage(ChatUtils.format("<green>You have deposited <gold>" + formatter.format(amount) + " coins</gold>!</green>"));
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 2.0f);
@@ -406,7 +377,7 @@ public class BankGui extends AbstractGui {
     }
 
     private void handleWithdraw(Player player, long amount) {
-        PlayerEconomy economy = plugin.getEconomyManager().getEconomy(player);
+        PlayerEconomy economy = economyManager.getEconomy(player);
         if (economy.withdraw(amount)) {
             player.sendMessage(ChatUtils.format("<green>You have withdrawn <gold>" + formatter.format(amount) + " coins</gold>!</green>"));
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 2.0f);
@@ -443,8 +414,7 @@ public class BankGui extends AbstractGui {
         plugin.getLogger().info("Applying end-of-season bank interest for all players...");
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            PlayerEconomy economy = plugin.getEconomyManager().getEconomy(player);
-            BankManager bankManager = plugin.getBankManager();
+            PlayerEconomy economy = economyManager.getEconomy(player);
             double interest = bankManager.calculateInterest(economy.getBank(), economy.getAccountTier());
 
             if (interest > 0) {

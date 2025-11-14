@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.managers.MobManager;
 import org.nakii.mmorpg.util.ChatUtils;
 
 import java.util.ArrayList;
@@ -17,9 +18,11 @@ import java.util.List;
 public class SpawnMobCommand implements CommandExecutor, TabCompleter {
 
     private final MMORPGCore plugin;
+    private final MobManager mobManager;
 
-    public SpawnMobCommand(MMORPGCore plugin) {
+    public SpawnMobCommand(MMORPGCore plugin, MobManager mobManager) {
         this.plugin = plugin;
+        this.mobManager = mobManager;
     }
 
     @Override
@@ -41,7 +44,7 @@ public class SpawnMobCommand implements CommandExecutor, TabCompleter {
 
         String mobId = args[0];
 
-        if (plugin.getMobManager().spawnMob(mobId, player.getLocation(), null) == null) {
+        if (mobManager.spawnMob(mobId, player.getLocation(), null) == null) {
             player.sendMessage(ChatUtils.format("<red>Mob with ID '" + mobId + "' does not exist.</red>"));
         } else {
             player.sendMessage(ChatUtils.format("<green>Spawned " + mobId + " at your location.</green>"));
@@ -52,7 +55,7 @@ public class SpawnMobCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            List<String> mobIds = new ArrayList<>(plugin.getMobManager().getMobRegistry().keySet());
+            List<String> mobIds = new ArrayList<>(mobManager.getMobRegistry().keySet());
             return StringUtil.copyPartialMatches(args[0], mobIds, new ArrayList<>());
         }
         return Collections.emptyList();

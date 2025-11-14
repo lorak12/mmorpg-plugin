@@ -12,16 +12,18 @@ public class AbilityManager {
 
     private final MMORPGCore plugin;
     private final Map<String, Ability> abilityRegistry = new HashMap<>();
+    private final DamageManager damageManager;
 
-    public AbilityManager(MMORPGCore plugin) {
+    public AbilityManager(MMORPGCore plugin, DamageManager damageManager) {
         this.plugin = plugin;
+        this.damageManager = damageManager;
         registerAbilities();
     }
 
     private void registerAbilities() {
         // In a real system, you might scan a package for classes implementing Ability.
         // For now, we'll register them manually.
-        register(new DaggerThrowAbility(plugin));
+        register(new DaggerThrowAbility(plugin, damageManager));
         plugin.getLogger().info("Registered " + abilityRegistry.size() + " abilities.");
     }
 

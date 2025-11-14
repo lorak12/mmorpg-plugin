@@ -12,15 +12,18 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
+import org.nakii.mmorpg.managers.EnchantmentManager;
 
 import java.util.Map;
 
 public class ProjectileListener implements Listener {
 
     private final MMORPGCore plugin;
+    private final EnchantmentManager enchantmentManager;
 
-    public ProjectileListener(MMORPGCore plugin) {
+    public ProjectileListener(MMORPGCore plugin, EnchantmentManager enchantmentManager) {
         this.plugin = plugin;
+        this.enchantmentManager = enchantmentManager;
     }
 
     @EventHandler
@@ -31,10 +34,9 @@ public class ProjectileListener implements Listener {
         ItemStack bow = event.getBow();
         if (bow == null) return;
 
-        Map<String, Integer> enchantments = plugin.getEnchantmentManager().getEnchantments(bow);
+        Map<String, Integer> enchantments = enchantmentManager.getEnchantments(bow);
         if (enchantments.isEmpty()) return;
 
-        // "Tag" the arrow with the bow's enchantments and the shooter's UUID.
         arrow.setMetadata("CustomEnchants", new FixedMetadataValue(plugin, enchantments));
         arrow.setMetadata("ShooterUUID", new FixedMetadataValue(plugin, player.getUniqueId()));
     }
@@ -54,7 +56,7 @@ public class ProjectileListener implements Listener {
         Integer snipeLevel = enchantments.get("snipe");
         if (snipeLevel == null || snipeLevel <= 0) return;
 
-        CustomEnchantment snipeEnchant = plugin.getEnchantmentManager().getEnchantment("snipe");
+        CustomEnchantment snipeEnchant = enchantmentManager.getEnchantment("snipe");
         if (snipeEnchant == null) return;
 
         // Calculate the distance the arrow traveled.

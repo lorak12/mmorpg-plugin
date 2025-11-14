@@ -8,17 +8,19 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.guis.AnvilGui;
+import org.nakii.mmorpg.managers.EnchantmentManager;
 
 import java.util.Set;
 
 public class AnvilListener implements Listener {
 
     private final MMORPGCore plugin;
-    // Anvils have 3 states, so we check for all of them
     private static final Set<Material> ANVIL_TYPES = Set.of(Material.ANVIL, Material.CHIPPED_ANVIL, Material.DAMAGED_ANVIL);
+    private final EnchantmentManager enchantmentManager;
 
-    public AnvilListener(MMORPGCore plugin) {
+    public AnvilListener(MMORPGCore plugin, EnchantmentManager enchantmentManager) {
         this.plugin = plugin;
+        this.enchantmentManager = enchantmentManager;
     }
 
     @EventHandler
@@ -29,6 +31,6 @@ public class AnvilListener implements Listener {
         if (clickedBlock == null || !ANVIL_TYPES.contains(clickedBlock.getType())) return;
 
         event.setCancelled(true);
-        new AnvilGui(plugin, event.getPlayer()).open();
+        new AnvilGui(plugin, event.getPlayer(), enchantmentManager).open();
     }
 }

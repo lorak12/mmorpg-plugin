@@ -8,6 +8,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.managers.SlayerManager;
 
 import java.util.Random;
 
@@ -30,9 +31,12 @@ public class BossSpawnAnimation extends BukkitRunnable {
     private static final int PILLAR_HEIGHT = 5;
     private static final int ORBIT_PARTICLES = 30;
 
-    public BossSpawnAnimation(MMORPGCore plugin, Player player, Location spawnLocation, String bossId, ConfigurationSection bossConfig) {
+    private final SlayerManager slayerManager;
+
+    public BossSpawnAnimation(MMORPGCore plugin, Player player, SlayerManager slayerManager, Location spawnLocation, String bossId, ConfigurationSection bossConfig) {
         this.plugin = plugin;
         this.player = player;
+        this.slayerManager = slayerManager;
         this.spawnLocation = spawnLocation.clone().add(0.5, 0.1, 0.5); // Center the location
         this.bossId = bossId;
         this.bossConfig = bossConfig;
@@ -47,9 +51,9 @@ public class BossSpawnAnimation extends BukkitRunnable {
             world.spawnParticle(Particle.EXPLOSION, spawnLocation, 1);
 
             // Spawn the boss and update the quest object
-            ActiveSlayerQuest quest = plugin.getSlayerManager().getActiveSlayerQuest(player);
+            ActiveSlayerQuest quest = slayerManager.getActiveSlayerQuest(player);
             if (quest != null) {
-                plugin.getSlayerManager().finalizeBossSpawn(player, quest, bossId, bossConfig, spawnLocation);
+                slayerManager.finalizeBossSpawn(player, quest, bossId, bossConfig, spawnLocation);
             }
 
             this.cancel();

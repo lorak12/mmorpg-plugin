@@ -13,18 +13,20 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.managers.ItemManager;
+import org.nakii.mmorpg.managers.RequirementManager;
 import org.nakii.mmorpg.util.ChatUtils;
+import org.nakii.mmorpg.util.Keys;
 
 import java.lang.reflect.Type;
 import java.util.List;
 
 public class RequirementListener implements Listener {
 
-    private final MMORPGCore plugin;
+    private final RequirementManager requirementManager;
     private final Gson gson = new Gson();
 
-    public RequirementListener(MMORPGCore plugin) {
-        this.plugin = plugin;
+    public RequirementListener(RequirementManager requirementManager) {
+        this.requirementManager = requirementManager;
     }
 
     // Check for weapon requirements when attacking
@@ -64,15 +66,13 @@ public class RequirementListener implements Listener {
         if (item == null || !item.hasItemMeta()) return true;
 
         var data = item.getItemMeta().getPersistentDataContainer();
-        if (!data.has(ItemManager.REQUIREMENTS_KEY, PersistentDataType.STRING)) return true;
+        if (!data.has(Keys.REQUIREMENTS, PersistentDataType.STRING)) return true;
 
-        String reqJson = data.get(ItemManager.REQUIREMENTS_KEY, PersistentDataType.STRING);
+        String reqJson = data.get(Keys.REQUIREMENTS, PersistentDataType.STRING);
         Type type = new TypeToken<List<String>>(){}.getType();
         List<String> reqStrings = gson.fromJson(reqJson, type);
 
-        // --- THE CHANGE ---
-        // Instead of checking the requirements here, we delegate to the manager.
-        if (!plugin.getRequirementManager().meetsAll(player, reqStrings)) {
+        if (!requirementManager.meetsAll(player, reqStrings)) {
             player.sendMessage(ChatUtils.format("<red>You do not meet the requirements to use this item!</red>"));
             return false;
         }

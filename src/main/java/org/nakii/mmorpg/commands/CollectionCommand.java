@@ -7,13 +7,16 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.guis.CollectionsGui;
+import org.nakii.mmorpg.managers.CollectionManager;
 
 public class CollectionCommand implements CommandExecutor {
 
     private final MMORPGCore plugin;
+    private final CollectionManager collectionManager;
 
-    public CollectionCommand(MMORPGCore plugin) {
+    public CollectionCommand(MMORPGCore plugin, CollectionManager collectionManager) {
         this.plugin = plugin;
+        this.collectionManager = collectionManager;
     }
 
     @Override
@@ -22,7 +25,7 @@ public class CollectionCommand implements CommandExecutor {
             sender.sendMessage("This command can only be used by a player.");
             return true;
         }
-        new CollectionsGui(plugin, player).open();
+        new CollectionsGui(plugin, player, collectionManager).open();
         return true;
     }
 }

@@ -14,6 +14,7 @@ import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.skills.PlayerSkillData;
 import org.nakii.mmorpg.skills.Skill;
 import org.nakii.mmorpg.util.ChatUtils;
+import org.nakii.mmorpg.util.FormattingUtils;
 
 import java.io.File;
 import java.sql.SQLException;
@@ -25,13 +26,30 @@ public class SkillManager {
     private FileConfiguration skillsConfig;
     private FileConfiguration levelsConfig;
 
-    // A cache for level progression data for extremely fast lookups.
+    private final DatabaseManager databaseManager;
+    private final StatsManager statsManager;
+    private final MobManager mobManager;
+    private final HUDManager hudManager;
+
+    // RewardManager is no longer final and will be injected.
+    private RewardManager rewardManager;
+
     private final Map<Integer, Integer> xpToReachLevelCache = new TreeMap<>();
 
-    public SkillManager(MMORPGCore plugin) {
+    // Constructor is simplified.
+    public SkillManager(MMORPGCore plugin, DatabaseManager databaseManager, StatsManager statsManager, MobManager mobManager, HUDManager hudManager) {
         this.plugin = plugin;
+        this.databaseManager = databaseManager;
+        this.statsManager = statsManager;
+        this.mobManager = mobManager;
+        this.hudManager = hudManager;
         loadSkillsConfig();
         loadLevelsConfig();
+    }
+
+    // Setter for RewardManager
+    public void setRewardManager(RewardManager rewardManager) {
+        this.rewardManager = rewardManager;
     }
 
     private void loadSkillsConfig() {
@@ -75,10 +93,16 @@ public class SkillManager {
             handleLevelUp(player, skill, newLevel, currentLevel);
         }
 
-        plugin.getHUDManager().updateActionBar(player, "<aqua>+" + amount + skill.name() + "XP", 3);
+        hudManager.updateActionBar(player, "<aqua>+" + amount + " " + skill.name() + " XP</aqua>", 3);
     }
 
     private void handleLevelUp(Player player, Skill skill, int newLevel, int oldLevel) {
+        // Null-check for RewardManager, crucial during initial load or reloads.
+        if(rewardManager == null) {
+            plugin.getLogger().warning("RewardManager is not available, cannot grant level-up rewards for " + player.getName());
+            return;
+        }
+
         String skillDisplayName = skillsConfig.getString(skill.name() + ".display-name", skill.name());
         player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
 
@@ -94,33 +118,26 @@ public class SkillManager {
             allRewardStrings.add("COINS:" + totalCoins);
         }
 
-        // --- Chat Message Generation ---
         player.sendMessage(ChatUtils.format("<dark_gray>-----------------------------------"));
         player.sendMessage(ChatUtils.format("                <green><b>LEVEL UP</b></green>"));
-        player.sendMessage(ChatUtils.format("   " + skillDisplayName + " <gray>" + toRoman(oldLevel) + " -> <yellow>" + toRoman(newLevel) + "</yellow>"));
+        player.sendMessage(ChatUtils.format("   " + skillDisplayName + " <gray>" + FormattingUtils.toRoman(oldLevel) + " -> <yellow>" + FormattingUtils.toRoman(newLevel) + "</yellow>"));
         player.sendMessage(ChatUtils.format(" "));
         player.sendMessage(ChatUtils.format("  <white>Rewards:"));
 
-        // Grant rewards and simultaneously format them for the message
-        List<Component> rewardComponents = plugin.getRewardManager().grantRewards(player, allRewardStrings);
+        List<Component> rewardComponents = rewardManager.grantRewards(player, allRewardStrings);
         for (Component rewardLine : rewardComponents) {
             player.sendMessage(Component.text("  ").append(rewardLine));
         }
 
         player.sendMessage(ChatUtils.format("<dark_gray>-----------------------------------"));
-
-        // Recalculate stats AFTER granting all rewards
-        plugin.getStatsManager().recalculateStats(player);
+        statsManager.recalculateStats(player);
     }
 
     public void handleMobKill(Player player, LivingEntity victim) {
-        // This method is already correct and does not need to be changed.
-        // It correctly calculates dynamic XP and fires the PlayerGainCombatXpEvent.
-        // The final addXp call will now use our new, robust leveling system.
         double baseXP = 0.0;
-        String mobId = plugin.getMobManager().getMobId(victim);
+        String mobId = mobManager.getMobId(victim);
         if (mobId != null) {
-            CustomMobTemplate template = plugin.getMobManager().getTemplate(mobId);
+            CustomMobTemplate template = mobManager.getTemplate(mobId);
             if (template != null) {
                 baseXP = (template.getStat(Stat.HEALTH) / 20.0) + (template.getLevel() * 2.5);
             }
@@ -130,7 +147,7 @@ public class SkillManager {
 
         if (baseXP <= 0) return;
 
-        PlayerStats playerStats = plugin.getStatsManager().getStats(player);
+        PlayerStats playerStats = statsManager.getStats(player);
         double combatWisdom = playerStats.getStat(Stat.COMBAT_WISDOM);
         double finalXP = baseXP * (1 + (combatWisdom / 100.0));
 
@@ -140,11 +157,9 @@ public class SkillManager {
         addXp(player, Skill.COMBAT, event.getXpAmount());
     }
 
-    // --- Data Management & Public Getters ---
-
     public void loadPlayerData(Player player) {
         try {
-            PlayerSkillData data = plugin.getDatabaseManager().loadPlayerSkillData(player.getUniqueId());
+            PlayerSkillData data = databaseManager.loadPlayerSkillData(player.getUniqueId());
             playerDataCache.put(player.getUniqueId(), data);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -155,7 +170,7 @@ public class SkillManager {
     public void savePlayerData(Player player) {
         if (playerDataCache.containsKey(player.getUniqueId())) {
             try {
-                plugin.getDatabaseManager().savePlayerSkillData(player.getUniqueId(), getPlayerData(player));
+                databaseManager.savePlayerSkillData(player.getUniqueId(), getPlayerData(player));
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -178,25 +193,10 @@ public class SkillManager {
     }
 
     public void addXpForAction(Player player, Skill skill, String actionKey) {
-        // Example actionKey could be a Material name like "OAK_LOG" or a potion name
         double xpAmount = skillsConfig.getDouble(skill.name() + ".xp-sources." + actionKey.toUpperCase(), 0.0);
         if (xpAmount > 0) {
             addXp(player, skill, xpAmount);
         }
-    }
-
-    private String toRoman(int number) {
-        if (number < 1 || number > 39) return String.valueOf(number);
-        String[] r = {"X", "IX", "V", "IV", "I"};
-        int[] v = {10, 9, 5, 4, 1};
-        StringBuilder sb = new StringBuilder();
-        for(int i=0; i<v.length; i++) {
-            while(number >= v[i]) {
-                number -= v[i];
-                sb.append(r[i]);
-            }
-        }
-        return sb.toString();
     }
 
     public int getCumulativeXpForLevel(int level) {

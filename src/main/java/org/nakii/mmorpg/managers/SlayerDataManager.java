@@ -6,12 +6,13 @@ import org.nakii.mmorpg.slayer.PlayerSlayerData;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Manages the cached slayer data for all online players.
- */
 public class SlayerDataManager {
 
     private final ConcurrentHashMap<UUID, PlayerSlayerData> playerDataCache = new ConcurrentHashMap<>();
+
+    public SlayerDataManager() {
+        // No dependencies
+    }
 
     public void addPlayer(Player player, PlayerSlayerData data) {
         playerDataCache.put(player.getUniqueId(), data);

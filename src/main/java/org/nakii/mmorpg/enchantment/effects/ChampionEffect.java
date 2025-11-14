@@ -11,8 +11,8 @@ import org.nakii.mmorpg.util.ChatUtils;
 public class ChampionEffect implements EnchantmentEffect {
     private final CombatTracker combatTracker;
 
-    public ChampionEffect() {
-        this.combatTracker = MMORPGCore.getInstance().getCombatTracker();
+    public ChampionEffect(CombatTracker combatTracker) {
+        this.combatTracker = combatTracker;
     }
 
     @Override

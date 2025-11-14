@@ -12,6 +12,7 @@ import org.nakii.mmorpg.managers.EnchantmentManager;
 import org.nakii.mmorpg.managers.SkillManager;
 import org.nakii.mmorpg.skills.Skill;
 import org.nakii.mmorpg.util.ChatUtils;
+import org.nakii.mmorpg.util.FormattingUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,22 +28,30 @@ public class EnchantingGui extends AbstractGui {
     private ViewState currentState = ViewState.SELECTING_ENCHANTMENT;
     private CustomEnchantment selectedEnchantment = null;
     private ItemStack itemToEnchant;
-    private final Block enchantingTable; // NEW: Store the actual table block
-    private int bookshelfPower = 0;      // NEW: Store calculated power
+    private final Block enchantingTable;
+    private int bookshelfPower = 0;
+
+    // --- FIX: Make injected managers final ---
+    private final EnchantmentManager enchantmentManager;
+    private final SkillManager skillManager;
 
     private List<CustomEnchantment> applicableEnchants = new ArrayList<>();
     private static final int ITEM_SLOT = 19;
 
-    // UPDATED: Main constructor now requires the block
-    public EnchantingGui(MMORPGCore plugin, Player player, Block enchantingTable) {
+    // --- FIX: This is now the primary, public constructor ---
+    public EnchantingGui(MMORPGCore plugin, Player player, Block enchantingTable, EnchantmentManager enchantmentManager, SkillManager skillManager) {
         super(plugin, player);
         this.enchantingTable = enchantingTable;
+        this.enchantmentManager = enchantmentManager;
+        this.skillManager = skillManager;
         this.maxItemsPerPage = 15;
     }
 
-    // UPDATED: Internal constructor for state changes
-    private EnchantingGui(MMORPGCore plugin, Player player, Block enchantingTable, ItemStack itemToEnchant) {
-        this(plugin, player, enchantingTable);
+    // --- FIX: This constructor is for internal use when an item is passed ---
+    private EnchantingGui(MMORPGCore plugin, Player player, Block enchantingTable, EnchantmentManager enchantmentManager, SkillManager skillManager, ItemStack itemToEnchant) {
+        // Call the primary constructor to initialize all final fields
+        this(plugin, player, enchantingTable, enchantmentManager, skillManager);
+        // Assign the non-final field after the primary constructor has run
         this.itemToEnchant = itemToEnchant;
     }
 
@@ -126,7 +135,7 @@ public class EnchantingGui extends AbstractGui {
             totalPages = 1; page = 0;
             inventory.setItem(22, createItem(Material.GRAY_DYE, "<gray>Applicable Enchantments", List.of("<dark_gray>Place an item to see available options.</dark_gray>")));
         } else {
-            applicableEnchants = plugin.getEnchantmentManager().getApplicableEnchantments(itemToEnchant);
+            applicableEnchants = enchantmentManager.getApplicableEnchantments(itemToEnchant);
             totalPages = (int) Math.ceil((double) applicableEnchants.size() / maxItemsPerPage);
 
             int[] enchantSlots = {12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 30, 31, 32, 33, 34};
@@ -157,16 +166,16 @@ public class EnchantingGui extends AbstractGui {
         inventory.setItem(47, createItem(Material.ARROW, "<green>Go Back</green>"));
 
         int[] levelSlots = {20, 21, 22, 23, 24, 25, 26};
-        SkillManager sm = plugin.getSkillManager();
+        SkillManager sm = skillManager;
         int playerSkillLevel = sm.getLevel(player, Skill.ENCHANTING);
-        Map<String, Integer> currentEnchants = plugin.getEnchantmentManager().getEnchantments(inventory.getItem(ITEM_SLOT));
+        Map<String, Integer> currentEnchants = enchantmentManager.getEnchantments(inventory.getItem(ITEM_SLOT));
         int currentLevel = currentEnchants.getOrDefault(selectedEnchantment.getId(), 0);
 
         for (int i = 1; i <= selectedEnchantment.getMaxLevel(); i++) {
             if(i > levelSlots.length) break;
 
             int level = i;
-            String romanLevel = toRoman(level);
+            String romanLevel = FormattingUtils.toRoman(level);
             String displayName = selectedEnchantment.getDisplayName() + " " + romanLevel;
 
             // --- THIS IS THE NEW LOGIC FOR DISPLAYING THE REMOVAL BUTTON ---
@@ -263,7 +272,7 @@ public class EnchantingGui extends AbstractGui {
         if (slot == 49) { player.closeInventory(); return; }
         if (slot == 50) { // Enchantment Guide button logic remains
             returnItem(inventory.getItem(ITEM_SLOT));
-            new EnchantmentGuideGui(plugin, player, this.enchantingTable).open();
+            new EnchantmentGuideGui(plugin, enchantmentManager, skillManager, player, this.enchantingTable ).open();
             return;
         }
         if (slot == 47 && page > 0) { previousPage(); return; }
@@ -297,7 +306,7 @@ public class EnchantingGui extends AbstractGui {
         if (slot == 49) { player.closeInventory(); return; }
         if (slot == 50) { // Enchantment Guide
             returnItem(inventory.getItem(ITEM_SLOT));
-            new EnchantmentGuideGui(plugin, player, this.enchantingTable).open();
+            new EnchantmentGuideGui(plugin, enchantmentManager, skillManager, player, this.enchantingTable ).open();
             return;
         }
 
@@ -309,7 +318,7 @@ public class EnchantingGui extends AbstractGui {
 
                 ItemStack item = inventory.getItem(ITEM_SLOT);
                 if (item == null) return;
-                int currentLevel = plugin.getEnchantmentManager().getEnchantments(item).getOrDefault(selectedEnchantment.getId(), 0);
+                int currentLevel = enchantmentManager.getEnchantments(item).getOrDefault(selectedEnchantment.getId(), 0);
 
                 if (level == currentLevel) {
                     // This is a removal action
@@ -334,7 +343,7 @@ public class EnchantingGui extends AbstractGui {
         }
 
         // --- SERVER-SIDE VALIDATION ---
-        Map<String, Integer> currentEnchants = plugin.getEnchantmentManager().getEnchantments(itemToApplyTo);
+        Map<String, Integer> currentEnchants = enchantmentManager.getEnchantments(itemToApplyTo);
         int currentLevel = currentEnchants.getOrDefault(selectedEnchantment.getId(), 0);
 
         if (level <= currentLevel) {
@@ -358,23 +367,22 @@ public class EnchantingGui extends AbstractGui {
         }
 
         int skillReq = selectedEnchantment.getSkillRequirement(level);
-        if (plugin.getSkillManager().getLevel(player, Skill.ENCHANTING) < skillReq) {
+        if (skillManager.getLevel(player, Skill.ENCHANTING) < skillReq) {
             player.sendMessage(ChatUtils.format("<red>Your Enchanting skill is too low!</red>"));
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
             return;
         }
 
         // --- All checks passed, apply the enchantment ---
-        EnchantmentManager em = plugin.getEnchantmentManager();
         for (String incompatibleId : selectedEnchantment.getIncompatibilities()) {
             if (currentEnchants.containsKey(incompatibleId.toLowerCase())) {
-                em.removeEnchantment(itemToApplyTo, incompatibleId);
+                enchantmentManager.removeEnchantment(itemToApplyTo, incompatibleId);
             }
         }
 
-        em.addEnchantment(itemToApplyTo, selectedEnchantment.getId(), level);
+        enchantmentManager.addEnchantment(itemToApplyTo, selectedEnchantment.getId(), level);
         player.setLevel(player.getLevel() - cost);
-        plugin.getSkillManager().addXp(player, Skill.ENCHANTING, cost * 5.0); // Grant skill XP
+        skillManager.addXp(player, Skill.ENCHANTING, cost * 5.0); // Grant skill XP
         player.playSound(player.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1.0f, 1.0f);
 
         // Reset state and redraw the GUI to the enchantment list
@@ -395,9 +403,9 @@ public class EnchantingGui extends AbstractGui {
         }
 
         // --- All checks passed, remove the enchantment ---
-        plugin.getEnchantmentManager().removeEnchantment(itemToRemoveFrom, selectedEnchantment.getId());
+        enchantmentManager.removeEnchantment(itemToRemoveFrom, selectedEnchantment.getId());
         player.setLevel(player.getLevel() - removalCost);
-        plugin.getSkillManager().addXp(player, Skill.ENCHANTING, removalCost * 2.5); // Grant half XP for removal
+        skillManager.addXp(player, Skill.ENCHANTING, removalCost * 2.5); // Grant half XP for removal
         player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1.0f, 0.8f);
 
         // Reset state back to enchantment selection and refresh the GUI
@@ -416,20 +424,7 @@ public class EnchantingGui extends AbstractGui {
         }
     }
 
-    // You will need an ItemBuilder utility class and a toRoman method
-    private String toRoman(int number) {
-        if (number < 1 || number > 39) return String.valueOf(number);
-        String[] r = {"X", "IX", "V", "IV", "I"};
-        int[] v = {10, 9, 5, 4, 1};
-        StringBuilder sb = new StringBuilder();
-        for(int i=0; i<v.length; i++) {
-            while(number >= v[i]) {
-                number -= v[i];
-                sb.append(r[i]);
-            }
-        }
-        return sb.toString();
-    }
+
 
     // You may need to create this helper if it doesn't exist
     private boolean clickedInPlayerInventory(InventoryClickEvent event) {

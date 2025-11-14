@@ -30,9 +30,9 @@ public class PlayerMovementTracker extends BukkitRunnable {
     private final RequirementManager requirementManager;
     private final ConcurrentHashMap<UUID, String> playerZoneCache = new ConcurrentHashMap<>();
 
-    public PlayerMovementTracker(MMORPGCore plugin) {
-        this.worldManager = plugin.getWorldManager();
-        this.requirementManager = plugin.getRequirementManager();
+    public PlayerMovementTracker(WorldManager worldManager, RequirementManager requirementManager) {
+        this.worldManager = worldManager;
+        this.requirementManager = requirementManager;
     }
 
     @Override

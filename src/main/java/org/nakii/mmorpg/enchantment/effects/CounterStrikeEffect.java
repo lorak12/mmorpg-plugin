@@ -5,14 +5,16 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.enchantment.CustomEnchantment;
 import org.nakii.mmorpg.managers.CombatTracker;
+import org.nakii.mmorpg.managers.TimedBuffManager;
 import org.nakii.mmorpg.player.Stat;
 
 public class CounterStrikeEffect implements EnchantmentEffect {
-
     private final CombatTracker combatTracker;
+    private final TimedBuffManager timedBuffManager;
 
-    public CounterStrikeEffect() {
-        this.combatTracker = MMORPGCore.getInstance().getCombatTracker();
+    public CounterStrikeEffect(CombatTracker combatTracker, TimedBuffManager timedBuffManager) {
+        this.combatTracker = combatTracker;
+        this.timedBuffManager = timedBuffManager;
     }
 
     @Override
@@ -26,7 +28,7 @@ public class CounterStrikeEffect implements EnchantmentEffect {
         if (isFirstHit) {
             // 'value' is the defense bonus
             double defenseBonus = enchantment.getValue(level);
-            MMORPGCore.getInstance().getTimedBuffManager().applyBuff(
+            timedBuffManager.applyBuff(
                     victim,
                     Stat.DEFENSE,
                     defenseBonus,

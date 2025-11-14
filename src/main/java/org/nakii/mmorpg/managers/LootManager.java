@@ -19,8 +19,17 @@ public class LootManager {
     private final MMORPGCore plugin;
     private final Random random = new Random();
 
-    public LootManager(MMORPGCore plugin) {
+    private final ItemManager itemManager;
+    private final StatsManager statsManager;
+    private final MobManager mobManager;
+    private final ItemLoreGenerator itemLoreGenerator;
+
+    public LootManager(MMORPGCore plugin, ItemManager itemManager, StatsManager statsManager, MobManager mobManager, ItemLoreGenerator itemLoreGenerator) {
         this.plugin = plugin;
+        this.itemManager = itemManager;
+        this.statsManager = statsManager;
+        this.mobManager = mobManager;
+        this.itemLoreGenerator = itemLoreGenerator;
     }
 
     /**
@@ -32,12 +41,12 @@ public class LootManager {
      */
     public List<ItemStack> rollLootTable(Player looter, String mobId) {
         List<ItemStack> loot = new ArrayList<>();
-        CustomMobTemplate template = plugin.getMobManager().getTemplate(mobId);
+        CustomMobTemplate template = mobManager.getTemplate(mobId);
         if (template == null || template.getLootTable().isEmpty()) {
             return loot;
         }
 
-        PlayerStats looterStats = plugin.getStatsManager().getStats(looter);
+        PlayerStats looterStats = statsManager.getStats(looter);
         double magicFind = looterStats.getStat(Stat.MAGIC_FIND);
 
         for (CustomMobTemplate.LootDrop dropInfo : template.getLootTable()) {
@@ -51,13 +60,13 @@ public class LootManager {
                 if (amount <= 0) continue;
 
                 // --- THIS LOGIC NOW WORKS CORRECTLY ---
-                ItemStack item = plugin.getItemManager().createItemStack(dropInfo.itemId());
+                ItemStack item = itemManager.createItemStack(dropInfo.itemId());
 
                 if (item == null) {
                     // It's not a custom item, so we try to create it as a formatted default item.
                     try {
                         Material material = Material.valueOf(dropInfo.itemId().toUpperCase());
-                        item = plugin.getItemManager().createDefaultItemStack(material);
+                        item = itemManager.createVanillaItemStack(material);
                     } catch (IllegalArgumentException e) {
                         plugin.getLogger().warning("Loot table for mob '" + mobId + "' contains an invalid item/material ID: " + dropInfo.itemId());
                         continue;
@@ -67,7 +76,7 @@ public class LootManager {
                 if (item != null) {
                     item.setAmount(amount);
                     // Update lore to apply any player-specific stats if needed
-                    plugin.getItemLoreGenerator().updateLore(item, looter);
+                    itemLoreGenerator.updateLore(item, looter);
                     loot.add(item);
                 }
             }
@@ -173,7 +182,7 @@ public class LootManager {
         }
 
         if (quantity > 0) {
-            ItemStack item = plugin.getItemManager().createItemStack(itemId);
+            ItemStack item = itemManager.createItemStack(itemId);
             if (item != null) {
                 item.setAmount(quantity);
                 lootList.add(item);
