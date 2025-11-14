@@ -2,6 +2,7 @@ package org.nakii.mmorpg.quest.quest.event.spawn;
 
 import net.kyori.adventure.text.Component;
 import org.nakii.mmorpg.MMORPGCore;
+import org.nakii.mmorpg.managers.MobManager;
 import org.nakii.mmorpg.quest.QuestModule;
 import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
 import org.nakii.mmorpg.quest.api.profile.Profile;
@@ -13,6 +14,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
+import org.nakii.mmorpg.quest.util.QuestMobType;
 
 /**
  * Spawns mobs at given location, with given equipment and drops.
@@ -27,7 +29,7 @@ public class SpawnMobEvent implements NullableEvent {
     /**
      * The type of mob to spawn.
      */
-    private final Variable<EntityType> type;
+    private final Variable<QuestMobType> type;
 
     /**
      * The equipment and drops of the mob.
@@ -61,7 +63,7 @@ public class SpawnMobEvent implements NullableEvent {
      * @param name             the name of the mob
      * @param marked           the marked variable
      */
-    public SpawnMobEvent(final Variable<Location> variableLocation, final Variable<EntityType> type, final Equipment equipment,
+    public SpawnMobEvent(final Variable<Location> variableLocation, final Variable<QuestMobType> type, final Equipment equipment,
                          final Variable<Number> amount, @Nullable final Variable<Component> name, @Nullable final Variable<String> marked) {
         this.variableLocation = variableLocation;
         this.type = type;
@@ -75,8 +77,23 @@ public class SpawnMobEvent implements NullableEvent {
     public void execute(@Nullable final Profile profile) throws QuestException {
         final Location location = variableLocation.getValue(profile);
         final int numberOfMob = amount.getValue(profile).intValue();
+
+        // ---> MODIFIED LOGIC: Handle both vanilla and custom spawning <---
+        final QuestMobType mobType = type.getValue(profile);
+
         for (int i = 0; i < numberOfMob; i++) {
-            final Mob mob = (Mob) location.getWorld().spawnEntity(location, type.getValue(profile));
+            Mob mob;
+            if (mobType.isCustom()) {
+                MobManager mobManager = MMORPGCore.getInstance().getMobManager();
+                mob = (Mob) mobManager.spawnMob(mobType.getCustomId(), location, null);
+                if (mob == null) {
+                    throw new QuestException("Failed to spawn custom mob with ID: " + mobType.getCustomId());
+                }
+            } else {
+                mob = (Mob) location.getWorld().spawnEntity(location, mobType.getVanillaType());
+            }
+
+            // The rest of the logic remains the same
             this.equipment.addEquipment(profile, mob);
             this.equipment.addDrops(mob, profile);
             if (this.name != null) {

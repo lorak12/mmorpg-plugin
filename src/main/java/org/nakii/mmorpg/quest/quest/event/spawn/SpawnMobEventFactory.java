@@ -20,6 +20,7 @@ import org.nakii.mmorpg.quest.api.quest.event.thread.PrimaryServerThreadPlayerle
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
+import org.nakii.mmorpg.quest.util.QuestMobType;
 
 import java.util.List;
 
@@ -60,7 +61,7 @@ public class SpawnMobEventFactory implements PlayerEventFactory, PlayerlessEvent
      */
     public NullableEventAdapter createSpawnMobEvent(final Instruction instruction) throws QuestException {
         final Variable<Location> loc = instruction.get(Argument.LOCATION);
-        final Variable<EntityType> type = instruction.get(new EntityTypeParser());
+        final Variable<QuestMobType> type = instruction.get(QuestMobType.MobTypeArgument.MOB_TYPE);
         final Variable<Number> amount = instruction.get(Argument.NUMBER);
         final Variable<Component> name = instruction.getValue("name", Argument.MESSAGE);
         final Variable<String> marked = instruction.getValue("marked", PackageArgument.IDENTIFIER);

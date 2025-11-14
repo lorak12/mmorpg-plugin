@@ -1,6 +1,7 @@
 package org.nakii.mmorpg.quest.quest.condition.entity;
 
 import net.kyori.adventure.text.Component;
+import org.bukkit.entity.LivingEntity;
 import org.nakii.mmorpg.quest.api.instruction.variable.Variable;
 import org.nakii.mmorpg.quest.api.profile.Profile;
 import org.nakii.mmorpg.quest.api.quest.QuestException;
@@ -8,8 +9,8 @@ import org.nakii.mmorpg.quest.api.quest.condition.nullable.NullableCondition;
 import org.nakii.mmorpg.quest.util.EntityUtils;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.Nullable;
+import org.nakii.mmorpg.quest.util.QuestMobType;
 
 import java.util.List;
 import java.util.Map;
@@ -22,7 +23,7 @@ public class EntityCondition implements NullableCondition {
     /**
      * The amount per entity.
      */
-    private final Variable<List<Map.Entry<EntityType, Integer>>> entityAmounts;
+    private final Variable<List<Map.Entry<QuestMobType, Integer>>> entityAmounts;
 
     /**
      * The location of the entity's.
@@ -55,7 +56,7 @@ public class EntityCondition implements NullableCondition {
      * @param name          the name of the entity to check for
      * @param marked        the marked entity to check for
      */
-    public EntityCondition(final Variable<List<Map.Entry<EntityType, Integer>>> entityAmounts, final Variable<Location> loc,
+    public EntityCondition(final Variable<List<Map.Entry<QuestMobType, Integer>>> entityAmounts, final Variable<Location> loc,
                            final Variable<Number> range, @Nullable final Variable<Component> name, @Nullable final Variable<String> marked) {
         this.entityAmounts = entityAmounts;
         this.loc = loc;
@@ -71,8 +72,12 @@ public class EntityCondition implements NullableCondition {
         final Component name = this.name == null ? null : this.name.getValue(profile);
         final String resolvedMarked = marked == null ? null : marked.getValue(profile);
         final List<Entity> selectedEntity = EntityUtils.getSelectedEntity(location, name, resolvedMarked, resolvedRange);
-        for (final Map.Entry<EntityType, Integer> entry : entityAmounts.getValue(profile)) {
-            final long count = selectedEntity.stream().filter(entity -> entity.getType() == entry.getKey()).count();
+        for (final Map.Entry<QuestMobType, Integer> entry : entityAmounts.getValue(profile)) {
+            final QuestMobType mobType = entry.getKey();
+            final long count = selectedEntity.stream()
+                    .filter(entity -> entity instanceof LivingEntity) // Ensure we can check the type
+                    .filter(entity -> mobType.matches((LivingEntity) entity))
+                    .count();
             if (count < entry.getValue()) {
                 return false;
             }

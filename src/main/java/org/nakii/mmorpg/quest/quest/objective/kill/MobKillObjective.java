@@ -1,7 +1,6 @@
 package org.nakii.mmorpg.quest.quest.objective.kill;
 
 import org.nakii.mmorpg.MMORPGCore;
-import org.nakii.mmorpg.quest.QuestModule;
 import org.nakii.mmorpg.quest.api.CountingObjective;
 import org.nakii.mmorpg.quest.api.MobKillNotifier.MobKilledEvent;
 import org.nakii.mmorpg.quest.api.instruction.Instruction;
@@ -14,6 +13,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
+import org.nakii.mmorpg.quest.util.QuestMobType; // ---> ADD THIS IMPORT
+import org.bukkit.entity.LivingEntity; // ---> ADD THIS IMPORT
 
 import java.util.List;
 
@@ -27,7 +28,7 @@ public class MobKillObjective extends CountingObjective implements Listener {
     /**
      * The entity types that should be killed.
      */
-    private final Variable<List<EntityType>> entities;
+    private final Variable<List<QuestMobType>> entities;
 
     /**
      * The optional name of the mob.
@@ -52,7 +53,7 @@ public class MobKillObjective extends CountingObjective implements Listener {
      * @throws QuestException if there is an error in the instruction
      */
     public MobKillObjective(final Instruction instruction, final Variable<Number> targetAmount,
-                            final Variable<List<EntityType>> entities, @Nullable final Variable<String> name,
+                            final Variable<List<QuestMobType>> entities, @Nullable final Variable<String> name,
                             @Nullable final Variable<String> marked) throws QuestException {
         super(instruction, targetAmount, "mobs_to_kill");
         this.entities = entities;
@@ -69,16 +70,30 @@ public class MobKillObjective extends CountingObjective implements Listener {
     public void onMobKill(final MobKilledEvent event) {
         final OnlineProfile onlineProfile = event.getProfile().getOnlineProfile().get();
         qeHandler.handle(() -> {
+
+            // --- START OF FIX ---
+
+            // The event gives a generic Entity, but we need a LivingEntity to check its type.
+            if (!(event.getEntity() instanceof LivingEntity livingVictim)) {
+                return; // If the killed entity wasn't a living creature, ignore it.
+            }
+
+            boolean typeMatch = entities.getValue(onlineProfile).stream()
+                    .anyMatch(questMob -> questMob.matches(livingVictim)); // Use the casted variable
+
             if (!containsPlayer(onlineProfile)
-                    || !entities.getValue(onlineProfile).contains(event.getEntity().getType())
-                    || name != null && (event.getEntity().getCustomName() == null
-                    || !event.getEntity().getCustomName().equals(name.getValue(onlineProfile)))) {
+                    || !typeMatch
+                    || name != null && (livingVictim.getCustomName() == null
+                    || !livingVictim.getCustomName().equals(name.getValue(onlineProfile)))) {
                 return;
             }
+
+            // --- END OF FIX ---
+
             if (marked != null) {
                 final String value = marked.getValue(onlineProfile);
                 final NamespacedKey key = new NamespacedKey(MMORPGCore.getInstance(), "betonquest-marked");
-                final String dataContainerValue = event.getEntity().getPersistentDataContainer().get(key, PersistentDataType.STRING);
+                final String dataContainerValue = livingVictim.getPersistentDataContainer().get(key, PersistentDataType.STRING); // Use livingVictim here too
                 if (dataContainerValue == null || !dataContainerValue.equals(value)) {
                     return;
                 }

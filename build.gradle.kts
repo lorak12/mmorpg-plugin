@@ -4,6 +4,7 @@ plugins {
     java
     id("com.gradleup.shadow") version "9.0.1"
     kotlin("jvm") version "1.9.21"
+    id("xyz.jpenilla.run-paper") version "3.0.2"
 }
 
 group = "org.nakii.mmorpg"
@@ -115,8 +116,6 @@ tasks {
         relocate("de.slikey", "org.nakii.mmorpg.libs.effectlib")
         relocate("org.bstats", "org.nakii.mmorpg.libs.bq.bstats")
         relocate("org.apache.commons", "org.nakii.mmorpg.libs.bq.apachecommons")
-        // ⚠️ Guava nie jest relokowana, żeby uniknąć konfliktu z Paper
-        // relocate("com.google.common", "org.nakii.mmorpg.libs.bq.guavacommon")
         relocate("org.json", "org.nakii.mmorpg.libs.bq.json")
         relocate("io.papermc.lib", "org.nakii.mmorpg.libs.bq.paperlib")
         relocate("com.cronutils", "org.nakii.mmorpg.libs.bq.cronutils")
@@ -127,5 +126,9 @@ tasks {
 
     build {
         dependsOn(shadowJar)
+    }
+
+    runServer {
+        minecraftVersion("1.21.7")
     }
 }

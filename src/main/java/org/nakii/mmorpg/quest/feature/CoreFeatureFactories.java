@@ -20,6 +20,7 @@ import org.nakii.mmorpg.quest.conversation.io.InventoryConvIOFactory;
 import org.nakii.mmorpg.quest.conversation.io.SimpleConvIOFactory;
 import org.nakii.mmorpg.quest.conversation.io.SlowTellrawConvIOFactory;
 import org.nakii.mmorpg.quest.conversation.io.TellrawConvIOFactory;
+import org.nakii.mmorpg.quest.item.MmorpgItemFactory;
 import org.nakii.mmorpg.quest.item.SimpleQuestItemFactory;
 import org.nakii.mmorpg.quest.item.SimpleQuestItemSerializer;
 import org.nakii.mmorpg.quest.kernel.registry.feature.*;
@@ -128,6 +129,7 @@ public class CoreFeatureFactories {
         final BookPageWrapper bookPageWrapper = new BookPageWrapper(fontRegistry, 114, 14);
         itemTypes.register("simple", new SimpleQuestItemFactory(packManager, textParser, bookPageWrapper));
         itemTypes.registerSerializer("simple", new SimpleQuestItemSerializer(textParser, bookPageWrapper));
+        itemTypes.register("mmorpg", new MmorpgItemFactory());
 
         final Plugin plugin = MMORPGCore.getInstance();
         final NotifyIORegistry notifyIOTypes = registries.notifyIO();

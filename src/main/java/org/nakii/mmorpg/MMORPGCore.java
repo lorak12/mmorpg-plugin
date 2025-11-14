@@ -342,12 +342,6 @@ public final class MMORPGCore extends JavaPlugin {
 
             getLogger().info("Default worlds created successfully.");
         }
-        File questsFolder = new File(getDataFolder(), "quests");
-        if (!questsFolder.exists()) {
-            getLogger().info("Creating default quest configuration files...");
-            saveResource("quests/test_quests/ghost_quest.yml", false);
-            getLogger().info("Default quest files created successfully.");
-        }
 
         // Save single config files
         saveResource("skills.yml", false);

@@ -17,6 +17,7 @@ import org.nakii.mmorpg.quest.api.quest.condition.thread.PrimaryServerThreadPlay
 import org.nakii.mmorpg.quest.api.quest.condition.thread.PrimaryServerThreadPlayerlessCondition;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
+import org.nakii.mmorpg.quest.util.QuestMobType;
 
 import java.util.List;
 import java.util.Map;
@@ -51,7 +52,7 @@ public class EntityConditionFactory implements PlayerConditionFactory, Playerles
     }
 
     private EntityCondition parseEntityCondition(final Instruction instruction) throws QuestException {
-        final Variable<List<Map.Entry<EntityType, Integer>>> entityAmounts = instruction.getList(EntityAmount.ENTITY_AMOUNT, VariableList.notDuplicateKeyChecker());
+        final Variable<List<Map.Entry<QuestMobType, Integer>>> entityAmounts = instruction.getList(MobAmount.MOB_AMOUNT, VariableList.notDuplicateKeyChecker());
         final Variable<Location> location = instruction.get(Argument.LOCATION);
         final Variable<Number> range = instruction.get(Argument.NUMBER);
         final Variable<Component> name = instruction.getValue("name", Argument.MESSAGE);
@@ -62,16 +63,14 @@ public class EntityConditionFactory implements PlayerConditionFactory, Playerles
     /**
      * Parses a string to a Spell with level.
      */
-    private static final class EntityAmount implements Argument<Map.Entry<EntityType, Integer>> {
-        /**
-         * The default instance of {@link EntityAmount}.
-         */
-        public static final EntityAmount ENTITY_AMOUNT = new EntityAmount();
+    private static final class MobAmount implements Argument<Map.Entry<QuestMobType, Integer>> {
+        public static final MobAmount MOB_AMOUNT = new MobAmount();
 
         @Override
-        public Map.Entry<EntityType, Integer> apply(final String string) throws QuestException {
+        public Map.Entry<QuestMobType, Integer> apply(final String string) throws QuestException {
             final String[] parts = string.split(":");
-            final EntityType type = Argument.ENUM(EntityType.class).apply(parts[0]);
+            // This now correctly uses our universal MobType parser
+            final QuestMobType type = QuestMobType.MobTypeArgument.MOB_TYPE.apply(parts[0]);
             final int amount = parts.length == 2 ? NUMBER.apply(parts[1]).intValue() : 1;
             return Map.entry(type, amount);
         }
