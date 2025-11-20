@@ -9,8 +9,10 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.managers.SkillManager;
+import org.nakii.mmorpg.player.Stat;
 import org.nakii.mmorpg.skills.PlayerSkillData;
 import org.nakii.mmorpg.skills.Skill;
+import org.nakii.mmorpg.util.ChatUtils;
 import org.nakii.mmorpg.util.FormattingUtils;
 
 import java.util.ArrayList;
@@ -23,11 +25,9 @@ public class SkillsGui extends AbstractGui {
     private Skill selectedSkill = null;
     private final SkillManager skillManager;
 
-    // --- USING YOUR EXACT SNAKE PATH ---
     private static final int[] SNAKE_PATH = {
             9, 10, 19, 28, 37, 38, 39, 30, 21, 12, 13, 14, 23, 32, 41, 42, 43, 34, 25, 16, 17
     };
-    // Note: This path has 20 slots. Page 1 = Lvl 1-20, Page 2 = 21-40, Page 3 = 41-60.
 
     public SkillsGui(MMORPGCore plugin, Player player, SkillManager skillManager) {
         super(plugin, player);
@@ -57,7 +57,6 @@ public class SkillsGui extends AbstractGui {
 
     @Override
     public void populateItems() {
-        // --- FIX #1: MANUAL LAYOUT CONTROL ---
         // We no longer call drawBaseLayout() to prevent it from overwriting our edge slots.
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < getSize(); i++) {
@@ -87,6 +86,7 @@ public class SkillsGui extends AbstractGui {
     private void drawDetailView() {
         int playerLevel = skillManager.getLevel(player, selectedSkill);
         ConfigurationSection skillConfig = skillManager.getSkillsConfig().getConfigurationSection(selectedSkill.name());
+        if (skillConfig == null) return; // Failsafe
         int maxLevel = skillConfig.getInt("max-level", 60);
 
         this.maxItemsPerPage = SNAKE_PATH.length;
@@ -94,39 +94,66 @@ public class SkillsGui extends AbstractGui {
 
         int startingLevel = (page * maxItemsPerPage) + 1;
 
-        for(int i = 0; i < maxItemsPerPage; i++) {
-
+        for (int i = 0; i < SNAKE_PATH.length; i++) {
             int slot = SNAKE_PATH[i];
 
             if (page == 0 && i == 0) {
-                ItemStack startItem = createItem(
+                inventory.setItem(slot, createItem(
                         Material.NETHER_STAR,
-                        "<yellow>Level 0 (Start)",
-                        List.of("<gray>Beginning of your journey</gray>")
-                );
-                inventory.setItem(slot, startItem);
+                        "<yellow>Skill Unlocked</yellow>",
+                        List.of("<gray>Beginning of your journey.", "<gray>Gain XP to level up!</gray>")
+                ));
                 continue;
             }
 
-            int currentLevel = startingLevel + i;
-            if (currentLevel > maxLevel) break;
+            int currentLevel = startingLevel + i - (page == 0 ? 1 : 0);
+
+            if (currentLevel > maxLevel) {
+                inventory.setItem(slot, null);
+                continue;
+            }
 
             boolean isUnlocked = currentLevel <= playerLevel;
             Material mat = isUnlocked ? Material.LIME_STAINED_GLASS_PANE : Material.RED_STAINED_GLASS_PANE;
-            String name = (isUnlocked ? "<green>" : "<red>") + "Level " + currentLevel;
+            String name = (isUnlocked ? "<green>" : "<red>") + "Level " + FormattingUtils.toRoman(currentLevel);
 
             List<String> lore = new ArrayList<>();
-            lore.add("<white>Rewards:");
-            int coins = skillManager.getLevelsConfig().getInt("levels." + currentLevel + ".coins", 0);
-            if (coins > 0) lore.add("<gold>+ " + String.format("%,d", coins) + " Coins</gold>");
+            lore.add("<white>Rewards for this Level:</white>");
+            boolean hasRewards = false;
 
+            // Universal coin reward
+            int coins = skillManager.getLevelsConfig().getInt("levels." + currentLevel + ".coins", 0);
+            if (coins > 0) {
+                // Use the centralized formatter for coins
+                lore.add(ChatUtils.formatRewardString("COINS:" + coins));
+                hasRewards = true;
+            }
+
+            // Per-level stat rewards
             ConfigurationSection rewardsPerLevel = skillConfig.getConfigurationSection("rewards-per-level");
-            if(rewardsPerLevel != null) {
-                for(String statKey : rewardsPerLevel.getKeys(false)) {
-                    lore.add("<gray>+ <green>" + rewardsPerLevel.getDouble(statKey) + " " + statKey.replace("_", " ") + "</green>");
+            if (rewardsPerLevel != null) {
+                for (String statKey : rewardsPerLevel.getKeys(false)) {
+                    try {
+                        Stat stat = Stat.valueOf(statKey.toUpperCase());
+                        double bonusPerLevel = rewardsPerLevel.getDouble(statKey);
+                        // Use the stat's own powerful .format() method
+                        lore.add("<gray>• " + stat.format(bonusPerLevel) + "</gray>");
+                        hasRewards = true;
+                    } catch (IllegalArgumentException ignored) {}
                 }
             }
-            skillConfig.getStringList("milestone-rewards." + currentLevel).forEach(r -> lore.add("<gold>" + formatRewardString(r) + "</gold>"));
+
+            // Milestone rewards
+            List<String> milestoneRewards = skillConfig.getStringList("milestone-rewards." + currentLevel);
+            if (!milestoneRewards.isEmpty()) {
+                // This was already correct, using the centralized formatter
+                milestoneRewards.forEach(r -> lore.add(ChatUtils.formatRewardString(r)));
+                hasRewards = true;
+            }
+
+            if (!hasRewards) {
+                lore.add("<dark_gray>None</dark_gray>");
+            }
 
             ItemStack item = createItem(mat, name, lore);
             item.setAmount(Math.min(64, currentLevel));
@@ -150,29 +177,70 @@ public class SkillsGui extends AbstractGui {
             double currentTotalXp = data.getXp(skill);
             int maxLevel = config.getInt("max-level", 60);
 
-            String displayName = config.getString("display-name", skill.name());
+            String displayName = skill.getSymbol() + " " + config.getString("display-name", skill.name());
             Material icon = Material.matchMaterial(config.getString("icon", "BARRIER"));
             List<String> lore = new ArrayList<>();
-            lore.add("<gray>Level " + level + "</gray>");
+
+            // --- 1. Main Level Display ---
+            if (level >= maxLevel) {
+                lore.add("<gold><b>MAX LEVEL (" + maxLevel + ")</b></gold>");
+            } else {
+                lore.add("<gray>Level <yellow>" + level + "</yellow>/" + maxLevel);
+            }
             lore.add(" ");
 
+            // --- 2. Progress Bar (if not max level) ---
             if (level < maxLevel) {
                 double xpForCurrentLevel = skillManager.getCumulativeXpForLevel(level);
                 double xpForNextLevel = skillManager.getCumulativeXpForLevel(level + 1);
                 double progressInLevel = currentTotalXp - xpForCurrentLevel;
                 double neededForLevel = xpForNextLevel - xpForCurrentLevel;
-                lore.add("<white>Progress to Level " + (level + 1) + ": <yellow>" + String.format("%.1f%%", (progressInLevel / neededForLevel) * 100) + "</yellow>");
+
+                lore.add("<white>Progress to Lvl " + (level + 1) + ": <yellow>" + String.format("%.1f%%", (progressInLevel / neededForLevel) * 100) + "</yellow>");
                 lore.add(FormattingUtils.generateProgressBar(progressInLevel, neededForLevel) + " <gray>" + String.format("%,.0f", progressInLevel) + "/" + String.format("%,.0f", neededForLevel));
+                lore.add(" ");
+            }
+
+            // --- 3. Total Stats Gained from this Skill ---
+            lore.add("<white>Total Bonuses from " + ChatUtils.capitalizeWords(skill.name()) + ":</white>");
+            ConfigurationSection rewardsPerLevel = config.getConfigurationSection("rewards-per-level");
+            if (rewardsPerLevel != null && level > 0) {
+                for (String statKey : rewardsPerLevel.getKeys(false)) {
+                    try {
+                        Stat stat = Stat.valueOf(statKey.toUpperCase());
+                        double bonusPerLevel = rewardsPerLevel.getDouble(statKey);
+                        double totalBonus = level * bonusPerLevel;
+                        lore.add("<gray>• " + stat.format(totalBonus) + "</gray>");
+                    } catch (IllegalArgumentException ignored) {}
+                }
             } else {
-                lore.add("<gold>MAX LEVEL</gold>");
+                lore.add("<dark_gray>None</dark_gray>");
             }
             lore.add(" ");
-            lore.add("<white>Rewards per Level:");
-            config.getConfigurationSection("rewards-per-level").getKeys(false).forEach(statKey ->
-                    lore.add("<gray>+ <green>" + config.getDouble("rewards-per-level." + statKey) + " " + statKey.replace("_", " ") + "</green>")
-            );
+
+            // --- 4. Next Milestone Reward ---
+            lore.add("<white>Next Milestone Reward:</white>");
+            ConfigurationSection milestoneSection = config.getConfigurationSection("milestone-rewards");
+            if (milestoneSection != null) {
+                int nextMilestoneLevel = milestoneSection.getKeys(false).stream()
+                        .mapToInt(Integer::parseInt)
+                        .filter(lvl -> lvl > level)
+                        .min()
+                        .orElse(-1);
+
+                if (nextMilestoneLevel != -1) {
+                    lore.add("<gray>At Level <yellow>" + nextMilestoneLevel + "</yellow>:");
+                    String nextRewardString = milestoneSection.getStringList(String.valueOf(nextMilestoneLevel)).stream().findFirst().orElse("Unknown Reward");
+                    // <<< FIX: Use the new centralized ChatUtils formatter >>>
+                    lore.add(ChatUtils.formatRewardString(nextRewardString));
+                } else {
+                    lore.add("<green>✔ All milestones unlocked!</green>");
+                }
+            } else {
+                lore.add("<dark_gray>None</dark_gray>");
+            }
             lore.add(" ");
-            lore.add("<yellow>Click to view details!</yellow>");
+            lore.add("<yellow>Click to view all rewards!</yellow>");
 
             inventory.setItem(slots[i], createItem(icon, displayName, lore));
         }
@@ -204,28 +272,32 @@ public class SkillsGui extends AbstractGui {
     }
 
     private void handleDetailViewClick(InventoryClickEvent event) {
-        if (event.getSlot() == getSize() - 5) { // Back button
-            this.selectedSkill = null;
-            this.currentView = View.OVERVIEW;
-            reopen();
+        // When the back button is clicked, we transition to the OVERVIEW state
+        if (event.getSlot() == getSize() - 5) {
+            this.selectedSkill = null; // Clear the selected skill
+            this.currentView = View.OVERVIEW; // Set the view state
+            reopen(); // Reopen the GUI in its new state
         } else {
+            // Handle other clicks, like pagination
             super.handleClick(event);
         }
     }
 
+    /**
+     * Re-opens the GUI to reflect a change in state (like view or page).
+     * This method now correctly chooses the constructor based on the current view.
+     */
     private void reopen() {
         player.closeInventory();
         new BukkitRunnable() {
             @Override
             public void run() {
-                new SkillsGui(plugin, player, skillManager, selectedSkill).open();
+                if (currentView == View.DETAIL && selectedSkill != null) {
+                    new SkillsGui(plugin, player, skillManager, selectedSkill).open();
+                } else {
+                    new SkillsGui(plugin, player, skillManager).open();
+                }
             }
         }.runTaskLater(plugin, 1L);
-    }
-
-    private String formatRewardString(String rewardString) {
-        String[] parts = rewardString.split(":");
-        if (parts.length < 2) return rewardString;
-        return "• " + parts[0].replace("_", " ") + ": " + parts[1].replace("_", " ");
     }
 }

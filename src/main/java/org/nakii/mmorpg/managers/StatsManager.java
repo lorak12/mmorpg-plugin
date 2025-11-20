@@ -64,19 +64,13 @@ public class StatsManager {
 
         // Apply Skill Bonuses (check for null in case of reload/initialization race condition)
         if (skillManager != null) {
-            FileConfiguration skillsConfig = skillManager.getSkillsConfig();
             for (Skill skill : Skill.values()) {
                 int level = skillManager.getLevel(player, skill);
                 if (level > 0) {
-                    ConfigurationSection rewards = skillsConfig.getConfigurationSection(skill.name() + ".rewards-per-level");
-                    if (rewards != null) {
-                        for (String statKey : rewards.getKeys(false)) {
-                            try {
-                                Stat stat = Stat.valueOf(statKey.toUpperCase());
-                                double amountPerLevel = rewards.getDouble(statKey);
-                                finalStats.addStat(stat, level * amountPerLevel);
-                            } catch (IllegalArgumentException ignored) {}
-                        }
+                    // Read from the fast in-memory cache instead of the file
+                    Map<Stat, Double> rewards = skillManager.getCachedSkillRewards(skill);
+                    for (Map.Entry<Stat, Double> entry : rewards.entrySet()) {
+                        finalStats.addStat(entry.getKey(), level * entry.getValue());
                     }
                 }
             }
@@ -218,11 +212,21 @@ public class StatsManager {
         stats.setStat(Stat.TREASURE_CHANCE, 0);
     }
 
+    /**
+     * Bridges our custom stat system with Bukkit's Attribute system.
+     * This is where we control the visual display of hearts and speed.
+     */
     private void applyStatsToPlayer(Player player, PlayerStats stats) {
-        player.getAttribute(Attribute.MAX_HEALTH).setBaseValue(stats.getHealth());
+        // --- HEALTH SCALING FIX ---
+        // The player's VISUAL hearts are now capped at 40.0 (2 rows).
+        // The actual MMORPG health stat (stats.getHealth()) can be thousands or millions.
+        player.getAttribute(Attribute.MAX_HEALTH).setBaseValue(40.0);
+
+        // Set Movement Speed (this logic is correct)
         double baseSpeed = 0.1 * (stats.getSpeed() / 100.0);
         player.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(baseSpeed);
     }
+
 
     public void loadPlayer(Player player) {
         recalculateStats(player);

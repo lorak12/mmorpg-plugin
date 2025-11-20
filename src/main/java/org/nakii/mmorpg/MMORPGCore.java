@@ -105,7 +105,7 @@ public final class MMORPGCore extends JavaPlugin {
             regenerationManager = new RegenerationManager(this, worldManager);
             statsManager = new StatsManager(this, databaseManager, itemManager, enchantmentManager);
             playerManager = new PlayerManager(this, statsManager);
-            healthManager = new HealthManager(this, statsManager);
+            healthManager = new HealthManager(this, statsManager, playerManager, combatTracker);
             hudManager = new HUDManager(this, statsManager, playerManager);
             mobManager = new MobManager(this, itemManager);
             damageManager = new DamageManager(this, statsManager, enchantmentManager);
@@ -205,12 +205,12 @@ public final class MMORPGCore extends JavaPlugin {
         pm.registerEvents(new FarmingListener(skillManager), this);
         pm.registerEvents(new FishingListener(skillManager), this);
         pm.registerEvents(new ForagingListener(skillManager, worldManager), this);
-        pm.registerEvents(new GenericDamageListener(this, hudManager, mobManager), this);
+        pm.registerEvents(new GenericDamageListener(this, hudManager, mobManager, playerManager, combatTracker), this);
         pm.registerEvents(new GUIListener(this), this);
         pm.registerEvents(new InventoryListener(this, statsManager), this);
         pm.registerEvents(new PlayerConnectionListener(this, databaseManager, skillManager, slayerDataManager, collectionManager, statsManager, playerManager, economyManager, slayerManager, scoreboardManager, playerMovementTracker), this); // Movement tracker is a task
-        pm.registerEvents(new PlayerDamageListener(this, combatTracker, enchantmentManager, enchantmentEffectManager, statsManager, damageManager, mobManager, slayerManager, slayerDataManager, scoreboardManager, lootManager, collectionManager, skillManager), this);
-        pm.registerEvents(new PlayerDeathListener(this, economyManager), this);
+        pm.registerEvents(new PlayerDamageListener(this, combatTracker, enchantmentManager, enchantmentEffectManager, statsManager, damageManager, mobManager, slayerManager, slayerDataManager, scoreboardManager, lootManager, collectionManager, skillManager, playerManager, hudManager), this);
+        pm.registerEvents(new PlayerDeathListener(this, economyManager, playerManager, statsManager), this);
         pm.registerEvents(new PristineItemListener(), this);
         pm.registerEvents(new ProjectileListener(this, enchantmentManager), this);
         pm.registerEvents(new RequirementListener(requirementManager), this);

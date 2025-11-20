@@ -57,17 +57,26 @@ public class HUDManager {
         temporaryMessages.put(player.getUniqueId(), priorityMessage);
     }
 
+    /**
+     * Updates the player's default action bar HUD with their current stats.
+     * This method now correctly reads from the custom MMORPG health system.
+     */
     public void updateDefaultHud(Player player) {
-        double currentHealth = player.getHealth();
-        double maxHealth = player.getAttribute(Attribute.MAX_HEALTH).getValue();
+
+        // 1. Get the REAL MMORPG health values, not the visual vanilla ones.
         PlayerStats stats = statsManager.getStats(player);
+        double maxMmorpgHealth = stats.getHealth();
+        double currentMmorpgHealth = playerManager.getCurrentHealth(player);
+
+        // 2. The rest of the stats are fetched as before.
         double defense = stats.getDefense();
         double currentMana = playerManager.getCurrentMana(player);
         double maxMana = stats.getIntelligence();
 
-        Component healthComponent = Component.text(String.format("❤ %.0f/%.0f HP", currentHealth, maxHealth), NamedTextColor.RED);
-        Component defenseComponent = Component.text(String.format("❈ %.0f Defense", defense), NamedTextColor.GREEN);
-        Component manaComponent = Component.text(String.format("✎ %.0f/%.0f Mana", currentMana, maxMana), NamedTextColor.AQUA);
+        // 3. Build the components using the correct MMORPG health values.
+        Component healthComponent = Component.text(String.format("❤ %,.0f/%,.0f HP", currentMmorpgHealth, maxMmorpgHealth), NamedTextColor.RED);
+        Component defenseComponent = Component.text(String.format("❈ %,.0f Defense", defense), NamedTextColor.GREEN);
+        Component manaComponent = Component.text(String.format("✎ %,.0f/%,.0f Mana", currentMana, maxMana), NamedTextColor.AQUA);
 
         Component actionBar = healthComponent
                 .append(Component.text("    "))

@@ -42,12 +42,15 @@ public class PlayerDamageListener implements Listener {
     private final LootManager lootManager;
     private final CollectionManager collectionManager;
     private final SkillManager skillManager;
+    private final PlayerManager playerManager; // New dependency
+    private final HUDManager hudManager;       // New dependency
 
     public PlayerDamageListener(MMORPGCore plugin, CombatTracker combatTracker, EnchantmentManager enchantmentManager,
                                 EnchantmentEffectManager enchantmentEffectManager, StatsManager statsManager,
                                 DamageManager damageManager, MobManager mobManager, SlayerManager slayerManager,
                                 SlayerDataManager slayerDataManager, ScoreboardManager scoreboardManager,
-                                LootManager lootManager, CollectionManager collectionManager, SkillManager skillManager) {
+                                LootManager lootManager, CollectionManager collectionManager, SkillManager skillManager,
+                                PlayerManager playerManager, HUDManager hudManager) { // Updated constructor
         this.plugin = plugin;
         this.combatTracker = combatTracker;
         this.enchantmentManager = enchantmentManager;
@@ -61,12 +64,22 @@ public class PlayerDamageListener implements Listener {
         this.lootManager = lootManager;
         this.collectionManager = collectionManager;
         this.skillManager = skillManager;
+        this.playerManager = playerManager; // New dependency
+        this.hudManager = hudManager;       // New dependency
     }
 
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof LivingEntity victim)) return;
+
+        // Tag both attacker and victim as "in-combat" at the start of any fight.
+        if (event.getDamager() instanceof Player attacker) {
+            combatTracker.tag(attacker);
+        }
+        if (victim instanceof Player victimPlayer) {
+            combatTracker.tag(victimPlayer);
+        }
 
         boolean bypassDefense = victim.hasMetadata(Keys.BYPASS_DEFENSE.getKey());
         if (bypassDefense) {
@@ -78,26 +91,27 @@ public class PlayerDamageListener implements Listener {
 
         if (!bypassDefense) {
             if (event.isCritical()) {
-                finalDamage /= 1.5;
+                finalDamage /= 1.5; // Remove vanilla crit bonus to apply our own
             }
 
             if (event.getDamager() instanceof Player attacker) {
                 PlayerStats attackerStats = statsManager.getStats(attacker);
                 isCustomCrit = (Math.random() * 100 < attackerStats.getCritChance());
-                finalDamage = damageManager.calculatePlayerDamage(attacker, victim, finalDamage, isCustomCrit);
 
+                // Gather special conditions (context) for the damage calculation
+                boolean isBackstab = false;
                 ItemStack weapon = attacker.getInventory().getItemInMainHand();
                 if (weapon != null && weapon.hasItemMeta()) {
                     String itemId = weapon.getItemMeta().getPersistentDataContainer().get(Keys.ITEM_ID, PersistentDataType.STRING);
-                    if ("LIVID_DAGGER".equals(itemId)) {
-                        if (VectorUtils.isBehind(attacker, victim)) {
-                            if (isCustomCrit) {
-                                finalDamage *= 2;
-                            }
-                        }
+                    if ("LIVID_DAGGER".equals(itemId) && VectorUtils.isBehind(attacker, victim)) {
+                        isBackstab = true;
                     }
                 }
 
+                // Delegate main calculation to DamageManager
+                finalDamage = damageManager.calculateFinalPlayerDamage(attacker, victim, finalDamage, isCustomCrit, isBackstab);
+
+                // Apply on-damage-modify enchantment effects
                 if (weapon != null && !weapon.getType().isAir()) {
                     Map<String, Integer> enchantments = enchantmentManager.getEnchantments(weapon);
                     for (Map.Entry<String, Integer> entry : enchantments.entrySet()) {
@@ -111,35 +125,29 @@ public class PlayerDamageListener implements Listener {
                 }
             } else if (event.getDamager() instanceof LivingEntity mobAttacker) {
                 if (mobManager.isCustomMob(mobAttacker)) {
-                    CustomMobTemplate template = mobManager.getTemplate(mobManager.getMobId(mobAttacker));
-                    if (template != null) {
-                        finalDamage = template.getStat(Stat.DAMAGE);
-                    }
+                    finalDamage = mobManager.getTemplate(mobManager.getMobId(mobAttacker)).getStat(Stat.DAMAGE);
                 }
             }
         }
 
-        finalDamage = damageManager.applyDefense(victim, finalDamage);
-        event.getEntity().setMetadata(Keys.LAST_HIT_CRIT.getKey(), new FixedMetadataValue(plugin, isCustomCrit));
-        event.setDamage(Math.floor(finalDamage));
-
-        if (event.getDamager() instanceof Player attacker) {
-            ItemStack weapon = attacker.getInventory().getItemInMainHand();
-            if (weapon != null && !weapon.getType().isAir()) {
-                Map<String, Integer> enchantments = enchantmentManager.getEnchantments(weapon);
-                for (Map.Entry<String, Integer> entry : enchantments.entrySet()) {
-                    CustomEnchantment enchantment = enchantmentManager.getEnchantment(entry.getKey());
-                    if (enchantment == null || enchantment.getCustomLogicKey() == null) continue;
-                    EnchantmentEffect effect = enchantmentEffectManager.getEffect(enchantment.getCustomLogicKey());
-                    if (effect != null) {
-                        effect.onAttack(event, enchantment, entry.getValue(), isCustomCrit);
-                    }
-                }
-            }
-            combatTracker.recordHit(attacker, victim);
-        }
-
+        // --- NEW DAMAGE APPLICATION LOGIC ---
         if (victim instanceof Player victimPlayer) {
+            // Cancel the vanilla event. We are now in full control of player health.
+            event.setCancelled(true);
+
+            // Apply defense calculation
+            finalDamage = damageManager.applyDefense(victim, finalDamage);
+
+            // Deal damage to our custom health pool
+            playerManager.dealDamage(victimPlayer, finalDamage);
+
+            // Manually play the hurt animation since we cancelled the event
+            victimPlayer.playHurtAnimation(0);
+
+            // Show damage indicator
+            hudManager.showDamageIndicator(victim.getLocation(), finalDamage, isCustomCrit);
+
+            // Apply on-damaged effects from armor enchantments
             for (ItemStack armorPiece : victimPlayer.getInventory().getArmorContents()) {
                 if (armorPiece == null || armorPiece.getType().isAir()) continue;
                 Map<String, Integer> enchantments = enchantmentManager.getEnchantments(armorPiece);
@@ -152,9 +160,35 @@ public class PlayerDamageListener implements Listener {
                     }
                 }
             }
+        } else {
+            // For non-player entities (mobs), we apply defense and set the damage on the event.
+            finalDamage = damageManager.applyDefense(victim, finalDamage);
+            victim.setMetadata(Keys.LAST_HIT_CRIT.getKey(), new FixedMetadataValue(plugin, isCustomCrit));
+            event.setDamage(Math.floor(finalDamage));
+        }
+
+        // --- This logic runs after damage is finalized for both players and mobs ---
+        if (event.getDamager() instanceof Player attacker) {
+            // Record hit for combo enchantments
+            combatTracker.recordHit(attacker, victim);
+
+            // Apply on-attack effects from weapon enchantments
+            ItemStack weapon = attacker.getInventory().getItemInMainHand();
+            if (weapon != null && !weapon.getType().isAir()) {
+                Map<String, Integer> enchantments = enchantmentManager.getEnchantments(weapon);
+                for (Map.Entry<String, Integer> entry : enchantments.entrySet()) {
+                    CustomEnchantment enchantment = enchantmentManager.getEnchantment(entry.getKey());
+                    if (enchantment == null || enchantment.getCustomLogicKey() == null) continue;
+                    EnchantmentEffect effect = enchantmentEffectManager.getEffect(enchantment.getCustomLogicKey());
+                    if (effect != null) {
+                        effect.onAttack(event, enchantment, entry.getValue(), isCustomCrit);
+                    }
+                }
+            }
         }
     }
 
+    // --- THIS METHOD IS LARGELY UNCHANGED AS IT DEALS WITH DEATH, NOT DAMAGE ---
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDeath(EntityDeathEvent event) {
         Player killer = event.getEntity().getKiller();
@@ -164,6 +198,7 @@ public class PlayerDamageListener implements Listener {
         String mobId = mobManager.getMobId(victim);
 
         if (mobId != null) {
+            // Slayer Boss Kill Logic
             ActiveSlayerQuest quest = slayerManager.getActiveSlayerQuest(killer);
             if (quest != null && quest.getState() == ActiveSlayerQuest.QuestState.BOSS_FIGHT) {
                 if (victim.getUniqueId().equals(quest.getActiveBoss().getUniqueId())) {
@@ -185,9 +220,8 @@ public class PlayerDamageListener implements Listener {
                     }
                 }
             }
-        }
 
-        if (mobId != null) {
+            // Loot Drop Logic
             event.getDrops().clear();
             event.setDroppedExp(0);
 
@@ -209,8 +243,10 @@ public class PlayerDamageListener implements Listener {
             }
         }
 
+        // Grant Skill XP
         skillManager.handleMobKill(killer, victim);
 
+        // Handle On-Kill Enchantment Effects
         ItemStack weapon = killer.getInventory().getItemInMainHand();
         if (weapon == null || weapon.getType().isAir()) return;
 

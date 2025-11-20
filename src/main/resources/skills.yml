@@ -3,8 +3,8 @@
 # =================================================== #
 
 FARMING:
-  display-name: "<green>Farming"
-  icon: "WHEAT"
+  display-name: "Farming"
+  icon: "GOLDEN_HOE"
   max-level: 60
   rewards-per-level: { HEALTH: 2, FARMING_FORTUNE: 0.5 }
   milestone-rewards:
@@ -21,7 +21,7 @@ FARMING:
     SUGAR_CANE: 4
 
 MINING:
-  display-name: "<blue>Mining"
+  display-name: "Mining"
   icon: "DIAMOND_PICKAXE"
   max-level: 60
   rewards-per-level: { DEFENSE: 1, MINING_FORTUNE: 0.5 }
@@ -37,7 +37,7 @@ MINING:
     REDSTONE_ORE: 12
 
 FORAGING:
-  display-name: "<gold>Foraging"
+  display-name: "Foraging"
   icon: "OAK_SAPLING"
   max-level: 50
   rewards-per-level: { STRENGTH: 1, FORAGING_FORTUNE: 0.5 }
@@ -52,7 +52,7 @@ FORAGING:
     DARK_OAK_LOG: 10
 
 FISHING:
-  display-name: "<aqua>Fishing"
+  display-name: "Fishing"
   icon: "FISHING_ROD"
   max-level: 50
   rewards-per-level: { HEALTH: 1.5 }
@@ -63,7 +63,7 @@ FISHING:
     TREASURE_CATCH: 100 # Extra XP for catching treasure
 
 COMBAT:
-  display-name: "<red>Combat"
+  display-name: "Combat"
   icon: "IRON_SWORD"
   max-level: 60
   rewards-per-level: { CRIT_CHANCE: 0.5 }
@@ -71,7 +71,7 @@ COMBAT:
     10: ["RECIPE_UNLOCK:CLEAVER", "COINS:5000"]
 
 ENCHANTING:
-  display-name: "<light_purple>Enchanting"
+  display-name: "Enchanting"
   icon: "ENCHANTING_TABLE"
   max-level: 60
   rewards-per-level: { INTELLIGENCE: 1, ABILITY_DAMAGE: 0.5 }
@@ -82,7 +82,7 @@ ENCHANTING:
     ENCHANT_MULTIPLIER: 1.5
 
 ALCHEMY:
-  display-name: "<dark_purple>Alchemy"
+  display-name: "Alchemy"
   icon: "BREWING_STAND"
   max-level: 50
   rewards-per-level: { INTELLIGENCE: 1 }
@@ -93,7 +93,7 @@ ALCHEMY:
     DEFAULT_POTION: 250
 
 CARPENTRY:
-  display-name: "<yellow>Carpentry"
+  display-name: "Carpentry"
   icon: "CRAFTING_TABLE"
   max-level: 50
   rewards-per-level: { HEALTH: 0.5 }

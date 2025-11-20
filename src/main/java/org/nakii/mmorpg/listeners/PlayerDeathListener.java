@@ -11,6 +11,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.economy.PlayerEconomy;
 import org.nakii.mmorpg.managers.EconomyManager;
+import org.nakii.mmorpg.managers.PlayerManager;
+import org.nakii.mmorpg.managers.StatsManager;
 import org.nakii.mmorpg.util.ChatUtils;
 
 import java.text.NumberFormat;
@@ -19,10 +21,14 @@ public class PlayerDeathListener implements Listener {
 
     private final EconomyManager economyManager;
     private final MMORPGCore plugin;
+    private final PlayerManager playerManager;
+    private final StatsManager statsManager;
 
-    public PlayerDeathListener(MMORPGCore plugin, EconomyManager economyManager) {
+    public PlayerDeathListener(MMORPGCore plugin, EconomyManager economyManager, PlayerManager playerManager, StatsManager statsManager) {
         this.plugin = plugin;
         this.economyManager = economyManager;
+        this.playerManager = playerManager;
+        this.statsManager = statsManager;
     }
 
     @EventHandler
@@ -42,18 +48,15 @@ public class PlayerDeathListener implements Listener {
     @EventHandler
     public void onPlayerRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
+        // Schedule a task for 1 tick later to ensure all vanilla respawn logic is complete.
         new BukkitRunnable() {
             @Override
             public void run() {
-                //TODO: These effects are now managed by PlayerMovementTracker,
-                // but we can re-apply here as a backup.
-                // A better solution would be to call a method in a central player state manager.
-                if (!player.hasPotionEffect(PotionEffectType.MINING_FATIGUE)) {
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, PotionEffect.INFINITE_DURATION, 4, false, false, false));
-                }
-                if (!player.hasPotionEffect(PotionEffectType.HASTE)) {
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, PotionEffect.INFINITE_DURATION, 2, false, false, false));
-                }
+                // Restore the player to 100% of their maximum MMORPG health.
+                double maxHealth = statsManager.getStats(player).getHealth();
+                playerManager.setCurrentHealth(player, maxHealth);
+
+                // The HealthManager's ticking task will automatically fix their visual hearts on its next run.
             }
         }.runTaskLater(plugin, 1L);
     }

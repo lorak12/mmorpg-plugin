@@ -1,12 +1,22 @@
 package org.nakii.mmorpg.skills;
 
 public enum Skill {
-    COMBAT,
-    FARMING,
-    FISHING,
-    MINING,
-    FORAGING,
-    ENCHANTING,
-    ALCHEMY,
-    CARPENTRY
+    COMBAT("⚔"),
+    FARMING("☘"),
+    FISHING("☂"),
+    MINING("⛏"),
+    FORAGING("☘"),
+    ENCHANTING("✎"),
+    ALCHEMY("⚗"),
+    CARPENTRY("⚒");
+
+    private final String symbol;
+
+    Skill(String symbol) {
+        this.symbol = symbol;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
 }

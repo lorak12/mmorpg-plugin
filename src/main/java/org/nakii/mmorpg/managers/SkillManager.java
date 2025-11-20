@@ -1,11 +1,15 @@
 package org.nakii.mmorpg.managers;
 
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.nakii.mmorpg.MMORPGCore;
 import org.nakii.mmorpg.events.PlayerGainCombatXpEvent;
 import org.nakii.mmorpg.mob.CustomMobTemplate;
@@ -19,12 +23,33 @@ import org.nakii.mmorpg.util.FormattingUtils;
 import java.io.File;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SkillManager {
     private final MMORPGCore plugin;
     private final Map<UUID, PlayerSkillData> playerDataCache = new HashMap<>();
     private FileConfiguration skillsConfig;
     private FileConfiguration levelsConfig;
+
+    private final Map<Integer, Integer> xpToReachLevelCache = new TreeMap<>();
+    private final Map<Skill, Map<Stat, Double>> skillRewardCache = new EnumMap<>(Skill.class);
+    // --- NEW FIELDS FOR THE ADVANCED XP BUFFER ---
+
+    // A thread-safe map to accumulate incoming XP gains before they are displayed.
+    // Format: Player UUID -> {Skill -> Accumulated XP}
+    private final Map<UUID, Map<Skill, Double>> pendingXpGains = new ConcurrentHashMap<>();
+
+    // Tracks the currently displayed action bar message for each player to manage its lifecycle.
+    private final Map<UUID, ActiveDisplayInfo> activeDisplays = new ConcurrentHashMap<>();
+
+    // A simple record to hold the state of the currently showing action bar message.
+    private record ActiveDisplayInfo(Skill skill, long expirationTime) {}
+
+    // The BukkitTask that runs our display logic.
+    private BukkitTask xpDisplayTask = null;
+
+    // How long each XP bar message should stay on screen (in seconds).
+    private static final int XP_BAR_DURATION_SECONDS = 2;
 
     private final DatabaseManager databaseManager;
     private final StatsManager statsManager;
@@ -34,7 +59,6 @@ public class SkillManager {
     // RewardManager is no longer final and will be injected.
     private RewardManager rewardManager;
 
-    private final Map<Integer, Integer> xpToReachLevelCache = new TreeMap<>();
 
     // Constructor is simplified.
     public SkillManager(MMORPGCore plugin, DatabaseManager databaseManager, StatsManager statsManager, MobManager mobManager, HUDManager hudManager) {
@@ -45,6 +69,7 @@ public class SkillManager {
         this.hudManager = hudManager;
         loadSkillsConfig();
         loadLevelsConfig();
+        startXpDisplayTask();
     }
 
     // Setter for RewardManager
@@ -56,6 +81,29 @@ public class SkillManager {
         File file = new File(plugin.getDataFolder(), "skills.yml");
         if (!file.exists()) plugin.saveResource("skills.yml", false);
         this.skillsConfig = YamlConfiguration.loadConfiguration(file);
+
+        // <<< FIX: Populate the cache when the config is loaded >>>
+        skillRewardCache.clear();
+        for (Skill skill : Skill.values()) {
+            ConfigurationSection rewardsSection = skillsConfig.getConfigurationSection(skill.name() + ".rewards-per-level");
+            if (rewardsSection != null) {
+                Map<Stat, Double> rewards = new EnumMap<>(Stat.class);
+                for (String statKey : rewardsSection.getKeys(false)) {
+                    try {
+                        Stat stat = Stat.valueOf(statKey.toUpperCase());
+                        rewards.put(stat, rewardsSection.getDouble(statKey));
+                    } catch (IllegalArgumentException e) {
+                        plugin.getLogger().warning("Invalid stat '" + statKey + "' in rewards for skill " + skill.name());
+                    }
+                }
+                skillRewardCache.put(skill, rewards);
+            }
+        }
+        plugin.getLogger().info("Cached per-level rewards for " + skillRewardCache.size() + " skills.");
+    }
+
+    public Map<Stat, Double> getCachedSkillRewards(Skill skill) {
+        return skillRewardCache.getOrDefault(skill, Collections.emptyMap());
     }
 
     private void loadLevelsConfig() {
@@ -76,36 +124,51 @@ public class SkillManager {
     }
 
     public void addXp(Player player, Skill skill, double amount) {
+        if (amount <= 0) return;
+
         PlayerSkillData data = getPlayerData(player);
         int currentLevel = data.getLevel(skill);
         int maxLevel = skillsConfig.getInt(skill.name() + ".max-level", 60);
 
         if (currentLevel >= maxLevel) return;
 
-        double oldTotalXp = data.getXp(skill);
+        // --- 1. IMMEDIATELY update the player's persistent data ---
         data.addXp(skill, amount);
-        double newTotalXp = data.getXp(skill);
+        int newLevel = calculateLevelFromTotalXp(data.getXp(skill));
 
-        int newLevel = calculateLevelFromTotalXp(newTotalXp);
-
+        // Level-up logic now runs on the main thread safely.
         if (newLevel > currentLevel) {
-            data.setLevel(skill, newLevel);
-            handleLevelUp(player, skill, newLevel, currentLevel);
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    PlayerSkillData latestData = getPlayerData(player);
+                    int latestLevel = latestData.getLevel(skill);
+                    int calculatedNewLevel = calculateLevelFromTotalXp(latestData.getXp(skill));
+
+                    if (calculatedNewLevel > latestLevel) {
+                        latestData.setLevel(skill, calculatedNewLevel);
+                        handleLevelUp(player, skill, calculatedNewLevel, latestLevel);
+                    }
+                }
+            }.runTask(plugin);
         }
 
-        hudManager.updateActionBar(player, "<aqua>+" + amount + " " + skill.name() + " XP</aqua>", 3);
+        // --- 2. Buffer the visual display ---
+        // If a different skill's XP is currently being displayed, this will queue the new XP.
+        // If the same skill is being displayed, this will just add to the next message's total.
+        pendingXpGains.computeIfAbsent(player.getUniqueId(), k -> new ConcurrentHashMap<>())
+                .merge(skill, amount, Double::sum);
     }
 
     private void handleLevelUp(Player player, Skill skill, int newLevel, int oldLevel) {
-        // Null-check for RewardManager, crucial during initial load or reloads.
-        if(rewardManager == null) {
-            plugin.getLogger().warning("RewardManager is not available, cannot grant level-up rewards for " + player.getName());
+        if (rewardManager == null) {
+            plugin.getLogger().warning("RewardManager is not available...");
             return;
         }
 
-        String skillDisplayName = skillsConfig.getString(skill.name() + ".display-name", skill.name());
-        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
 
+        String skillDisplayName = skillsConfig.getString(skill.name() + ".display-name", skill.name());
         List<String> allRewardStrings = new ArrayList<>();
         int totalCoins = 0;
 
@@ -115,21 +178,27 @@ public class SkillManager {
         }
 
         if (totalCoins > 0) {
+            // Add coins to the list to be processed by RewardManager
             allRewardStrings.add("COINS:" + totalCoins);
         }
 
+        // Grant the rewards FIRST
+        rewardManager.grantRewards(player, allRewardStrings);
+
+        // --- NEW: Build the announcement message using the formatted strings ---
         player.sendMessage(ChatUtils.format("<dark_gray>-----------------------------------"));
-        player.sendMessage(ChatUtils.format("                <green><b>LEVEL UP</b></green>"));
+        player.sendMessage(ChatUtils.format("                <green><b>SKILL LEVEL UP</b></green>"));
         player.sendMessage(ChatUtils.format("   " + skillDisplayName + " <gray>" + FormattingUtils.toRoman(oldLevel) + " -> <yellow>" + FormattingUtils.toRoman(newLevel) + "</yellow>"));
         player.sendMessage(ChatUtils.format(" "));
-        player.sendMessage(ChatUtils.format("  <white>Rewards:"));
+        player.sendMessage(ChatUtils.format("  <white><b>REWARDS</b></white>"));
 
-        List<Component> rewardComponents = rewardManager.grantRewards(player, allRewardStrings);
-        for (Component rewardLine : rewardComponents) {
-            player.sendMessage(Component.text("  ").append(rewardLine));
+        // <<< FIX: Generate the chat message using the same formatter >>>
+        for (String rewardString : allRewardStrings) {
+            player.sendMessage(ChatUtils.format("  " + ChatUtils.formatRewardString(rewardString)));
         }
 
         player.sendMessage(ChatUtils.format("<dark_gray>-----------------------------------"));
+
         statsManager.recalculateStats(player);
     }
 
@@ -178,7 +247,6 @@ public class SkillManager {
     }
     public PlayerSkillData getPlayerData(Player player) { return playerDataCache.get(player.getUniqueId()); }
     public int getLevel(Player player, Skill skill) { return getPlayerData(player).getLevel(skill); }
-    public double getTotalXp(Player player, Skill skill) { return getPlayerData(player).getXp(skill); }
 
     public int calculateLevelFromTotalXp(double totalXp) {
         int level = 0;
@@ -202,6 +270,69 @@ public class SkillManager {
     public int getCumulativeXpForLevel(int level) {
         return xpToReachLevelCache.getOrDefault(level, 0);
     }
+
+    private void startXpDisplayTask() {
+        if (xpDisplayTask != null) {
+            xpDisplayTask.cancel();
+        }
+        // Run this task on the main server thread every 5 ticks. This is responsive and safe.
+        xpDisplayTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    UUID uuid = player.getUniqueId();
+                    ActiveDisplayInfo activeDisplay = activeDisplays.get(uuid);
+
+                    // Step 1: Check if the current message has expired.
+                    if (activeDisplay != null && System.currentTimeMillis() > activeDisplay.expirationTime()) {
+                        activeDisplays.remove(uuid);
+                        activeDisplay = null; // It's expired, so we can show a new one.
+                    }
+
+                    // Step 2: If nothing is currently being shown, check for pending XP to display.
+                    if (activeDisplay == null) {
+                        Map<Skill, Double> playerPendingGains = pendingXpGains.get(uuid);
+                        if (playerPendingGains != null && !playerPendingGains.isEmpty()) {
+
+                            // Pick the first available skill from the pending map to display.
+                            Skill skillToShow = playerPendingGains.keySet().iterator().next();
+                            double accumulatedXp = playerPendingGains.remove(skillToShow);
+
+                            // If the map for this player is now empty, remove them to save memory.
+                            if (playerPendingGains.isEmpty()) {
+                                pendingXpGains.remove(uuid);
+                            }
+
+                            // Step 3: Build and display the new message.
+                            PlayerSkillData data = getPlayerData(player);
+                            int level = data.getLevel(skillToShow);
+                            double totalXp = data.getXp(skillToShow);
+                            double xpForCurrentLevel = getCumulativeXpForLevel(level);
+                            double xpForNextLevel = getCumulativeXpForLevel(level + 1);
+
+                            double progressInLevel = totalXp - xpForCurrentLevel;
+                            double neededForLevel = xpForNextLevel - xpForCurrentLevel;
+
+                            // Format: +36 ⚔ Combat XP (36/125)
+                            String message = String.format("<aqua>+%,.0f %s %s XP</aqua> <gray>(<yellow>%,.0f</yellow>/<green>%,.0f</green>)</gray>",
+                                    accumulatedXp,
+                                    skillToShow.getSymbol(),
+                                    ChatUtils.capitalizeWords(skillToShow.name()),
+                                    progressInLevel,
+                                    neededForLevel
+                            );
+
+                            // Send the message and register it as the active display.
+                            hudManager.updateActionBar(player, message, XP_BAR_DURATION_SECONDS);
+                            long expiration = System.currentTimeMillis() + (XP_BAR_DURATION_SECONDS * 1000L);
+                            activeDisplays.put(uuid, new ActiveDisplayInfo(skillToShow, expiration));
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 5L, 5L); // Run every 1/4 of a second (5 ticks)
+    }
+
 
     public FileConfiguration getSkillsConfig() { return skillsConfig; }
     public FileConfiguration getLevelsConfig() { return levelsConfig; }

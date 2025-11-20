@@ -22,6 +22,8 @@ public class PlayerManager {
         playerDataMap.put(player.getUniqueId(), new PlayerData());
         double maxMana = statsManager.getStats(player).getIntelligence();
         setCurrentMana(player, maxMana);
+        double maxHealth = statsManager.getStats(player).getHealth();
+        setCurrentHealth(player, maxHealth);
     }
 
     public void unloadPlayer(Player player) {
@@ -64,5 +66,34 @@ public class PlayerManager {
                 setCurrentMana(player, currentMana + regenAmount);
             }
         }
+    }
+
+    /**
+     * Gets the player's current, precise MMORPG health.
+     */
+    public double getCurrentHealth(Player player) {
+        PlayerData data = playerDataMap.get(player.getUniqueId());
+        return (data != null) ? data.getCurrentHealth() : 0;
+    }
+
+    /**
+     * Sets the player's current MMORPG health, clamping it between 0 and their max health.
+     */
+    public void setCurrentHealth(Player player, double amount) {
+        PlayerData data = playerDataMap.get(player.getUniqueId());
+        if (data != null) {
+            double maxHealth = statsManager.getStats(player).getHealth();
+            data.setCurrentHealth(Math.max(0, Math.min(amount, maxHealth)));
+        }
+    }
+
+    /**
+     * Deals a specific amount of MMORPG damage to a player.
+     * @param player The player to damage.
+     * @param amount The amount of damage to deal.
+     */
+    public void dealDamage(Player player, double amount) {
+        if (amount <= 0) return;
+        setCurrentHealth(player, getCurrentHealth(player) - amount);
     }
 }

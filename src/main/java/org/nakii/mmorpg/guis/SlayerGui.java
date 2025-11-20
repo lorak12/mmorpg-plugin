@@ -240,9 +240,9 @@ public class SlayerGui extends AbstractGui {
             lore.add("<gray>Rewards:");
             List<String> rewardStrings = slayerConfig.getStringList("rewards." + level);
             if (rewardStrings.isEmpty()) {
-                lore.add("<gray>None");
+                lore.add("<dark_gray>None");
             } else {
-                rewardStrings.forEach(r -> lore.add(formatRewardString(r)));
+                rewardStrings.forEach(r -> lore.add(ChatUtils.formatRewardString(r)));
             }
             lore.add(" ");
             lore.add("<gray>Progress:</gray>");
@@ -394,33 +394,6 @@ public class SlayerGui extends AbstractGui {
     }
 
     // --- UTILITY METHODS ---
-
-    /**
-     * Formats a raw reward string from the config into a user-friendly, colored lore line.
-     * @param rewardString The raw string (e.g., "STAT_BOOST:HEALTH:2").
-     * @return A formatted string for the GUI lore.
-     */
-    private String formatRewardString(String rewardString) {
-        String[] parts = rewardString.split(":");
-        if (parts.length < 2) return "<gray>" + rewardString;
-
-        String type = parts[0].toUpperCase();
-        String context = parts[1];
-
-        return switch (type) {
-            case "STAT_BOOST" -> {
-                if (parts.length < 3) yield "<gray>Invalid Stat Boost";
-                String statName = parts[1];
-                String value = parts[2];
-                // You would need a way to get the symbol for the stat.
-                // For now, we can hard-code a few common ones.
-                String symbol = Stat.valueOf(statName.toUpperCase()).getSymbol();
-                yield "<red> +" + value + symbol + " " + context.substring(0, 1).toUpperCase() + context.substring(1).toLowerCase() + "</red>";
-            }
-            case "RECIPE_UNLOCK" -> "<green>" + ChatUtils.capitalizeWords(context.replace("_", " ")) + "</green> <gray>Recipe</gray>";
-            default -> "<gray>" + rewardString.replace("_", " ");
-        };
-    }
 
     private String getChanceRarity(double chance) {
         if (chance >= 0.5) return "<yellow>Uncommon Drop</yellow>";

@@ -30,7 +30,36 @@ public class DamageManager {
         this.enchantmentManager = enchantmentManager;
     }
 
-    public double calculatePlayerDamage(Player attacker, LivingEntity victim, double baseDamage, boolean isCritical) {
+    /**
+     * The new, centralized method for calculating all player-dealt damage from a standard attack.
+     * @param attacker The attacking player.
+     * @param victim The entity being attacked.
+     * @param baseDamage The initial damage from the event (used as a fallback).
+     * @param isCritical Whether the hit is a custom critical hit.
+     * @param isBackstab Whether the hit is a backstab (for effects like Livid Dagger).
+     * @return The final calculated damage before defense and on-damage-modify enchantments are applied.
+     */
+    public double calculateFinalPlayerDamage(Player attacker, LivingEntity victim, double baseDamage, boolean isCritical, boolean isBackstab) {
+        // Step 1: Calculate base damage from stats and weapon.
+        double finalDamage = calculatePlayerBaseDamage(attacker, isCritical);
+
+        // Step 2: Apply conditional multipliers from item effects.
+        if (isBackstab && isCritical) {
+            // Livid Dagger's special logic now lives here, where it belongs.
+            finalDamage *= 2.0;
+        }
+
+        // Add other conditional multipliers here in the future (e.g., from armor sets).
+        // Example: if (player is wearing full Dragon Armor and victim is a Dragon) { finalDamage *= 1.5; }
+
+        return finalDamage;
+    }
+
+    /**
+     * Calculates the initial damage based on player stats, weapon, and critical hits.
+     * This is a private helper method for the main damage calculation.
+     */
+    private double calculatePlayerBaseDamage(Player attacker, boolean isCritical) {
         PlayerStats attackerStats = statsManager.getStats(attacker);
         ItemStack weapon = attacker.getInventory().getItemInMainHand();
         double weaponDmg = 0;
@@ -44,18 +73,18 @@ public class DamageManager {
             }
         }
 
+        // The core damage formula
         double initialDamage = (5 + weaponDmg) * (1 + attackerStats.getStrength() / 100.0);
 
+        // Apply sharpness-like enchantments
         double enchantMultiplier = 0;
         if (weapon != null) {
             Map<String, Integer> enchantments = enchantmentManager.getEnchantments(weapon);
-            for (Map.Entry<String, Integer> entry : enchantments.entrySet()) {
-                CustomEnchantment enchant = enchantmentManager.getEnchantment(entry.getKey());
-                if (enchant == null) continue;
-                int level = entry.getValue();
-
-                if ("sharpness".equalsIgnoreCase(enchant.getId())) {
-                    enchantMultiplier += enchant.getValue(level) / 100.0;
+            Integer sharpnessLevel = enchantments.get("sharpness");
+            if (sharpnessLevel != null) {
+                CustomEnchantment enchant = enchantmentManager.getEnchantment("sharpness");
+                if (enchant != null) {
+                    enchantMultiplier += enchant.getValue(sharpnessLevel) / 100.0;
                 }
             }
         }
@@ -63,6 +92,7 @@ public class DamageManager {
         double damageMultiplier = 1 + enchantMultiplier;
         double finalDamage = initialDamage * damageMultiplier;
 
+        // Apply critical hit multiplier
         if (isCritical) {
             finalDamage *= (1 + attackerStats.getCritDamage() / 100.0);
         }
@@ -77,6 +107,7 @@ public class DamageManager {
             double damageReduction = defense / (defense + 100.0);
             return incomingDamage * (1.0 - damageReduction);
         }
+        // Could add logic for custom mob defense here later
         return incomingDamage;
     }
 
